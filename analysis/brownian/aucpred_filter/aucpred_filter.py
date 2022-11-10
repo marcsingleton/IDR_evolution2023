@@ -103,13 +103,3 @@ for min_length, records in record_sets.items():
         file.write('OGid\tstart\tstop\tdisorder\tppids\n')
         for record in records:
             file.write('\t'.join(record) + '\n')
-
-"""
-DEPENDENCIES
-../../ortho_MSA/deletion_decode/deletion_decode.py
-    ../../ortho_MSA/deletion_decode/out/*.tsv
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../aucpred_regions/get_regions.py
-    ../aucpred_regions/out/regions.tsv
-"""

@@ -52,14 +52,4 @@ NOTES
 The number of unique genes for each set of OGs is the same as the total. This means the genes are uniquely mapped to
 OGs (as opposed to one gene potentially being in multiple OGs which is quite possible). The filtered list of OGs already
 removed OGs with multiple representatives from each species, so the OGs also uniquely map to genes.
-
-DEPENDENCIES
-../../ortho_cluster2/cluster4+_graph/cluster4+_graph.py
-    ../../ortho_cluster2/cluster4+_graph/out/4clique/clusters.tsv
-../../ortho_MSA/OG_filter/OG_filter.py
-    ../../ortho_MSA/OG_filter/out/OG_filter.tsv
-../../ortho_search/sequence_data/sequence_data.py
-    ../../ortho_search/sequence_data/out/sequence_data.tsv
-../update_ids/update_ids.py
-    ../update_ids/out/*.txt
 """

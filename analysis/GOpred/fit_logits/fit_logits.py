@@ -92,13 +92,3 @@ for data, label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'),
                      **{f'beta{i}': beta for i, beta in enumerate(logit.coef_[0])}})
 results = pd.DataFrame(rows)
 results.to_csv('out/models.tsv', sep='\t', index=False)
-
-"""
-DEPENDENCIES
-../../brownian/aucpred_filter/aucpred_filter.py
-    ../../brownian/aucpred_filter/out/regions_30.tsv
-../../ortho_search/sequence_data/sequence_data.py
-    ../../ortho_search/sequence_data/out/sequence_data.tsv
-../filter_GAF/filter_GAF.py
-    ../filter_GAF/out/GAF_drop.tsv
-"""

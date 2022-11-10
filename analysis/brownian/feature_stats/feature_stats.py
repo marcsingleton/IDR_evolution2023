@@ -103,11 +103,3 @@ for data, data_label, norm_label in plots:
     plt.legend()
     plt.savefig(f'out/bar_scree_{data_label}_{norm_label}.png')
     plt.close()
-
-"""
-DEPENDENCIES
-../aucpred_filter/aucpred_filter.py
-    ../aucpred_filter/out/segments_30.tsv
-../get_features/get_features.py
-    ../get_features/out/features.tsv
-"""

@@ -87,10 +87,4 @@ with open('out/regions.tsv', 'w') as file:
 """
 OUTPUT
 3423 has fewer predictions than sequences. Skipping segmentation.
-
-DEPENDENCIES
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-./run_aucpred.py
-    ./out/raw/*/*.diso_noprof
 """

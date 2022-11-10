@@ -249,10 +249,3 @@ plt.ylabel('Frequency')
 plt.legend()
 plt.savefig('out/bar_freqs.png')
 plt.close()
-
-"""
-DEPENDENCIES
-../iqtree_fit/iqtree_fit.sh
-    ../iqtree_fit/out/*.iqtree
-../config/LG.paml
-"""

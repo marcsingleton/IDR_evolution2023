@@ -176,11 +176,3 @@ for min_length in min_lengths:
         lh.set_alpha(1)
     plt.savefig(f'out/regions_{min_length}/pca_min-max.png')
     plt.close()
-
-"""
-DEPENDENCIES
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../aucpred_filter/aucpred_filter.py
-    ../aucpred_filter/out/segments_*.tsv
-"""

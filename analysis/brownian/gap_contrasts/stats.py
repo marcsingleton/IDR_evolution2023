@@ -110,16 +110,3 @@ for label in ['norm1', 'norm2']:
 
         im = draw_msa([record['seq'] for record in msa])
         plt.imsave(f'out/{label}/{i:03}_{row.OGid}-{row.start}-{row.stop}.png', im)
-
-"""
-DEPENDENCIES
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSAinsertion_trim/out/*.afa
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../aucpred_filter/aucpred_filter.py
-    ../aucpred_filter/out/regions_30.tsv
-./gap_contrasts.py
-    ./out/row_sums.tsv
-    ./out/total_sums.tsv'
-"""

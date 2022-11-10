@@ -61,10 +61,4 @@ convenience here. It's also more realistic to expect the biological variation in
 than sampling the rate of site as "invariant 10% of the time, slow 25% of the time...", it's more appropriate to take
 the rate as a posterior average over rate categories. I feel this will yield better simulated alignments since the
 rate variation will manifest as a continuum rather than a single site being fast in some simulations and slow in others.
-
-DEPENDENCIES
-../asr_root/aa.py
-    ../asr_root/out/*_aa.npy
-../asr_root/indel.py
-    ../asr_root/out/*_indel.npy
 """

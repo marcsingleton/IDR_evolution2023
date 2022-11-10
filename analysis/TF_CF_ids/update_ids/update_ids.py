@@ -86,11 +86,3 @@ with open('out/TFs.txt', 'w') as file:
 with open('out/CFs.txt', 'w') as file:
     for CF in CFs:
         file.write(f'{CF}\n')
-
-"""
-DEPENDENCIES
-../../../data/TF_CF_ids/nature15545-s1.csv
-../../../data/TF_CF_ids/nature15545-s1_map.tsv
-../../../data/TF_CF_ids/nmeth.1763-S2.csv
-../../../data/TF_CF_ids/nmeth.1763-S2_map.tsv
-"""

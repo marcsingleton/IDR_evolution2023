@@ -80,13 +80,3 @@ with open('out/row_sums.tsv', 'w') as file:
     file.write('OGid\tstart\tstop\tlen1\tlen2\t' + '\t'.join([f'row{i}' for i in range(len(spids)-1)]) + '\n')
     for sum_record in sum_records:
         file.write('\t'.join([str(field) for field in sum_record]) + '\n')
-
-"""
-DEPENDENCIES
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../aucpred_filter/aucpred_filter.py
-    ../aucpred_filter/out/regions_30.tsv
-"""

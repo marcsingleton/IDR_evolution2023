@@ -60,11 +60,3 @@ if __name__ == '__main__':
             file.write('\t'.join(header) + '\n')
         for record in records:
             file.write('\t'.join(str(record.get(field, 'nan')) for field in header) + '\n')
-
-"""
-DEPENDENCIES
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../aucpred_regions/get_regions.py
-    ../aucpred_regions/out/regions.tsv
-"""

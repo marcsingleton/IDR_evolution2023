@@ -373,18 +373,3 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
             for spid, seq in sorted(aligned_records):
                 seqstring = '\n'.join([''.join(seq)[i:i+80] for i in range(0, len(seq), 80)])
                 file.write(f'>{spid}\n{seqstring}\n')
-
-"""
-DEPENDENCIES
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../asr_generate/asr_generate.py
-    ../asr_generate/out/*_sample.afa
-../asr_aa/asr_aa.py
-    ../asr_aa/out/*.iqtree
-    ../asr_aa/out/*.nex
-../asr_root/aa.py
-    ../asr_root/out/*_aa.npy
-../config/50R_disorder.paml
-../config/LG.paml
-"""

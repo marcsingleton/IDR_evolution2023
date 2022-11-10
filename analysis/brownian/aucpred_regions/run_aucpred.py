@@ -36,9 +36,3 @@ if __name__ == '__main__':
     with mp.Pool(processes=num_processes) as pool:
         OGids = [path.removesuffix('.afa') for path in os.listdir('../../ortho_MSA/insertion_trim/out/') if path.endswith('.afa')]
         pool.map(run_aucpred, OGids)
-
-"""
-DEPENDENCIES
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-"""

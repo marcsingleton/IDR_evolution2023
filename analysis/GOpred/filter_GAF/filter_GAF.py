@@ -207,13 +207,3 @@ plt.close()
 # Write dfs to file
 for df, label in zip(dfs[2:], labels[2:]):
     df.to_csv(f'out/GAF_{label}.tsv', sep='\t', index=False)
-
-"""
-DEPENDENCIES
-../../../data/flybase_genomes/Drosophila_melanogaster/dmel_r6.45_FB2022_02/precomputed_files/gene_association.fb
-../../../data/GO/go-basic.obo
-../../brownian/aucpred_filter/aucpred_filter.py
-    ../../brownian/aucpred_filter/out/regions_30.tsv
-../../ortho_search/sequence_data/sequence_data.py
-    ../../ortho_search/sequence_data/out/sequence_data.tsv
-"""

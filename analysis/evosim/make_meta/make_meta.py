@@ -80,12 +80,3 @@ for label, _, _, column_pool in column_pools:
         for spid, seq in sorted(seqs.items()):
             seqstring = '\n'.join([''.join(seq[i:i+80]) for i in range(0, len(seq), 80)])
             file.write(f'>{spid} {label}\n{seqstring}\n')
-
-"""
-DEPENDENCIES
-../../brownian/aucpred_regions/get_regions.py
-    ../..brownian/aucpred_regions/out/regions.tsv
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../../ortho_MSA/config/genomes.tsv
-"""

@@ -32,9 +32,3 @@ for data, data_label, color in [(disorder, 'disorder', 'C0'), (order, 'order', '
         lh.set_alpha(1)
     plt.savefig(f'out/scatter_spec-sens_{data_label}.png')
     plt.close()
-
-"""
-DEPENDENCIES
-./fit_logits.py
-    ./out/models.tsv
-"""

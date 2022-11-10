@@ -95,11 +95,4 @@ for OGid in OGids:
 """
 NOTES
 See notes in aa.py for reasoning for re-calculating rates from alpha.
-
-DEPENDENCIES
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../asr_indel/asr_indel.py
-    ../asr_indel/out/*.iqtree
-    ../asr_indel/out/*.afa
 """

@@ -460,20 +460,3 @@ for feature_label in roots.columns.intersection(rates.columns):
     fig.suptitle(feature_label)
     plt.savefig(f'out/roots/scatter_rate-root_{feature_label}2.png')
     plt.close()
-
-"""
-DEPENDENCIES
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../../ortho_search/sequence_data/sequence_data.py
-    ../../ortho_search/sequence_data/out/sequence_data.tsv
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../aucpred_filter/aucpred_filter.py
-    ../aucpred_filter/out/regions_30.tsv
-../get_contrasts/get_contrasts.py
-    ../get_contrasts/out/contrasts.tsv
-    ../get_contrasts/out/roots.tsv
-../get_features/get_features.py
-    ../get_features/out/features.tsv
-"""

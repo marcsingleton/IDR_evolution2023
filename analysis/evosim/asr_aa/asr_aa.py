@@ -112,15 +112,4 @@ class. If one of the classes has 30 columns but the other does not, the small cl
 If neither class has 30 columns, the alignment is skipped. These rules ensure that any alignment with region in the 
 final set of regions is reconstructed. They also ensure any regions in the final set are reconstructed with a model that
 is (largely) fit to its class.
-
-DEPENDENCIES
-../../brownian/aucpred_filter/aucpred_filter.py
-    ../../brownian/aucpred_filter/out/regions_30.tsv
-../../brownian/aucpred_regions/get_regions.py
-    ../../brownian/aucpred_regions/out/regions.tsv
-../../ortho_MSA/insertion_trim/extract.py
-    ../../ortho_MSA/insertion_trim/out/*.afa
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../config/50R_disorder.paml
 """

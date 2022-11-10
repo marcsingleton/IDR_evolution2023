@@ -198,14 +198,4 @@ The rates for each submodel are calculated manually because some non-invariant s
 output. This results in submodels with zero probability, which introduces problems when normalizing. I felt it was
 important to preserve the original model structure when calculating the ASRs, so I decided against merging these
 submodels with the invariant submodel.
-
-DEPENDENCIES
-../../ortho_tree/consensus_LG/consensus_LG.py
-    ../../ortho_tree/consensus_LG/out/100R_NI.nwk
-../asr_aa/asr_aa.py
-    ../asr_aa/out/*.iqtree
-    ../asr_aa/out/*.afa
-    ../asr_aa/out/*.nex
-../config/50R_disorder.paml
-../config/LG.paml
 """
