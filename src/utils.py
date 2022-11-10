@@ -15,7 +15,6 @@ def read_fasta(path):
         The first element is the header line without the >, and the second
         element is the corresponding sequence.
     """
-    fasta = []
     with open(path) as file:
         line = file.readline()
         while line:
@@ -28,5 +27,4 @@ def read_fasta(path):
                 seqlines.append(line.rstrip())
                 line = file.readline()
             seq = ''.join(seqlines)
-            fasta.append((header, seq))
-    return fasta
+            yield header, seq
