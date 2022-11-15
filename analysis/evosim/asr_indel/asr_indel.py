@@ -44,7 +44,7 @@ if not os.path.exists('out/'):
     os.mkdir('out/')
 
 for OGid in OGids:
-    msa = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+    msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
     msa = [(re.search(ppid_regex, header).group(1), re.search(spid_regex, header).group(1), seq) for header, seq in msa]
 
     # Check regions (continuing only if alignment is fit by asr_aa.py)

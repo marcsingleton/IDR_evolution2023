@@ -86,7 +86,7 @@ for feature_label in df.columns:
         regions.add((OGid, start, stop))
 
         # Load MSA, filter seqs, and re-order
-        msa1 = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+        msa1 = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
         msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
 
         spids = region2spids[(OGid, start, stop)]
@@ -184,7 +184,7 @@ for feature_label in df.columns:
         regions.add((OGid, start, stop))
 
         # Load MSA, filter seqs, and re-order
-        msa1 = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+        msa1 = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
         msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
 
         spids = region2spids[(OGid, start, stop)]
@@ -387,7 +387,7 @@ for feature_label in rates.columns:
         regions.add((OGid, start, stop))
 
         # Load MSA, filter seqs, and re-order
-        msa1 = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+        msa1 = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
         msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
 
         spids = region2spids[(OGid, start, stop)]

@@ -47,7 +47,7 @@ with open('../aucpred_filter/out/regions_30.tsv') as file:
 total_records, sum_records = [], []
 for OGid, start, stop, ppids in regions:
     msa = {}
-    for header, seq in read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa'):
+    for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
         ppid = re.search(ppid_regex, header).group(1)
         spid = re.search(spid_regex, header).group(1)
         if ppid in ppids:

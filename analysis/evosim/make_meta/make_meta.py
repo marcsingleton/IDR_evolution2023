@@ -48,7 +48,7 @@ column_pools = [('100R_disorder', True, lambda column: is_redundant(column, 1), 
                 ('0R_disorder', True, lambda column: is_redundant(column, 0), []),
                 ('0R_order', False, lambda column: is_redundant(column, 0), [])]
 for OGid, regions in sorted(OGid2regions.items()):
-    msa = [(re.search(spid_regex, header).group(1), seq) for header, seq in read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')]
+    msa = [(re.search(spid_regex, header).group(1), seq) for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')]
     msa = sorted(msa, key=lambda x: spid2idx[x[0]])
     if len(msa) < len(spids):  # Only use alignments with all species
         continue

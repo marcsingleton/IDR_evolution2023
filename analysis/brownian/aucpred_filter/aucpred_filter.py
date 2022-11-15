@@ -57,7 +57,7 @@ with open('../aucpred_regions/out/regions.tsv') as file:
 # Filter regions
 record_sets = {i: [] for i in range(10, 35, 5)}
 for OGid, regions in OGid2regions.items():
-    msa = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+    msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
     posteriors = load_posteriors(f'../../ortho_MSA/deletion_decode/out/{OGid}.tsv')
 
     for region in regions:

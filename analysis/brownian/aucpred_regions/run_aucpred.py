@@ -9,7 +9,7 @@ from src.utils import read_fasta
 
 
 def run_aucpred(OGid):
-    msa = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+    msa = read_fasta(f'../../../data/alignments/{OGid}.afa')
     prefix = f'out/raw/{OGid}/'
 
     if not os.path.exists(prefix):
@@ -34,5 +34,5 @@ if __name__ == '__main__':
         os.makedirs('out/raw/')
 
     with mp.Pool(processes=num_processes) as pool:
-        OGids = [path.removesuffix('.afa') for path in os.listdir('../../ortho_MSA/insertion_trim/out/') if path.endswith('.afa')]
+        OGids = [path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/') if path.endswith('.afa')]
         pool.map(run_aucpred, OGids)

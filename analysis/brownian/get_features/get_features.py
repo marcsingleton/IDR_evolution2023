@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # Extract segments
     args = []
     for OGid, regions in OGid2regions.items():
-        msa = read_fasta(f'../../ortho_MSA/insertion_trim/out/{OGid}.afa')
+        msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
         msa = {re.search(ppid_regex, header).group(1): seq for header, seq in msa}
 
         for start, stop, disorder in regions:
