@@ -32,7 +32,7 @@ ppid_regex = r'ppid=([A-Za-z0-9_]+)'
 spid_regex = r'spid=([a-z]+)'
 
 # Load tree
-tree_template = skbio.read('../../ortho_tree/consensus_LG/out/100R_NI.nwk', 'newick', skbio.TreeNode)
+tree_template = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 spids = {tip.name for tip in tree_template.tips() if tip.name != 'sleb'}
 
 # Load regions

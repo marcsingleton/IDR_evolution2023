@@ -235,7 +235,7 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
     residue_ids = np.arange(-1, length)
 
     # Load trees
-    tree1 = skbio.read('../../ortho_tree/consensus_LG/out/100R_NI.nwk', 'newick', skbio.TreeNode)
+    tree1 = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
     with open(f'../asr_indel/out/{OGid}.iqtree') as file:
         line = file.readline()
         while line != 'Tree in newick format:\n':
