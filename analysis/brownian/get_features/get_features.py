@@ -19,7 +19,7 @@ def get_features(record):
     return d
 
 
-num_processes = int(os.environ['SLURM_CPUS_ON_NODE'])
+num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
 ppid_regex = r'ppid=([A-Za-z0-9_]+)'
 
 if __name__ == '__main__':

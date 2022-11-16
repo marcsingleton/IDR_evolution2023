@@ -27,7 +27,7 @@ def run_aucpred(OGid):
             os.remove(f'{prefix}/{ppid}.fasta')
 
 
-num_processes = int(os.environ['SLURM_CPUS_ON_NODE'])
+num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
 
 if __name__ == '__main__':
     if not os.path.exists('out/raw/'):
