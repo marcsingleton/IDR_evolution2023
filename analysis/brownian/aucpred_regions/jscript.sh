@@ -17,7 +17,7 @@
 # Command(s) to run:
 # Link to output in scratch
 if [ ! -d out ]; then
-  out_dir=/global/scratch/users/singleton/orthology_inference/analysis/brownian/aucpred_segment/out/
+  out_dir=/global/scratch/users/singleton/IDR_evolution/analysis/brownian/aucpred_segment/out/
   if [ ! -d ${out_dir} ]; then
     mkdir -p ${out_dir}  # -p makes intermediate directory if they do not exist
   fi
