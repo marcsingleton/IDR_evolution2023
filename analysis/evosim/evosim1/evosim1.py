@@ -57,13 +57,15 @@ class SeqEvolver:
         Dict keyed by partition_id where values are symbol distributions.
     insertion_dists: dict of rv_discrete
         Dict keyed by partition_id where values are rv_discrete for generating
-        random insertion lengths. Values must support an rvs method.
+        random insertion lengths. Values must support a rvs method.
     deletion_dists: dict of rv_discrete
         Dict keyed by partition_id where values are rv_discrete for generating
-        random deletion lengths. Values must support an rvs method.
+        random deletion lengths. Values must support a rvs method.
+    rng: numpy Generator instance
+        Generator provides source of randomness for all operations.
     """
     def __init__(self, seq, rate_coefficients, activities, residue_ids, partition_ids,
-                 rate_matrices, sym_dists, insertion_dists, deletion_dists):
+                 rate_matrices, sym_dists, insertion_dists, deletion_dists, rng=None):
         self.seq = seq
         self.rate_coefficients = rate_coefficients
         self.activities = activities
@@ -73,6 +75,7 @@ class SeqEvolver:
         self.sym_dists = sym_dists
         self.insertion_dists = insertion_dists
         self.deletion_dists = deletion_dists
+        self.rng = rng
 
         # Calculate rates from rate matrices and rate coefficients
         rates = np.empty(len(seq))
@@ -103,7 +106,7 @@ class SeqEvolver:
         event_ids = np.arange(3*len(self.seq))
         active_rates = (self.rates * self.activities).flatten()
         p = active_rates / active_rates.sum()
-        event_id = rng.choice(event_ids, p=p)
+        event_id = self.rng.choice(event_ids, p=p)
         i, j = event_id // len(self.seq), event_id % len(self.seq)
         if i == 0:
             return self.substitute(j, residue_index)
@@ -116,7 +119,7 @@ class SeqEvolver:
         """Substitute residue at index j."""
         partition_id = self.partition_ids[j]
         jump_dist = self.jump_matrices[partition_id][self.seq[j]]
-        idx = rng.choice(np.arange(len(jump_dist)), p=jump_dist)
+        idx = self.rng.choice(np.arange(len(jump_dist)), p=jump_dist)
         rate = -self.rate_matrices[partition_id][idx, idx]
 
         self.seq[j] = idx
@@ -128,11 +131,11 @@ class SeqEvolver:
         """Insert randomly generated residues at an index j."""
         partition_id = self.partition_ids[j]
         sym_dist = self.sym_dists[partition_id]
-        length = self.insertion_dists[partition_id].rvs()
+        length = self.insertion_dists[partition_id].rvs(seed=self.rng)
 
         # Make insertion arrays
         # (rate_coefficients and rates are transposed since it makes the insertion syntax simpler)
-        seq = rng.choice(np.arange(len(sym_dist)), size=length, p=sym_dist)
+        seq = self.rng.choice(np.arange(len(sym_dist)), size=length, p=sym_dist)
         rate_coefficients = np.full((length, 3), self.rate_coefficients[:, j])
         activities = np.full(length, True)
         residue_ids = np.arange(residue_index, residue_index+length)
@@ -152,29 +155,29 @@ class SeqEvolver:
     def delete(self, j, residue_index):
         """Delete residues at an index j."""
         partition_id = self.partition_ids[j]
-        length = self.deletion_dists[partition_id].rvs()
+        length = self.deletion_dists[partition_id].rvs(seed=self.rng)
 
         self.activities[j:j+length] = False
 
         return residue_index
 
 
-def simulate_branch(node, evoseq, residue_index, t=None):
+def simulate_branch(node, evoseq, residue_index, rng, t=None):
     if t is None:
         scale = 1/(evoseq.rates*evoseq.activities).sum()
-        t = stats.expon.rvs(scale=scale)
+        t = stats.expon.rvs(scale=scale, seed=rng)
     while t < node.length:
         residue_index = evoseq.mutate(residue_index)
         scale = 1/(evoseq.rates*evoseq.activities).sum()
-        t += stats.expon.rvs(scale=scale)
+        t += stats.expon.rvs(scale=scale, seed=rng)
     if node.children:
         if rng.random() > 0.5:
             child1, child2 = node.children
         else:
             child2, child1 = node.children
         evoseq1, evoseq2 = evoseq, deepcopy(evoseq)  # One sequence is the original, the other is copied
-        residue_index, evoseqs1 = simulate_branch(child1, evoseq1, residue_index, t=t-node.length)
-        residue_index, evoseqs2 = simulate_branch(child2, evoseq2, residue_index)
+        residue_index, evoseqs1 = simulate_branch(child1, evoseq1, residue_index, rng, t=t-node.length)
+        residue_index, evoseqs2 = simulate_branch(child2, evoseq2, residue_index, rng)
         evoseqs = evoseqs1 + evoseqs2
     else:
         evoseqs = [(node.name, evoseq)]
@@ -204,7 +207,6 @@ def load_model(path):
     return matrix, freqs
 
 
-rng = np.random.default_rng()
 alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 sym2idx = {sym: i for i, sym in enumerate(alphabet)}
 idx2sym = {i: sym for i, sym in enumerate(alphabet)}
@@ -308,7 +310,7 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
         partition['rates'] = rates
 
     # Evolve sequences along tree
-    for header, seq in fasta:
+    for i, (header, seq) in fasta:
         # Construct root-specific SeqEvolver arrays
         seq = np.array([sym2idx.get(sym, -1) for sym in seq])  # Use -1 for gap symbols
         activities = np.array([False if sym == -1 else True for sym in seq])
@@ -326,11 +328,11 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
         activities = np.insert(activities, 0, True)
         partition_ids = np.insert(partition_template, 0, partition_template[j])
 
-        evoseq = SeqEvolver(seq, rate_coefficients, activities, residue_ids, partition_ids,
-                            rate_matrices, sym_dists, insertion_dists, deletion_dists)
-
         # Evolve! (and extract results)
-        _, evoseqs = simulate_branch(tree, evoseq, length)
+        rng = np.random.default_rng(i)
+        evoseq = SeqEvolver(seq, rate_coefficients, activities, residue_ids, partition_ids,
+                            rate_matrices, sym_dists, insertion_dists, deletion_dists, rng)
+        _, evoseqs = simulate_branch(tree, evoseq, length, rng)
 
         unaligned_records = []
         for spid, evoseq in evoseqs:
