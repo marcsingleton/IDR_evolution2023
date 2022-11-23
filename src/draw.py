@@ -128,7 +128,8 @@ def plot_msa_data(msa, data, figsize=(15, 6),
                   height_ratio=1, hspace=0.25, sym_length=7, sym_height=7,
                   left=0.05, right=0.95, top=0.95, bottom=0.05,
                   data_min=None, data_max=None,
-                  msa_legend=False, data_labels=None, data_colors=None, legend_kwargs=None,
+                  data_labels=None, data_colors=None, data_alphas=None,
+                  msa_legend=False, legend_kwargs=None,
                   block_columns=None, sym2color=None, gap2color=None):
     """Plot MSA with associated positional data as matplotlib figure.
 
@@ -172,13 +173,15 @@ def plot_msa_data(msa, data, figsize=(15, 6),
         Minimum of y-axis across all data axes.
     data_max: float
         Maximum of y-axis across all data axes.
-    msa_legend: bool
-        True if MSA legend is drawn.
     data_labels: list of strings
         Labels for data series. If not None, will draw legend. Length must
         match the number of series in data.
     data_colors: list of colors
         Colors for data series. Length must match number of series in data.
+    data_alphas: list of float
+        Alphas for data series. Length must match number of series in data.
+    msa_legend: bool
+        True if MSA legend is drawn.
     legend_kwargs: dict
         Additional kwargs passed to fig.legend call.
     block_columns: int
@@ -236,6 +239,10 @@ def plot_msa_data(msa, data, figsize=(15, 6),
         data_colors = [color_cycle[i % len(color_cycle)] for i in range(len(data))]
     elif len(data_colors) != len(data):
         raise ValueError('len(data_colors) does not match len(data)')
+    if data_alphas is None:
+        data_alphas = [1 for _ in range(len(data))]
+    elif len(data_alphas) != len(data):
+        raise ValueError('len(data_alphas) does not match len(data)')
     block_number = msa_columns // block_columns + (1 if msa_columns % block_columns > 0 else 0)  # Number of blocks
     block_rows = len(msa)
 
@@ -267,8 +274,9 @@ def plot_msa_data(msa, data, figsize=(15, 6),
         for spine in ['left', 'right', 'top', 'bottom']:
             msa_ax.spines[spine].set_visible(False)
 
-        for d, c in zip(data, data_colors):
-            data_ax.plot(range(x_left, x_right), d[i * block_columns:i * block_columns + block.shape[1] // sym_length], color=c)
+        for series, color, alpha in zip(data, data_colors, data_alphas):
+            data_ax.plot(range(x_left, x_right), series[i * block_columns:i * block_columns + block.shape[1] // sym_length],
+                         color=color, alpha=alpha)
         data_ax.set_ylim(data_min, data_max)
         data_ax.tick_params(axis='y', labelsize=y_labelsize)
         data_ax.tick_params(axis='x', labelsize=x_labelsize)
