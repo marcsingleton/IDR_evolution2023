@@ -44,7 +44,7 @@ spid_min = 20
 
 # Load regions
 OGid2regions = {}
-with open('../aucpred_regions/out/regions.tsv') as file:
+with open('../get_regions/out/regions.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
