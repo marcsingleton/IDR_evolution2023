@@ -56,7 +56,7 @@ for OGid in [path for path in os.listdir('out/raw/') if os.path.isdir(f'out/raw/
 
     mapped = np.full((len(ppids), max([len(seq) for seq in msa.values()])), np.nan)
     for i, ppid in enumerate(ppids):
-        scores = load_scores(f'out/raw/{OGid}/{ppid}.diso_noprof')
+        scores = load_scores(f'../aucpred_scores/out/raw/{OGid}/{ppid}.diso_noprof')
         idx = 0
         for j, sym in enumerate(msa[ppid]):
             if sym not in ['-', '.']:

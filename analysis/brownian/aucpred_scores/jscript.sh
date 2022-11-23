@@ -9,15 +9,15 @@
 #SBATCH --nodes=1
 #
 # Reporting parameters
-#SBATCH --job-name=run_aucpred
-#SBATCH --output=run_aucpred.out
+#SBATCH --job-name=aucpred_scores
+#SBATCH --output=aucpred_scores.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=marcsingleton@berkeley.edu
 #
 # Command(s) to run:
 # Link to output in scratch
 if [ ! -d out ]; then
-  out_dir=/global/scratch/users/singleton/IDR_evolution/analysis/brownian/aucpred_segment/out/
+  out_dir=/global/scratch/users/singleton/IDR_evolution/analysis/brownian/aucpred_scores/out/
   if [ ! -d ${out_dir} ]; then
     mkdir -p ${out_dir}  # -p makes intermediate directory if they do not exist
   fi
@@ -27,4 +27,4 @@ fi
 source /global/home/users/singleton/.bashrc
 conda activate IDR_evolution
 module load gcc
-python run_aucpred.py
+python aucpred_scores.py
