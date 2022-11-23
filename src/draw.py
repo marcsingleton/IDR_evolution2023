@@ -125,7 +125,8 @@ def draw_msa(msa,
 def plot_msa_data(msa, data, figsize=(15, 6),
                   msa_labels=None, msa_labelsize=6, msa_ticklength=0, msa_tickwidth=0.5, msa_tickpad=1,
                   x_start=0, x_labelsize=6, y_labelsize=6,
-                  height_ratio=1, hspace=0.5, sym_length=7, sym_height=7,
+                  height_ratio=1, hspace=0.25, sym_length=7, sym_height=7,
+                  left=0.05, right=0.95, top=0.95, bottom=0.05,
                   data_min=None, data_max=None,
                   msa_legend=False, data_labels=None, data_colors=None, legend_kwargs=None,
                   block_columns=None, sym2color=None, gap2color=None):
@@ -160,7 +161,9 @@ def plot_msa_data(msa, data, figsize=(15, 6),
         Height of data axes as fraction of height of block.
     hspace: float
         Padding between each data axes and subsequent block of MSA as fraction
-        of height of block.
+        of average height of blocks and data axes.
+    left, right, top, bottom: float
+        Extent of the subplots as a fraction of figure width or height.
     sym_length: int
         Number of pixels in length of the rectangles for each symbol.
     sym_height: int
@@ -194,7 +197,7 @@ def plot_msa_data(msa, data, figsize=(15, 6),
     """
     # Define functions and globals
     msa_rows, msa_columns = len(msa), len(msa[0])
-    aspect = figsize[0] / figsize[1]
+    aspect = (figsize[0] * (right - left)) / (figsize[1] * (top - bottom))
 
     def get_dimensions(block_columns):
         plot_length = block_columns  # Length of final plot
@@ -238,22 +241,21 @@ def plot_msa_data(msa, data, figsize=(15, 6),
 
     # Draw axes
     height_ratios = []
-    for i in range(3*block_number):
-        r = i % 3
+    for i in range(2*block_number):
+        r = i % 2
         if r == 0:
             h = 1
-        elif r == 1:
-            h = height_ratio
         else:
-            h = hspace
+            h = height_ratio
         height_ratios.append(h)
 
     im = draw_msa(msa, block_columns=len(msa[0]), sym_length=sym_length, sym_height=sym_height, sym2color=sym2color, gap2color=gap2color)
     fig = plt.figure(figsize=figsize)
-    gs = GridSpec(3*block_number, 1, figure=fig, height_ratios=height_ratios)
+    gs = GridSpec(2*block_number, 1, figure=fig, left=left, right=right, top=top, bottom=bottom,
+                  hspace=hspace, height_ratios=height_ratios)
     for i in range(block_number):
-        msa_ax = fig.add_subplot(gs[3*i, :])
-        data_ax = fig.add_subplot(gs[3*i+1, :], sharex=msa_ax, aspect=block_rows*height_ratio/(data_max - data_min))
+        msa_ax = fig.add_subplot(gs[2*i, :])
+        data_ax = fig.add_subplot(gs[2*i+1, :], sharex=msa_ax, aspect=block_rows*height_ratio/(data_max - data_min))
 
         block = im[:, i * sym_length * block_columns:(i + 1) * sym_length * block_columns]
         x_left, x_right = x_start + i * block_columns, x_start + i * block_columns + block.shape[1] // sym_length
@@ -297,7 +299,8 @@ def plot_msa_data(msa, data, figsize=(15, 6),
 def plot_msa(msa, figsize=(12, 6),
              msa_labels=None, msa_labelsize=6, msa_length=0, msa_width=0.5, msa_pad=1,
              x_start=0, x_labelsize=6,
-             hspace=0.5, sym_length=7, sym_height=7,
+             hspace=0.25, sym_length=7, sym_height=7,
+             left=0.05, right=0.95, top=0.95, bottom=0.05,
              msa_legend=False, legend_kwargs=None,
              block_columns=None, sym2color=None, gap2color=None):
     """Plot MSA as matplotlib figure.
@@ -323,7 +326,9 @@ def plot_msa(msa, figsize=(12, 6),
     x_labelsize: float
         Font size of x-axis labels.
     hspace: float
-        Padding between blocks of MSA as fraction of height of block.
+        Padding between blocks of MSA as fraction of height of blocks.
+    left, right, top, bottom: float
+        Extent of the subplots as a fraction of figure width or height.
     sym_length: int
         Number of pixels in length of the rectangles for each symbol.
     sym_height: int
@@ -348,7 +353,7 @@ def plot_msa(msa, figsize=(12, 6),
     """
     # Define functions and globals
     msa_rows, msa_columns = len(msa), len(msa[0])
-    aspect = figsize[0] / figsize[1]
+    aspect = (figsize[0] * (right - left)) / (figsize[1] * (top - bottom))
 
     def get_dimensions(block_columns):
         plot_length = block_columns  # Length of final plot
@@ -375,7 +380,7 @@ def plot_msa(msa, figsize=(12, 6),
     # Draw axes
     im = draw_msa(msa, block_columns=len(msa[0]), sym_length=sym_length, sym_height=sym_height, sym2color=sym2color, gap2color=gap2color)
     fig = plt.figure(figsize=figsize)
-    gs = GridSpec(block_number, 1, figure=fig, hspace=hspace)
+    gs = GridSpec(block_number, 1, figure=fig, left=left, right=right, top=top, bottom=bottom, hspace=hspace)
     for i in range(block_number):
         msa_ax = fig.add_subplot(gs[i, :])
 
