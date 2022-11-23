@@ -40,7 +40,7 @@ for OGid in OGids:
             line = file.readline()
 
     # Load trees
-    tree1 = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+    tree1 = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
     with open(f'../asr_indel/out/{OGid}.iqtree') as file:
         line = file.readline()
         while line != 'Tree in newick format:\n':

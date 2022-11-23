@@ -50,7 +50,7 @@ def apply_contrasts(args):
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
-tree_template = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 if __name__ == '__main__':
     # Load sequence data

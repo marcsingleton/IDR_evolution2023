@@ -26,7 +26,7 @@ with open('../aucpred_filter/out/regions_30.tsv') as file:
 regions = pd.DataFrame(rows)
 
 # Load tree
-tree = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+tree = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tip_order = {tip.name: i for i, tip in enumerate(tree.tips())}
 spids = {tip.name for tip in tree.tips() if tip.name != 'sleb'}
 num_contrasts = len(spids) - 1

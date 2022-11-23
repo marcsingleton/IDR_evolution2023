@@ -45,7 +45,7 @@ if not os.path.exists('out/'):
 OGids = [path.removesuffix('.iqtree') for path in os.listdir('../asr_aa/out/') if path.endswith('.iqtree')]
 for OGid in OGids:
     # Load trees
-    tree1 = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+    tree1 = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
     with open(f'../asr_aa/out/{OGid}.iqtree') as file:
         line = file.readline()
         while line != 'Tree in newick format:\n':

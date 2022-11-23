@@ -20,7 +20,7 @@ spid_regex = r'spid=([a-z]+)'
 features = pd.read_table('../get_features/out/features.tsv')
 contrasts = pd.read_table('../get_contrasts/out/contrasts.tsv')
 roots = pd.read_table('../get_contrasts/out/roots.tsv')
-tree = skbio.read('../../../data/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+tree = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tip_order = {tip.name: i for i, tip in enumerate(tree.tips())}
 
 features.loc[features['kappa'] == -1, 'kappa'] = 1
