@@ -40,23 +40,23 @@ def gaussian_filter(array, sigma):
 
 
 threshold = 0.5
-ppid_regex = r'ppid=([A-Za-z0-9_]+)'
+ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 
 records = []
-for OGid in [path for path in os.listdir('out/raw/') if os.path.isdir(f'out/raw/{path}')]:
+for OGid in [path for path in os.listdir('out/') if os.path.isdir(f'out/{path}')]:
     # Load MSA
     msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
     msa = {re.search(ppid_regex, header).group(1): seq for header, seq in msa}
 
     # Map outputs to MSA columns
-    ppids = {path.split('.')[0] for path in os.listdir(f'out/raw/{OGid}/')}
+    ppids = {path.split('.')[0] for path in os.listdir(f'out/{OGid}/')}
     if set(msa) != ppids:
         print(f'{OGid} has fewer predictions than sequences. Skipping segmentation.')
         continue
 
     mapped = np.full((len(ppids), max([len(seq) for seq in msa.values()])), np.nan)
     for i, ppid in enumerate(ppids):
-        scores = load_scores(f'../aucpred_scores/out/raw/{OGid}/{ppid}.diso_noprof')
+        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
         idx = 0
         for j, sym in enumerate(msa[ppid]):
             if sym not in ['-', '.']:
