@@ -3,8 +3,66 @@
 import os
 import re
 
+import scipy.ndimage as ndimage
 import numpy as np
-from src.utils import read_fasta
+import skbio
+from src.utils import get_brownian_weights, read_fasta
+
+
+def get_complement_slices(slices, start=0, stop=None):
+    """Return slices of complement of input slices.
+
+    Parameters
+    ----------
+    slices: list of slices
+        Must be sorted and merged.
+    start: int
+        Start of interval from which complement slices are given.
+    stop: int
+        Stop of interval from which complement slices are given.
+
+    Returns
+    -------
+    complement: list of slices
+    """
+    complement = []
+    if slices:
+        start0, stop0 = slices[0].start, slices[0].stop
+        if start < start0:
+            complement.append(slice(start, start0))
+        for s in slices[1:]:
+            complement.append(slice(stop0, s.start))
+            stop0 = s.stop
+        if stop is None or stop0 < stop:
+            complement.append(slice(stop0, stop))
+    else:
+        complement.append(slice(start, stop))
+    return complement
+
+
+def get_merged_slices(slices):
+    """Return slices where overlapping slices are merged.
+
+    Parameters
+    ----------
+    slices: list of slices
+
+    Returns
+    -------
+    merged: list of slices
+    """
+    merged = []
+    if slices:
+        slices = sorted(slices, key=lambda x: x.start)
+        start0, stop0 = slices[0].start, slices[0].stop
+        for s in slices[1:]:
+            if s.start > stop0:
+                merged.append(slice(start0, stop0))
+                start0, stop0 = s.start, s.stop
+            elif s.stop > stop0:
+                stop0 = s.stop
+        merged.append((slice(start0, stop0)))  # Append final slice
+    return merged
 
 
 def load_scores(path):
@@ -17,74 +75,99 @@ def load_scores(path):
     return scores
 
 
-def gaussian_filter(array, sigma):
-    # Make stack of Gaussian kernels
-    radius = int(4 * sigma + 0.5)  # Truncate filter at 4 standard deviations rounded to nearest integer
-    x = np.stack([np.arange(-radius, radius+1) for _ in range(array.shape[0])])
-    kernel = np.exp(-x**2 / (2 * sigma**2))
-
-    # Apply filter ignoring masked values
-    padded = np.ma.masked_invalid(np.pad(array, [(0, 0), (radius, radius)], mode='edge'))
-    mean_array = np.zeros(array.shape[1])
-    var_array = np.zeros(array.shape[1])
-    for j in range(array.shape[1]):  # Output has as many columns as input; slicing always grabs correct window even though actual centers are offset
-        window = padded[:, j:j+2*radius+1]
-        weight = (~window.mask * kernel).sum()
-        mean = (window * kernel).sum() / weight
-        var = ((window - mean) ** 2 * kernel).sum() / weight
-
-        mean_array[j] = mean
-        var_array[j] = var
-
-    return mean_array, var_array
-
-
-cutoff = 0.5
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
+spid_regex = r'spid=([a-z]+)'
+
+cutoff_high = 0.6
+cutoff_low = 0.4
+min_length = 10
+structure = np.ones(3)
+
+tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
 records = []
-for OGid in [path for path in os.listdir('out/') if os.path.isdir(f'out/{path}')]:
+for OGid in [path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')]:
     # Load MSA
-    msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-    msa = {re.search(ppid_regex, header).group(1): seq for header, seq in msa}
+    msa = []
+    for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
+        ppid = re.search(ppid_regex, header).group(1)
+        spid = re.search(spid_regex, header).group(1)
+        msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
+    msa = sorted(msa, key=lambda x: tip_order[x['spid']])
 
-    # Map outputs to MSA columns
-    ppids = {path.split('.')[0] for path in os.listdir(f'out/{OGid}/')}
-    if set(msa) != ppids:
-        print(f'{OGid} has fewer predictions than sequences. Skipping segmentation.')
-        continue
+    # Get missing segments
+    ppid2trims = {}
+    with open(f'../../../data/alignments/trims/{OGid}.tsv') as file:
+        field_names = file.readline().rstrip('\n').split('\t')
+        for line in file:
+            fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
+            trims = []
+            for trim in fields['slices'].split(','):
+                if trim:
+                    start, stop = trim.split('-')
+                    trims.append((int(start), int(stop)))
+            ppid2trims[fields['ppid']] = trims
 
-    mapped = np.full((len(ppids), max([len(seq) for seq in msa.values()])), np.nan)
-    for i, ppid in enumerate(ppids):
-        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
+    # Align scores and interpolate between gaps that are not missing segments
+    aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
+    for i, record in enumerate(msa):
+        ppid, seq = record['ppid'], record['seq']
+        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid.split(".")[0]}.diso_noprof')  # Remove anything after trailing .
         idx = 0
-        for j, sym in enumerate(msa[ppid]):
+        for j, sym in enumerate(seq):
             if sym not in ['-', '.']:
-                mapped[i, j] = scores[idx]
+                aligned_scores[i, j] = scores[idx]
                 idx += 1
-    mapped = np.ma.masked_invalid(mapped)
 
-    # Extract regions
-    mean, var = gaussian_filter(mapped, 2)
-    binary = mean >= cutoff
-    regions, value0, idx0 = [], binary[0], 0
-    for idx, value in enumerate(binary):
-        if value != value0:
-            regions.append((idx0, idx, value0))
-            value0, idx0 = value, idx
-    regions.append((idx0, idx+1, value0))
+        nan_idx = np.isnan(aligned_scores[i])
+        range_scores = np.arange(len(msa[0]['seq']))
+        interp_scores = np.interp(range_scores[nan_idx], range_scores[~nan_idx], aligned_scores[i, ~nan_idx],
+                                  left=np.nan, right=np.nan)
+        aligned_scores[i, nan_idx] = interp_scores
 
-    # Write regions as records
-    for start, stop, disorder in regions:
-        records.append((OGid, str(start), str(stop), str(disorder)))
+        for start, stop in ppid2trims[ppid]:
+            aligned_scores[i, start:stop] = np.nan
+    aligned_scores = np.ma.masked_invalid(aligned_scores)
+
+    # Get Brownian weights and calculate root score
+    spids = [record['spid'] for record in msa]
+    tree = tree_template.shear(spids)
+    weight_dict = {tip.name: weight for tip, weight in get_brownian_weights(tree)}
+    weight_array = np.zeros((len(msa), 1))
+    for i, record in enumerate(msa):
+        weight_array[i] = weight_dict[record['spid']]
+
+    weight_sum = (weight_array * ~aligned_scores.mask).sum(axis=0)
+    root_scores = (weight_array * aligned_scores).sum(axis=0) / weight_sum
+
+    slices = []
+    binary1 = root_scores >= cutoff_high
+    binary2 = ndimage.binary_dilation(root_scores >= cutoff_low, structure=structure)
+    for s, in ndimage.find_objects(ndimage.label(binary1)[0]):
+        if s.stop - s.start < min_length:
+            continue
+
+        start = s.start
+        while start-1 >= 0 and binary2[start-1]:
+            start -= 1
+        stop = s.stop
+        while stop+1 < len(root_scores) and binary2[stop+1]:
+            stop += 1
+        slices.append(slice(start, stop+1))
+    disorder_slices = get_merged_slices(slices)
+    order_slices = get_complement_slices(disorder_slices, stop=len(root_scores))
+
+    for s in disorder_slices:
+        records.append((OGid, s.start, s.stop, True))
+    for s in order_slices:
+        records.append((OGid, s.start, s.stop, False))
 
 # Write segments to file
+if not os.path.exists('out/'):
+    os.mkdir('out/')
+
 with open('out/regions.tsv', 'w') as file:
     file.write('OGid\tstart\tstop\tdisorder\n')
-    for record in sorted(records):
-        file.write('\t'.join(record) + '\n')
-
-"""
-OUTPUT
-3423 has fewer predictions than sequences. Skipping segmentation.
-"""
+    for record in sorted(records, key=lambda x: (x[0], x[1])):
+        file.write('\t'.join([str(field) for field in record]) + '\n')
