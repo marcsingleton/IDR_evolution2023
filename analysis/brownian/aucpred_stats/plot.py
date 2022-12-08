@@ -30,10 +30,18 @@ def load_scores(path):
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 
+plot_msa_kwargs = {'hspace': 0.2, 'left': 0.025, 'right': 0.925, 'top': 0.99, 'bottom': 0.05,
+                   'data_min': -0.05, 'data_max': 1.05,
+                   'msa_legend': True, 'legend_kwargs': {'bbox_to_anchor': (0.935, 0.5), 'loc': 'center left', 'fontsize': 10,
+                                                         'handletextpad': 0.5, 'markerscale': 2, 'handlelength': 1}}
+
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
 df1 = pd.read_table('out/stats.tsv')
+dropped_OGids = df1.loc[df1.isna().any(axis=1), 'OGid'].unique()
+df1 = df1[~df1['OGid'].isin(dropped_OGids)]
+
 df1['scores_fraction'] = df1['scores_sum'] / df1['length']
 df1['binary_fraction'] = df1['binary_sum'] / df1['length']
 groups = df1.groupby('OGid')
@@ -112,7 +120,13 @@ plt.close()
 if not os.path.exists('out/traces/'):
     os.mkdir('out/traces/')
 
-for rank, row in enumerate(df2.sort_values(by='scores_fraction_rate', ascending=False).head(200).itertuples()):
+sort = df2.sort_values(by='scores_fraction_rate', ascending=False, ignore_index=True)
+examples = pd.concat([sort.iloc[:100],  # Pull out samples around quartiles
+                      sort.iloc[(int(0.25*len(sort))-50):(int(0.25*len(sort))+50)],
+                      sort.iloc[(int(0.5*len(sort))-50):(int(0.5*len(sort))+50)],
+                      sort.iloc[(int(0.75*len(sort))-50):(int(0.75*len(sort))+50)]])
+for row in examples.itertuples():
+    # Load MSA
     msa = []
     for header, seq in read_fasta(f'../../../data/alignments/fastas/{row.OGid}.afa'):
         ppid = re.search(ppid_regex, header).group(1)
@@ -120,6 +134,7 @@ for rank, row in enumerate(df2.sort_values(by='scores_fraction_rate', ascending=
         msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
     msa = sorted(msa, key=lambda x: tip_order[x['spid']])
 
+    # Get missing segments
     ppid2trims = {}
     with open(f'../../../data/alignments/trims/{row.OGid}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
@@ -132,6 +147,7 @@ for rank, row in enumerate(df2.sort_values(by='scores_fraction_rate', ascending=
                     trims.append((int(start), int(stop)))
             ppid2trims[fields['ppid']] = trims
 
+    # Align scores and interpolate between gaps that are not missing segments
     aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
     for i, record in enumerate(msa):
         ppid, seq = record['ppid'], record['seq']
@@ -152,14 +168,12 @@ for rank, row in enumerate(df2.sort_values(by='scores_fraction_rate', ascending=
             aligned_scores[i, start:stop] = np.nan
     aligned_scores = np.ma.masked_invalid(aligned_scores)
 
-    plot_msa_data([record['seq'] for record in msa], aligned_scores,
-                  hspace=0.15, left=0.05, right=0.925, top=0.99, bottom=0.05,
-                  data_min=0, data_max=1,
-                  msa_legend=True, legend_kwargs={'bbox_to_anchor': (0.935, 0.5), 'loc': 'center left', 'fontsize': 10,
-                                                  'handletextpad': 0.5, 'markerscale': 2, 'handlelength': 1})
-    plt.savefig(f'out/traces/{rank:03}_{row.OGid}_all.png')
+    # Plot all score traces
+    plot_msa_data([record['seq'] for record in msa], aligned_scores, **plot_msa_kwargs)
+    plt.savefig(f'out/traces/{row.Index:04}_{row.OGid}_all.png')
     plt.close()
 
+    # Get Brownian weights and calculate root score
     spids = [record['spid'] for record in msa]
     tree = tree_template.shear(spids)
     weight_dict = {tip.name: weight for tip, weight in get_brownian_weights(tree)}
@@ -171,11 +185,8 @@ for rank, row in enumerate(df2.sort_values(by='scores_fraction_rate', ascending=
     root_scores = (weight_array * aligned_scores).sum(axis=0) / weight_sum
     rate_scores = (weight_array * (aligned_scores - root_scores) ** 2).sum(axis=0) / weight_sum
 
-    fig = plot_msa_data([record['seq'] for record in msa], root_scores,
-                        hspace=0.15, left=0.05, right=0.925, top=0.99, bottom=0.05,
-                        data_min=-0.05, data_max=1.05,
-                        msa_legend=True, legend_kwargs={'bbox_to_anchor': (0.935, 0.5), 'loc': 'center left', 'fontsize': 10,
-                                                        'handletextpad': 0.5, 'markerscale': 2, 'handlelength': 1})
+    # Plot root score trace
+    fig = plot_msa_data([record['seq'] for record in msa], root_scores, **plot_msa_kwargs)
     upper = root_scores + rate_scores ** 0.5
     lower = root_scores - rate_scores ** 0.5
     axs = [ax for i, ax in enumerate(fig.axes) if i % 2 == 1]
@@ -183,5 +194,5 @@ for rank, row in enumerate(df2.sort_values(by='scores_fraction_rate', ascending=
         xmin, xmax = ax.get_xlim()
         xrange = np.arange(xmin, xmax)
         ax.fill_between(xrange, upper[int(xmin):int(xmax)], lower[int(xmin):int(xmax)], alpha=0.25)
-    plt.savefig(f'out/traces/{rank:03}_{row.OGid}_root.png')
+    plt.savefig(f'out/traces/{row.Index:04}_{row.OGid}_root.png')
     plt.close()
