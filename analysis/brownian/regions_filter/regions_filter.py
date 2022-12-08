@@ -36,7 +36,7 @@ def spid_filter(spids):
     return all([len(spids & group) >= num for group, num in conditions])
 
 
-threshold = 0.99
+cutoff = 0.99
 ppid_regex = r'ppid=([A-Za-z0-9_]+)'
 spid_regex = r'spid=([a-z]+)'
 alphabet = {'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V'}
@@ -84,7 +84,7 @@ for OGid, regions in OGid2regions.items():
                     break
             posterior = posteriors[ppid][start:stop]
             for min_length, segments in segment_sets.items():
-                if length >= min_length and is_standard and all([p1 < threshold for _, p1 in posterior]):
+                if length >= min_length and is_standard and all([p1 < cutoff for _, p1 in posterior]):
                     segments.append((ppid, spid))
 
         # Filter by phylogenetic diversity

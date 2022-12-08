@@ -18,7 +18,7 @@ def load_scores(path):
     return np.array(scores)
 
 
-threshold = 0.5
+cutoff = 0.5
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
@@ -32,7 +32,7 @@ for OGid in [path.removesuffix('.afa') for path in os.listdir('../../../data/ali
 
         try:
             scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid.split(".")[0]}.diso_noprof')  # Remove anything after trailing .
-            binary = (scores >= threshold)
+            binary = (scores >= cutoff)
             scores_sum = scores.sum()
             binary_sum = binary.sum()
             binary_regions = ndimage.label(binary)[1]  # Second element is number of objects

@@ -39,7 +39,7 @@ def gaussian_filter(array, sigma):
     return mean_array, var_array
 
 
-threshold = 0.5
+cutoff = 0.5
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 
 records = []
@@ -66,7 +66,7 @@ for OGid in [path for path in os.listdir('out/') if os.path.isdir(f'out/{path}')
 
     # Extract regions
     mean, var = gaussian_filter(mapped, 2)
-    binary = mean >= threshold
+    binary = mean >= cutoff
     regions, value0, idx0 = [], binary[0], 0
     for idx, value in enumerate(binary):
         if value != value0:

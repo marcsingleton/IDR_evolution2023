@@ -47,27 +47,27 @@ df = pd.DataFrame(rows)
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-# Number of regions by length threshold
+# Number of regions by length cutoff
 disorder, order = [], []
 for min_length in min_lengths:
     disorder.append(len(df.loc[df['disorder'] & (df['min_length'] == min_length), ['OGid', 'start', 'stop']].drop_duplicates()))
     order.append(len(df.loc[~df['disorder'] & (df['min_length'] == min_length), ['OGid', 'start', 'stop']].drop_duplicates()))
 plt.plot(min_lengths, disorder, color='C0', label='disorder')
 plt.plot(min_lengths, order, color='C1', label='order')
-plt.xlabel('Length threshold')
+plt.xlabel('Length cutoff')
 plt.ylabel('Number of regions')
 plt.legend()
 plt.savefig('out/line_numregions-minlength.png')
 plt.close()
 
-# Number of OGs by length threshold
+# Number of OGs by length cutoff
 disorder, order = [], []
 for min_length in min_lengths:
     disorder.append(len(df.loc[df['disorder'] & (df['min_length'] == min_length), 'OGid'].drop_duplicates()))
     order.append(len(df.loc[~df['disorder'] & (df['min_length'] == min_length), 'OGid'].drop_duplicates()))
 plt.plot(min_lengths, disorder, color='C0', label='disorder')
 plt.plot(min_lengths, order, color='C1', label='order')
-plt.xlabel('Length threshold')
+plt.xlabel('Length cutoff')
 plt.ylabel('Number of unique OGs')
 plt.legend()
 plt.savefig('out/line_numOGs-minlength.png')
