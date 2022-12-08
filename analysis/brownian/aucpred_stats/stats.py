@@ -18,10 +18,10 @@ def load_scores(path):
     return np.array(scores)
 
 
-cutoff = 0.5
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
+cutoff = 0.5
 
 records = []
 for OGid in [path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')]:

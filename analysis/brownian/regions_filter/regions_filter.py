@@ -36,11 +36,12 @@ def spid_filter(spids):
     return all([len(spids & group) >= num for group, num in conditions])
 
 
-cutoff = 0.99
 ppid_regex = r'ppid=([A-Za-z0-9_]+)'
 spid_regex = r'spid=([a-z]+)'
-alphabet = {'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V'}
+
+cutoff = 0.99
 spid_min = 20
+alphabet = {'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V'}
 
 # Load regions
 OGid2regions = {}
