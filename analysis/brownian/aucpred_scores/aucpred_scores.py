@@ -4,6 +4,7 @@ import multiprocessing as mp
 import os
 import re
 import subprocess
+from itertools import chain
 
 from src.utils import read_fasta
 
@@ -11,11 +12,11 @@ from src.utils import read_fasta
 def run_cmd(OGid):
     msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
     prefix = f'out/{OGid}/'
-    error_flag = False
 
     if not os.path.exists(prefix):
         os.mkdir(prefix)
 
+    records = []
     for header, seq in msa:
         ppid = re.search(ppid_regex, header).group(1)
         seq = seq.translate({ord('-'): None, ord('.'): None})
@@ -26,10 +27,14 @@ def run_cmd(OGid):
             subprocess.run(f'../../../bin/Predict_Property/AUCpreD.sh -i {prefix}/{ppid}.fasta -o {prefix}',
                            check=True, shell=True)
             os.remove(f'{prefix}/{ppid}.fasta')
+            records.append((OGid, ppid, False))
         else:
-            error_flag = True
+            records.append((OGid, ppid, True))
 
-    return OGid, error_flag
+    if all([record[2] for record in records]):  # Clean up directory if all sequences fail
+        os.removedirs(prefix)
+
+    return OGid, records
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
@@ -40,10 +45,10 @@ if __name__ == '__main__':
         os.makedirs('out/')
 
     with mp.Pool(processes=num_processes) as pool:
-        OGids = [path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')]
+        OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
         records = pool.map(run_cmd, OGids)
 
     with open('out/errors.tsv', 'w') as file:
-        file.write('OGid\terror_flag\n')
-        for record in records:
+        file.write('OGid\tppid\terror_flag\n')
+        for record in chain(records):
             file.write('\t'.join([str(field) for field in record]) + '\n')
