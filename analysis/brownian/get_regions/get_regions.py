@@ -86,8 +86,26 @@ structure = np.ones(3)
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
+# Load error flags
+OGid2flags = {}
+with open('../aucpred_scores/out/errors.tsv') as file:
+    field_names = file.readline().rstrip('\n').split('\t')
+    for line in file:
+        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
+        OGid, ppid, error_flag = fields['OGid'], fields['ppid'], bool(fields['error_flag'])
+        try:
+            OGid2flags[OGid].append(error_flag)
+        except KeyError:
+            OGid2flags[OGid] = [error_flag]
+
+# Convert error flags to successful OGids
+OGids = []
+for OGid, error_flags in sorted(OGid2flags.items()):
+    if not any(error_flags):
+        OGids.append(OGid)
+
 records = []
-for OGid in [path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')]:
+for OGid in OGids:
     # Load MSA
     msa = []
     for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):

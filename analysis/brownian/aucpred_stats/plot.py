@@ -39,8 +39,6 @@ tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newi
 tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
 df1 = pd.read_table('out/stats.tsv')
-dropped_OGids = df1.loc[df1.isna().any(axis=1), 'OGid'].unique()
-df1 = df1[~df1['OGid'].isin(dropped_OGids)]
 
 df1['scores_fraction'] = df1['scores_sum'] / df1['length']
 df1['binary_fraction'] = df1['binary_sum'] / df1['length']
