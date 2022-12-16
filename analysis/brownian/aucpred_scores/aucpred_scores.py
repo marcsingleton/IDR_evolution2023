@@ -34,7 +34,7 @@ def run_cmd(OGid):
     if all([record[2] for record in records]):  # Clean up directory if all sequences fail
         os.removedirs(prefix)
 
-    return OGid, records
+    return records
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
@@ -50,5 +50,5 @@ if __name__ == '__main__':
 
     with open('out/errors.tsv', 'w') as file:
         file.write('OGid\tppid\terror_flag\n')
-        for record in chain(records):
+        for record in chain(*records):
             file.write('\t'.join([str(field) for field in record]) + '\n')
