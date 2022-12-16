@@ -92,7 +92,7 @@ with open('../aucpred_scores/out/errors.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        OGid, ppid, error_flag = fields['OGid'], fields['ppid'], bool(fields['error_flag'])
+        OGid, ppid, error_flag = fields['OGid'], fields['ppid'], fields['error_flag'] == 'True'
         try:
             OGid2flags[OGid].append(error_flag)
         except KeyError:
@@ -131,7 +131,7 @@ for OGid in OGids:
     aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
     for i, record in enumerate(msa):
         ppid, seq = record['ppid'], record['seq']
-        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid.split(".")[0]}.diso_noprof')  # Remove anything after trailing .
+        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
         idx = 0
         for j, sym in enumerate(seq):
             if sym not in ['-', '.']:

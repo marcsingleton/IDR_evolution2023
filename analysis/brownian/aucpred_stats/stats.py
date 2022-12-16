@@ -29,7 +29,7 @@ with open('../aucpred_scores/out/errors.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        OGid, ppid, error_flag = fields['OGid'], fields['ppid'], bool(fields['error_flag'])
+        OGid, ppid, error_flag = fields['OGid'], fields['ppid'], fields['error_flag'] == 'True'
         try:
             OGid2flags[OGid].append(error_flag)
         except KeyError:
@@ -48,7 +48,7 @@ for OGid in OGids:
         gnid = re.search(gnid_regex, header).group(1)
         spid = re.search(spid_regex, header).group(1)
 
-        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid.split(".")[0]}.diso_noprof')  # Remove anything after trailing .
+        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
         binary = (scores >= cutoff)
         scores_sum = scores.sum()
         binary_sum = binary.sum()
