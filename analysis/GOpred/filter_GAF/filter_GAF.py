@@ -77,7 +77,7 @@ with open('../../../data/GO/go-basic.obo') as file:
                 if line.startswith('is_a:'):
                     parents.append(line.split('!')[0][6:-1])
                 if line.startswith('is_obsolete'):
-                    is_obsolete = True if line[13:-1] == 'true' else False
+                    is_obsolete = line[13:-1] == 'true'
                 line = file.readline()
             GO[GOid] = {'name': name, 'primary_id': GOid, 'alt_ids': alt_ids, 'parents': parents, 'is_obsolete': is_obsolete}
             for alt_id in alt_ids:
