@@ -10,7 +10,7 @@ df2 = pd.read_csv('../../../data/TF_CF_ids/nmeth.1763-S2.csv', usecols=['FBgn', 
 # Load Stampfel et al. types
 # (Not using pandas to_dict since it creates a nested dictionary)
 FBgn2type = {}
-with open('../../../data/TF_CF_ids/nature15545-s1.csv') as file:
+with open('../../../data/TF_CF_ids/nature15545-s1.csv', encoding='utf-8-sig') as file:
     field_names = file.readline().rstrip('\n').split(',')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split(','))}
