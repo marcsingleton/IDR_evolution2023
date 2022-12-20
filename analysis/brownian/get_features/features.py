@@ -1,7 +1,6 @@
 """"Functions to calculate features associated with IDRs"""
 
 import re
-from math import log2
 
 from localcider.sequenceParameters import SequenceParameters
 from ipc import predict_isoelectric_point
@@ -144,7 +143,7 @@ def get_features_physchem(seq):
             'fraction_aliphatic': fraction_aliphatic(seq), 'fraction_aromatic': fraction_aromatic(seq),
             'fraction_polar': fraction_polar(seq), 'fraction_disorder': fraction_disorder(seq), 'fraction_chainexp': fraction_chainexp(seq),
             'hydropathy': SeqOb.get_uversky_hydropathy(), 'isopoint': predict_isoelectric_point(seq),
-            'loglen': log2(len(seq)), 'PPII_propensity': SeqOb.get_PPII_propensity()}
+            'length': len(seq), 'PPII_propensity': SeqOb.get_PPII_propensity()}
 
 
 # Sequence complexity
