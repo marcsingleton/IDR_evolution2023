@@ -7,7 +7,7 @@ from subprocess import run
 import skbio
 from src.utils import read_fasta
 
-ppid_regex = r'ppid=([A-Za-z0-9_]+)'
+ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 

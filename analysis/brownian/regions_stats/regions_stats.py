@@ -9,7 +9,7 @@ from numpy import linspace
 from sklearn.decomposition import PCA
 from src.utils import read_fasta
 
-ppid_regex = r'ppid=([A-Za-z0-9_]+)'
+ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
 

@@ -18,7 +18,7 @@ def is_nested(character, characters):
     return False
 
 
-ppid_regex = r'ppid=([A-Za-z0-9_]+)'
+ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
