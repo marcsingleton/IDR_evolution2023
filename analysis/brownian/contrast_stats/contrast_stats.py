@@ -90,7 +90,7 @@ for feature_label in df.columns:
         msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
 
         spids = region2spids[(OGid, start, stop)]
-        msa2 = [msa1[spid].upper()[start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
+        msa2 = [msa1[spid][start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
         fig = plot_msa(msa2, figsize=(8, 6), x_start=start)
         plt.savefig(f'out/contrasts/{feature_label}/{len(regions)-1}_{OGid}-{start}-{stop}.png', bbox_inches='tight')
         plt.close()
@@ -188,7 +188,7 @@ for feature_label in df.columns:
         msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
 
         spids = region2spids[(OGid, start, stop)]
-        msa2 = [msa1[spid].upper()[start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
+        msa2 = [msa1[spid][start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
         fig = plot_msa(msa2, figsize=(8, 6), x_start=start)
         plt.savefig(f'out/means/{feature_label}/{len(regions)-1}_{OGid}-{start}-{stop}.png', bbox_inches='tight')
         plt.close()
@@ -391,7 +391,7 @@ for feature_label in rates.columns:
         msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
 
         spids = region2spids[(OGid, start, stop)]
-        msa2 = [msa1[spid].upper()[start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
+        msa2 = [msa1[spid][start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
         fig = plot_msa(msa2, figsize=(8, 6), x_start=start)
         plt.savefig(f'out/rates/{feature_label}/{len(regions)-1}_{OGid}-{start}-{stop}.png', bbox_inches='tight')
         plt.close()

@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
         for start, stop, disorder in regions:
             for ppid, seq in msa.items():
-                segment = seq[start:stop].translate({ord('-'): None, ord('.'): None}).upper()
+                segment = seq[start:stop].translate({ord('-'): None, ord('.'): None})
                 args.append(Record(OGid, start, stop, ppid, disorder, segment))
 
     # Calculate features
