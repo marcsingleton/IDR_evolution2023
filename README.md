@@ -37,3 +37,10 @@ Nearly all code is written in Python and run with version 3.10.5. The remaining 
 |TensorFlow|2.7.0|
 
 Scikit-Bio attempts to import some deprecated warnings from scipy.stats during import, so these lines were commented out to ensure compatibility.
+
+Additionally, the following Python packages were used for calculating sequence features.
+
+|Package|Version|Source|Use|
+|---|---|---|---|
+|ipc|1.0|http://isoelectric.org/|For calculating isoelectric points|
+|localcider|0.1.19|PyPI|For calculating other special sequence features, *e.g.*, sequence charge decoration|
