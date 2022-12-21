@@ -74,13 +74,16 @@ for min_length in min_lengths:
 
     segments = df[df['min_length'] == min_length].merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
-    mean = regions.mean()
+
+    means = regions.mean()
+    disorder = means.loc[pdidx[:, :, :, True], :]
+    order = means.loc[pdidx[:, :, :, False], :]
 
     # Mean region length histogram
     fig, axs = plt.subplots(2, 1, sharex=True)
-    xmin, xmax = mean['length'].min(), mean['length'].max()
-    axs[0].hist(mean.loc[pdidx[:, :, :, True], 'length'], bins=linspace(xmin, xmax, 100), color='C0', label='disorder')
-    axs[1].hist(mean.loc[pdidx[:, :, :, False], 'length'], bins=linspace(xmin, xmax, 100), color='C1', label='order')
+    xmin, xmax = means['length'].min(), means['length'].max()
+    axs[0].hist(disorder['length'], bins=linspace(xmin, xmax, 100), color='C0', label='disorder')
+    axs[1].hist(order['length'], bins=linspace(xmin, xmax, 100), color='C1', label='order')
     axs[1].set_xlabel('Mean length of region')
     for i in range(2):
         axs[i].set_ylabel('Number of regions')
@@ -119,7 +122,7 @@ for min_length in min_lengths:
     plt.close()
 
     # Feature variance pie chart
-    var = mean.var().drop(['min_length', 'length']).sort_values(ascending=False)  # Remove "non-feature" columns
+    var = means.var().drop(['min_length', 'length']).sort_values(ascending=False)  # Remove "non-feature" columns
     truncate = pd.concat([var[:4], pd.Series({'other': var[4:].sum()})])
     plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
     plt.title(f'Feature variance, length ≥ {min_length}')
@@ -130,8 +133,8 @@ for min_length in min_lengths:
 
     # Feature PCAs
     pca = PCA(n_components=5)
-    idx = mean.index.get_level_values('disorder').array.astype(bool)
-    x = mean.drop(['min_length', 'length'], axis=1)  # Remove "non-feature" columns
+    idx = means.index.get_level_values('disorder').array.astype(bool)
+    x = means.drop(['min_length', 'length'], axis=1)  # Remove "non-feature" columns
 
     transform = pca.fit_transform(x.to_numpy())
     plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
