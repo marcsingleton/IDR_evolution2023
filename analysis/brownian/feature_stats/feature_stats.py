@@ -17,7 +17,7 @@ features.loc[features['omega'] == -1, 'omega'] = 1
 
 # Load segments
 rows = []
-with open('../aucpred_filter/out/regions_30.tsv') as file:
+with open('../regions_filter/out/regions_30.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -53,13 +53,13 @@ pca = PCA(n_components=10)
 colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
           '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
-plots = [(disorder, 'disorder', 'unnorm'),
-         (order, 'order', 'unnorm'),
-         ((disorder - disorder.mean()) / disorder.std(), 'disorder', 'z-score'),
-         ((order - order.mean()) / order.std(), 'order', 'z-score'),
-         ((disorder - disorder.min()) / (disorder.max() - disorder.min()), 'disorder', 'min-max'),
-         ((order - order.min()) / (order.max() - order.min()), 'order', 'min-max')]
-for data, data_label, norm_label in plots:
+plots = [(disorder, 'disorder', 'no norm', 'nonorm'),
+         (order, 'order', 'no norm', 'nonorm'),
+         ((disorder - disorder.mean()) / disorder.std(), 'disorder', 'z-score', 'z-score'),
+         ((order - order.mean()) / order.std(), 'order', 'z-score', 'z-score'),
+         ((disorder - disorder.min()) / (disorder.max() - disorder.min()), 'disorder', 'min-max', 'min-max'),
+         ((order - order.min()) / (order.max() - order.min()), 'order', 'min-max', 'min-max')]
+for data, data_label, norm_label, file_label in plots:
     color = 'C0' if data_label == 'disorder' else 'C1'
     transform = pca.fit_transform(data.to_numpy())
 
@@ -71,7 +71,7 @@ for data, data_label, norm_label in plots:
     legend = plt.legend(markerscale=2)
     for lh in legend.legendHandles:
         lh.set_alpha(1)
-    plt.savefig(f'out/scatter_pca_{data_label}_{norm_label}.png')
+    plt.savefig(f'out/scatter_pca_{data_label}_{file_label}.png')
     plt.close()
 
     # PCA with arrows
@@ -101,5 +101,5 @@ for data, data_label, norm_label in plots:
     plt.ylabel('Explained variance ratio')
     plt.title(norm_label)
     plt.legend()
-    plt.savefig(f'out/bar_scree_{data_label}_{norm_label}.png')
+    plt.savefig(f'out/bar_scree_{data_label}_{file_label}.png')
     plt.close()

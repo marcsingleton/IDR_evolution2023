@@ -9,15 +9,15 @@ from numpy import linspace
 from sklearn.decomposition import PCA
 from src.utils import read_fasta
 
-ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
 
 min_lengths = []
-for path in os.listdir('../aucpred_filter/out/'):
+for path in os.listdir('../regions_filter/out/'):
     match = re.search(length_regex, path)
     if match:
         min_lengths.append(int(match.group(1)))
+min_lengths = sorted(min_lengths)
 
 # Load features
 features = pd.read_table('../get_features/out/features.tsv')
@@ -26,21 +26,15 @@ features.loc[features['omega'] == -1, 'omega'] = 1
 
 # Load regions
 rows = []
-for min_length in sorted(min_lengths):
-    with open(f'../aucpred_filter/out/regions_{min_length}.tsv') as file:
+for min_length in min_lengths:
+    with open(f'../regions_filter/out/regions_{min_length}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
             OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
-
-            msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-            msa = {re.search(ppid_regex, header).group(1): seq for header, seq in msa}
-
             for ppid in fields['ppids'].split(','):
-                segment = msa[ppid][start:stop]
-                length = len([sym for sym in segment if sym not in ['-', '.']])
                 rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
-                             'ppid': ppid, 'min_length': min_length, 'length': length})
+                             'ppid': ppid, 'min_length': min_length})
 df = pd.DataFrame(rows)
 
 # Plots of combined segment sets
@@ -127,7 +121,7 @@ for min_length in min_lengths:
     # Feature variance pie chart
     var = mean.var().drop(['min_length', 'length']).sort_values(ascending=False)  # Remove "non-feature" columns
     truncate = pd.concat([var[:4], pd.Series({'other': var[4:].sum()})])
-    plt.pie(truncate.values, labels=truncate.index)
+    plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
     plt.title(f'Feature variance, length ≥ {min_length}')
     plt.legend(loc='center left', bbox_to_anchor=(1.1, 0.5))
     plt.subplots_adjust(right=0.7)
@@ -142,13 +136,13 @@ for min_length in min_lengths:
     transform = pca.fit_transform(x.to_numpy())
     plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
     plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
-    plt.title(f'unnormed, length ≥ {min_length}')
+    plt.title(f'no norm, length ≥ {min_length}')
     plt.xlabel('PC1')
     plt.ylabel('PC2')
     legend = plt.legend(markerscale=2)
     for lh in legend.legendHandles:
         lh.set_alpha(1)
-    plt.savefig(f'out/regions_{min_length}/pca_unnorm.png')
+    plt.savefig(f'out/regions_{min_length}/pca_nonorm.png')
     plt.close()
 
     norm = (x - x.mean()) / x.std()
