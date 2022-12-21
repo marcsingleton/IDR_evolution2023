@@ -12,7 +12,8 @@ spid_regex = r'spid=([a-z]+)'
 
 # Load OGs
 rows = []
-for OGid in sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')]):
+OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
+for OGid in OGids:
     msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
     for header, seq in msa:
         ppid = re.search(ppid_regex, header).group(1)
