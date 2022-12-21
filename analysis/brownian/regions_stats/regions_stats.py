@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from numpy import linspace
 from sklearn.decomposition import PCA
-from src.utils import read_fasta
 
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
 
+# Get minimum lengths
 min_lengths = []
 for path in os.listdir('../regions_filter/out/'):
     match = re.search(length_regex, path)
@@ -72,7 +72,7 @@ for min_length in min_lengths:
     if not os.path.exists(f'out/regions_{min_length}/'):
         os.mkdir(f'out/regions_{min_length}/')
 
-    segments = df[df['min_length'] == min_length].merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+    segments = df[df['min_length'] == min_length].merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid']).drop('min_length', axis=1)
     regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
 
     means = regions.mean()
@@ -122,7 +122,7 @@ for min_length in min_lengths:
     plt.close()
 
     # Feature variance pie chart
-    var = means.var().drop(['min_length', 'length']).sort_values(ascending=False)  # Remove "non-feature" columns
+    var = means.var().sort_values(ascending=False)
     truncate = pd.concat([var[:4], pd.Series({'other': var[4:].sum()})])
     plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
     plt.title(f'Feature variance, length ≥ {min_length}')
@@ -134,7 +134,7 @@ for min_length in min_lengths:
     # Feature PCAs
     pca = PCA(n_components=5)
     idx = means.index.get_level_values('disorder').array.astype(bool)
-    x = means.drop(['min_length', 'length'], axis=1)  # Remove "non-feature" columns
+    x = means
 
     transform = pca.fit_transform(x.to_numpy())
     plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')

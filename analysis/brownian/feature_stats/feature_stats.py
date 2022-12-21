@@ -12,6 +12,7 @@ from sklearn.decomposition import PCA
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
 
+# Get minimum lengths
 min_lengths = []
 for path in os.listdir('../regions_filter/out/'):
     match = re.search(length_regex, path)
@@ -39,9 +40,9 @@ df = pd.DataFrame(rows)
 
 for min_length in min_lengths:
     if not os.path.exists(f'out/regions_{min_length}/'):
-        os.mkdir(f'out/regions_{min_length}/')
+        os.makedirs(f'out/regions_{min_length}/')
 
-    segments = pd.DataFrame(rows).merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+    segments = df[df['min_length'] == min_length].merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid']).drop('min_length', axis=1)
     regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
 
     means = regions.mean()
