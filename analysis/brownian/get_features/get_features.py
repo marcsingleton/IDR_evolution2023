@@ -5,7 +5,7 @@ import os
 import re
 from collections import namedtuple
 
-import features
+import src.brownian.features as features
 from src.utils import read_fasta
 
 
@@ -15,7 +15,7 @@ Record = namedtuple('Record', ['OGid', 'start', 'stop', 'ppid', 'disorder', 'seg
 def get_features(record):
     d = {'OGid': record.OGid, 'start': record.start, 'stop': record.stop, 'ppid': record.ppid}
     if not (len(record.segment) == 0 or 'X' in record.segment or 'U' in record.segment):
-        d.update(features.get_features(record.segment))
+        d.update(features.get_features(record.segment, features.repeat_groups, features.motif_regexes))
     return d
 
 
