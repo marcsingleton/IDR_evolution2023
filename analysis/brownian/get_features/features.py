@@ -27,9 +27,9 @@ def fraction_group(seq, group):
     return count / len(seq)
 
 
-def fraction_regex(seq, regex):
-    """Return fraction of sequence matching a regular expression."""
-    matches = re.findall(regex, seq)
+def fraction_repeat(seq, group):
+    """Return fraction of sequence matching a group of repeated residues."""
+    matches = re.findall(f'[{group}]' + '{2,}', seq)
     count = 0
     for match in matches:
         count += len(match)
@@ -48,12 +48,12 @@ def get_features_aa(seq):
 # Charge properties
 def count_positive(seq):
     """Return count of positively charged residues."""
-    return count_group(seq, 'RK')
+    return count_group(seq, set('RK'))
 
 
 def count_negative(seq):
     """Return count of negatively charged residues."""
-    return count_group(seq, 'DE')
+    return count_group(seq, set('DE'))
 
 
 def FCR(seq):
@@ -72,9 +72,9 @@ def net_charge(seq):
 
 
 def net_charge_P(seq):
-    """Return net charging accounting for likely phosphorylated serines and threonines."""
-    psites = re.findall('[ST]P', seq)
-    return net_charge(seq) - 1.5 * len(psites)
+    """Return net charging accounting for possible phosphorylated serine and threonine residues."""
+    matches = re.findall('[ST]P', seq)
+    return net_charge(seq) - 1.5 * len(matches)
 
 
 def RK_ratio(seq):
@@ -147,19 +147,67 @@ def get_features_physchem(seq):
 
 
 # Sequence complexity
-def get_features_complexity(seq):
+def get_features_complexity(seq, repeat_groups):
     """Return dictionary of all features associated with sequence complexity."""
-    repeats = ['Q', 'N', 'S', 'G', 'E', 'D', 'K', 'R', 'P',
-               'QN', 'RG', 'FG', 'SG', 'SR', 'KAP', 'PTS']
     features = {}
-    for repeat in repeats:
-        features['repeat_' + repeat] = fraction_regex(seq, f'[{repeat}]' + '{2,}')
+    for group in repeat_groups:
+        features['repeat_' + group] = fraction_repeat(seq, group)
     features['wf_complexity'] = SequenceParameters(seq).get_linear_complexity(blobLen=len(seq))[1][0]  # Returns a 2xN matrix containing the complexity vector and the corresponding residue positions distributed equally along the sequence
+    return features
 
+
+# Motifs
+def get_features_motifs(seq, motif_regexes):
+    """Return dictionary of counts of motifs given in motif_regexes."""
+    features = {}
+    for motif, regex in motif_regexes.items():
+        matches = re.findall(regex, seq)
+        features[motif] = len(matches)
     return features
 
 
 # Summary
-def get_features(seq):
+def get_features(seq, repeat_groups, motif_regexes):
     """Return dictionary of all features."""
-    return {**get_features_aa(seq), **get_features_charge(seq), **get_features_physchem(seq), **get_features_complexity(seq)}
+    return {**get_features_aa(seq), **get_features_charge(seq), **get_features_physchem(seq),
+            **get_features_complexity(seq, repeat_groups), **get_features_motifs(seq, motif_regexes)}
+
+
+repeat_groups = ['Q', 'N', 'S', 'G', 'E', 'D', 'K', 'R', 'P', 'QN', 'RG', 'FG', 'SG', 'SR', 'KAP', 'PTS']
+motif_regexes = {'CLV_Separin_Metazoa': r'E[IMPVL][MLVP]R.',
+                 'DEG_APCC_KENBOX_2': r'.KEN.',
+                 'DEG_APCC_TPR_1': r'.[ILM]R',
+                 'DOC_CKS1_1': r'[MPVLIFWYQ].(T)P..',
+                 'DOC_MAPK_DCC_7': r'[RK].{2,4}[LIVP]P.[LIV].[LIVMF]|[RK].{2,4}[LIVP].P[LIV].[LIVMF]',
+                 'DOC_MAPK_gen_1': r'[KR]{0,2}[KR].{0,2}[KR].{2,4}[ILVM].[ILVF]',
+                 'DOC_MAPK_HePTP_8': r'([LIV][^P][^P][RK]....[LIVMP].[LIV].[LIVMF])|([LIV][^P][^P][RK][RK]G.{4,7}[LIVMP].[LIV].[LIVMF])',
+                 'DOC_PP1_RVXF_1': r'..[RK].{0,1}[VIL][^P][FW].',
+                 'DOC_PP2B_PxIxI_1': r'.P[^P]I[^P][IV][^P]',
+                 'LIG_APCC_Cbox_1': r'[DE]R[YFH][ILFVM][PAG].R',
+                 'LIG_AP_GAE_1': r'[DE][DES][DEGAS]F[SGAD][DEAP][LVIMFD]',
+                 'LIG_CaM_IQ_9': r'[ACLIVTM][^P][^P][ILVMFCT]Q[^P][^P][^P][RK][^P]{4,5}[RKQ][^P][^P]',
+                 'LIG_EH_1': r'.NPF.',
+                 'LIG_eIF4E_1': r'Y....L[VILMF]',
+                 'LIG_GLEBS_BUB3_1': r'[EN][FYLW][NSQ].EE[ILMVF][^P][LIVMFA]',
+                 'LIG_LIR_Gen_1': r'[EDST].{0,2}[WFY][^RKPGWFY][^PG][ILVFM]((.{0,4}[PLAFIVMY])|($)|(.{0,3}[ED]))',
+                 'LIG_PCNA_PIPBox_1': r'[QM].[^FHWY][LIVM][^P][^PFWYMLIV](([FYHL][FYW])|([FYH][FYWL]))..',
+                 'LIG_SUMO_SIM_par_1': r'[DEST]{0,5}.[VILPTM][VIL][DESTVILMA][VIL].{0,1}[DEST]{1,10}',
+                 'MOD_CDK_SPxK_1': r'...([ST])P.[KR]',
+                 'MOD_LATS_1': r'H.[KR]..([ST])[^P]',
+                 'MOD_SUMO_for_1': r'[VILMAFP](K).E',
+                 'TRG_ER_FFAT_1': r'[EDS].{0,4}[ED][FY][FYKREM][DE][AC].{1,2}[EDST]',
+                 'TRG_Golgi_diPhe_1': r'Q.{6,6}FF.{6,7}',
+                 'TRG_NLS_MonoExtN_4': r'(([PKR].{0,1}[^DE])|([PKR]))((K[RK])|(RK))(([^DE][KR])|([KR][^DE]))[^DE]',
+                 'MOD_CDK_STP': r'[ST]P',
+                 'MOD_MEC1': r'[ST]Q',
+                 'MOD_PRK1': r'[LIVM]....TG',
+                 'MOD_IPL1': r'[RK].[ST][LIV]',
+                 'MOD_PKA': r'R[RK].S',
+                 'MOD_CKII': r'[ST][DE].[DE]',
+                 'MOD_IME2': r'RP.[ST]',
+                 'DOC_PRO': r'P..P',
+                 'TRG_ER_HDEL': r'HDEL',
+                 'TRG_MITOCHONDRIA': r'[MR]L[RK]',
+                 'MOD_ISOMERASE': r'C..C',
+                 'TRG_FG': r'F.FG|GLFG',
+                 'INT_RGG': r'RGG|RG'}
