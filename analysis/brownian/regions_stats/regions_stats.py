@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from numpy import linspace
 from sklearn.decomposition import PCA
+from src.brownian.features import motif_regexes
+
+
+def zscore(df):
+    return (df - df.mean()) / df.std()
+
 
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
@@ -23,6 +29,9 @@ min_lengths = sorted(min_lengths)
 features = pd.read_table('../get_features/out/features.tsv')
 features.loc[features['kappa'] == -1, 'kappa'] = 1
 features.loc[features['omega'] == -1, 'omega'] = 1
+features['radius_gyration'] = features['length'] ** 0.6
+
+motif_labels = list(motif_regexes)
 
 # Load regions
 rows = []
@@ -121,55 +130,44 @@ for min_length in min_lengths:
     plt.savefig(f'out/regions_{min_length}/bar_numOGs-DO.png')
     plt.close()
 
-    # Feature variance pie chart
-    var = means.var().sort_values(ascending=False)
-    truncate = pd.concat([var[:4], pd.Series({'other': var[4:].sum()})])
-    plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-    plt.title(f'Feature variance, length ≥ {min_length}')
-    plt.legend(loc='center left', bbox_to_anchor=(1.1, 0.5))
-    plt.subplots_adjust(right=0.7)
-    plt.savefig(f'out/regions_{min_length}/pie_variance.png')
-    plt.close()
+    plots = [(means.drop(['length'], axis=1), 'all'),
+             (means.drop(['length'] + motif_labels, axis=1), 'motifs')]
+    for data, file_label in plots:
+        # Feature variance pie chart
+        var = data.var().sort_values(ascending=False)
+        truncate = pd.concat([var[:4], pd.Series({'other': var[4:].sum()})])
+        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        plt.title(f'Feature variance, length ≥ {min_length}')
+        plt.legend(loc='center left', bbox_to_anchor=(1.1, 0.5))
+        plt.subplots_adjust(right=0.7)
+        plt.savefig(f'out/regions_{min_length}/pie_variance_{file_label}.png')
+        plt.close()
 
-    # Feature PCAs
-    pca = PCA(n_components=5)
-    idx = means.index.get_level_values('disorder').array.astype(bool)
-    x = means
+        # Feature PCAs
+        pca = PCA(n_components=5)
+        idx = data.index.get_level_values('disorder').array.astype(bool)
 
-    transform = pca.fit_transform(x.to_numpy())
-    plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
-    plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
-    plt.title(f'no norm, length ≥ {min_length}')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/regions_{min_length}/pca_nonorm.png')
-    plt.close()
+        transform = pca.fit_transform(data.to_numpy())
+        plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
+        plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
+        plt.title(f'no norm, length ≥ {min_length}')
+        plt.xlabel('PC1')
+        plt.ylabel('PC2')
+        legend = plt.legend(markerscale=2)
+        for lh in legend.legendHandles:
+            lh.set_alpha(1)
+        plt.savefig(f'out/regions_{min_length}/pca_nonorm_{file_label}.png')
+        plt.close()
 
-    norm = (x - x.mean()) / x.std()
-    transform = pca.fit_transform(norm.to_numpy())
-    plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
-    plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
-    plt.title(f'z-score, length ≥ {min_length}')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/regions_{min_length}/pca_z-score.png')
-    plt.close()
-
-    norm = (x - x.min()) / (x.max()-x.min())
-    transform = pca.fit_transform(norm.to_numpy())
-    plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
-    plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
-    plt.title(f'min-max, length ≥ {min_length}')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/regions_{min_length}/pca_min-max.png')
-    plt.close()
+        norm = zscore(data)
+        transform = pca.fit_transform(norm.to_numpy())
+        plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
+        plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
+        plt.title(f'z-score, length ≥ {min_length}')
+        plt.xlabel('PC1')
+        plt.ylabel('PC2')
+        legend = plt.legend(markerscale=2)
+        for lh in legend.legendHandles:
+            lh.set_alpha(1)
+        plt.savefig(f'out/regions_{min_length}/pca_zscore_{file_label}.png')
+        plt.close()

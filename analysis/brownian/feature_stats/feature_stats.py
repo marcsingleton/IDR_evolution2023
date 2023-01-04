@@ -8,6 +8,12 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from numpy import linspace
 from sklearn.decomposition import PCA
+from src.brownian.features import motif_regexes
+
+
+def zscore(df):
+    return (df - df.mean()) / df.std()
+
 
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
@@ -24,6 +30,11 @@ min_lengths = sorted(min_lengths)
 features = pd.read_table('../get_features/out/features.tsv')
 features.loc[features['kappa'] == -1, 'kappa'] = 1
 features.loc[features['omega'] == -1, 'omega'] = 1
+features['radius_gyration'] = features['length'] ** 0.6
+features = features.drop('length', axis=1)
+
+feature_labels = list(features.columns.drop(['OGid', 'ppid', 'start', 'stop']))
+motif_labels = list(motif_regexes)
 
 # Load regions
 rows = []
@@ -48,9 +59,11 @@ for min_length in min_lengths:
     means = regions.mean()
     disorder = means.loc[pdidx[:, :, :, True], :]
     order = means.loc[pdidx[:, :, :, False], :]
+    disorder_motifs = disorder.drop(motif_labels, axis=1)
+    order_motifs = order.drop(motif_labels, axis=1)
 
     # Feature histograms
-    for feature_label in means.columns:
+    for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = means[feature_label].min(), means[feature_label].max()
         axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color='C0', label='disorder')
@@ -67,12 +80,14 @@ for min_length in min_lengths:
     colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
               '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
-    plots = [(disorder, 'disorder', 'no norm', 'nonorm'),
-             (order, 'order', 'no norm', 'nonorm'),
-             ((disorder - disorder.mean()) / disorder.std(), 'disorder', 'z-score', 'z-score'),
-             ((order - order.mean()) / order.std(), 'order', 'z-score', 'z-score'),
-             ((disorder - disorder.min()) / (disorder.max() - disorder.min()), 'disorder', 'min-max', 'min-max'),
-             ((order - order.min()) / (order.max() - order.min()), 'order', 'min-max', 'min-max')]
+    plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
+             (order, 'order', 'no norm', 'nonorm_all'),
+             (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
+             (zscore(order), 'order', 'z-score', 'zscore_all'),
+             (disorder_motifs, 'disorder', 'no norm', 'nonorm_motifs'),
+             (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
+             (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
+             (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
     for data, data_label, norm_label, file_label in plots:
         color = 'C0' if data_label == 'disorder' else 'C1'
         transform = pca.fit_transform(data.to_numpy())
@@ -106,7 +121,7 @@ for min_length in min_lengths:
             plt.annotate('', xy=(scale*x, scale*y), xytext=(0, 0),
                          arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': colors[i % len(colors)]})
         plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
-        plt.savefig(f'out/regions_{min_length}/scatter_pca-arrow_{data_label}_{norm_label}.png')
+        plt.savefig(f'out/regions_{min_length}/scatter_pca-arrow_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
