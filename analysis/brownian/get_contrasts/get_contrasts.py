@@ -60,7 +60,9 @@ if __name__ == '__main__':
     features = pd.read_table('../get_features/out/features.tsv')
     features.loc[features['kappa'] == -1, 'kappa'] = 1
     features.loc[features['omega'] == -1, 'omega'] = 1
-    feature_labels = list(features.columns.drop(['OGid', 'start', 'stop', 'ppid']))
+    features['radius_gyration'] = features['length'] ** 0.6
+
+    feature_labels = list(features.columns.drop(['OGid', 'start', 'stop', 'ppid', 'length']))
 
     # Load regions
     rows = []
