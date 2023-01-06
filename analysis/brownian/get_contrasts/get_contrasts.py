@@ -30,7 +30,7 @@ def apply_contrasts(args):
     return name, roots, contrasts
 
 
-num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
+num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 10))
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
@@ -59,9 +59,10 @@ if __name__ == '__main__':
     features = pd.read_table('../get_features/out/features.tsv')
     features.loc[features['kappa'] == -1, 'kappa'] = 1
     features.loc[features['omega'] == -1, 'omega'] = 1
-    features['radius_gyration'] = features['length'] ** 0.6
+    features['length'] = features['length'] ** 0.6
+    features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
-    feature_labels = list(features.columns.drop(['OGid', 'start', 'stop', 'ppid', 'length']))
+    feature_labels = list(features.columns.drop(['OGid', 'start', 'stop', 'ppid']))
 
     # Load regions
     rows = []

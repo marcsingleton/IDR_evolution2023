@@ -30,8 +30,8 @@ min_lengths = sorted(min_lengths)
 features = pd.read_table('../get_features/out/features.tsv')
 features.loc[features['kappa'] == -1, 'kappa'] = 1
 features.loc[features['omega'] == -1, 'omega'] = 1
-features['radius_gyration'] = features['length'] ** 0.6
-features = features.drop('length', axis=1)
+features['length'] = features['length'] ** 0.6
+features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
 feature_labels = list(features.columns.drop(['OGid', 'ppid', 'start', 'stop']))
 motif_labels = list(motif_regexes)
