@@ -25,9 +25,9 @@ def apply_contrasts(args):
         tip.value = group.loc[idx, feature_labels]
 
     # Get contrasts
-    contrasts, value = get_contrasts(tree)
+    roots, contrasts = get_contrasts(tree)
 
-    return name, contrasts, value
+    return name, roots, contrasts
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         with open(f'out/contrasts_{min_length}.tsv', 'w') as file1, open(f'out/roots_{min_length}.tsv', 'w') as file2:
             file1.write('\t'.join(['OGid', 'start', 'stop', 'contrast_id'] + feature_labels) + '\n')
             file2.write('\t'.join(['OGid', 'start', 'stop'] + feature_labels) + '\n')
-            for name, contrasts, value in records:
+            for name, roots, contrasts in records:
                 # Write contrasts
                 for idx, contrast in enumerate(contrasts):
                     fields1 = [name[0], str(name[1]), str(name[2]), str(idx)]
@@ -105,5 +105,5 @@ if __name__ == '__main__':
                 # Write means
                 fields2 = [name[0], str(name[1]), str(name[2])]
                 for feature_label in feature_labels:
-                    fields2.append(str(value[feature_label]))
+                    fields2.append(str(roots[feature_label]))
                 file2.write('\t'.join(fields2) + '\n')

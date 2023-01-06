@@ -56,11 +56,11 @@ for OGid, group in groups:
         tip = spid2tip[row.spid]
         tip.value = np.array([getattr(row, column) for column in columns])
 
-    contrasts, root_values = get_contrasts(tree)
+    roots, contrasts = get_contrasts(tree)
     contrasts = np.stack(contrasts)
     rates = (contrasts ** 2).mean(axis=0)
     rows.append({'OGid': OGid,
-                 **{f'{column}_root': root_value for column, root_value in zip(columns, root_values)},
+                 **{f'{column}_root': root for column, root in zip(columns, roots)},
                  **{f'{column}_rate': rate for column, rate in zip(columns, rates)}})
 df2 = pd.DataFrame(rows)
 
