@@ -173,7 +173,8 @@ for row in examples.itertuples():
     # Get Brownian weights and calculate root score
     spids = [record['spid'] for record in msa]
     tree = tree_template.shear(spids)
-    weight_dict = {tip.name: weight for tip, weight in get_brownian_weights(tree)}
+    tips, weights = get_brownian_weights(tree)
+    weight_dict = {tip.name: weight for tip, weight in zip(tips, weights)}
     weight_array = np.zeros((len(msa), 1))
     for i, record in enumerate(msa):
         weight_array[i] = weight_dict[record['spid']]

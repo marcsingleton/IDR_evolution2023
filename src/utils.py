@@ -25,16 +25,18 @@ def get_brownian_weights(tree):
 
     Returns
     -------
-    weights: list of tuples of (tip, weight)
+    tips: list of TreeNodes (skbio)
+        List of tips in order as entries in weights
+    weights: ndarray
     """
     # Compute weights
     # The formula below is from the appendix of the referenced work
-    idx2tip, cov = get_brownian_covariance(tree)
+    tips, cov = get_brownian_covariance(tree)
     inv = np.linalg.inv(cov)
     row_sum = inv.sum(axis=1)
     total_sum = inv.sum()
     weights = row_sum / total_sum
-    return [(idx2tip[idx], weight) for idx, weight in enumerate(weights)]
+    return tips, weights
 
 
 def get_brownian_covariance(tree):
@@ -46,15 +48,14 @@ def get_brownian_covariance(tree):
 
     Returns
     -------
-    idx2tip: dict
-        Maps covariance matrix indices to corresponding tip on tree
+    tips: list of TreeNodes (skbio)
+        List of tips in order of entries in covariance matrix
     cov: ndarray
         Covariance matrix
     """
     tree = tree.copy()  # Make copy so computations do not change original tree
     tips = list(tree.tips())
     tip2idx = {tip: i for i, tip in enumerate(tips)}
-    idx2tip = {i: tip for i, tip in enumerate(tips)}
 
     # Accumulate tip names up to root
     for node in tree.postorder():
@@ -79,36 +80,86 @@ def get_brownian_covariance(tree):
             idx = tip2idx[node]
             cov[idx, idx] = node.root_length
 
-    return idx2tip, cov
+    return tips, cov
 
 
-def get_brownian_mles(tree):
+def get_brownian_mles(tree=None, cov=None, inv=None, values=None):
     """Get MLEs under Brownian motion model of trait evolution.
 
     Parameters
     ----------
     tree: TreeNode (skbio)
+    cov: ndarray
+        Pre-computed covariance matrix
+    inv: ndarray
+        Pre-computed inverse of covariance matrix
+    values: 1D ndarray
+        Tip values in order of entries in covariance matrix
 
     Returns
     -------
-    mu: numeric
+    mu: float
         Inferred root value
-    sigma2: numeric
+    sigma2: float
         Inferred rate of trait evolution
     """
-    idx2tip, cov = get_brownian_covariance(tree)
+    if tree is not None:
+        tips, cov = get_brownian_covariance(tree)
+        inv = np.linalg.inv(cov)
+        values = np.array([tip.value for tip in tips])
+    elif any([arg is None for arg in [cov, inv, values]]):
+        raise RuntimeError('Invalid combination of arguments.')
 
-    inv = np.linalg.inv(cov)
     row_sum = inv.sum(axis=1)
     total_sum = inv.sum()
     weights = row_sum / total_sum
 
-    values = np.array([idx2tip[idx].value for idx in range(len(idx2tip))])
-    mu = np.dot(weights, values)
+    mu = weights.transpose() @ values
     x = values - mu
-    sigma2 = (x.transpose() @ inv @ x) / (len(idx2tip) - 1)
+    sigma2 = (x.transpose() @ inv @ x) / (len(cov) - 1)
 
     return mu, sigma2
+
+
+def get_brownian_loglikelihood(mu, sigma2, tree=None, cov=None, inv=None, values=None):
+    """Get log-likelihood Brownian motion model of trait evolution.
+
+    Parameters
+    ----------
+    mu: float
+        Root value
+    sigma2: float
+        Rate of trait evolution
+    tree: TreeNode (skbio)
+    cov: ndarray
+        Pre-computed covariance matrix
+    inv: ndarray
+        Pre-computed inverse of covariance matrix
+    values: 1D ndarray
+        Tip values in order of entries in covariance matrix
+
+    Returns
+    -------
+    loglikelihood: float
+    """
+    # Check arguments
+    if tree is not None:
+        tips, cov = get_brownian_covariance(tree)
+        inv = np.linalg.inv(cov)
+        values = np.array([tip.value for tip in tips])
+    elif any([arg is None for arg in [cov, inv, values]]):
+        raise RuntimeError('Invalid combination of arguments.')
+    # Check degenerate case
+    if sigma2 == 0:
+        return 0
+
+    cov = sigma2 * cov
+    inv = inv / sigma2
+    det = np.linalg.det(cov)
+    x = values - mu
+    loglikelihood = -0.5 * (x.transpose() @ inv @ x - np.log(det) - len(cov) * np.log(2 * np.pi))
+
+    return loglikelihood
 
 
 def get_contrasts(tree):
