@@ -88,7 +88,7 @@ for min_length in min_lengths:
              (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
              (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
              (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
-    for data, data_label, norm_label, file_label in plots:
+    for data, data_label, title_label, file_label in plots:
         color = 'C0' if data_label == 'disorder' else 'C1'
         transform = pca.fit_transform(data.to_numpy())
 
@@ -96,7 +96,7 @@ for min_length in min_lengths:
         plt.scatter(transform[:, 0], transform[:, 1], label=data_label, color=color, s=5, alpha=0.1, edgecolors='none')
         plt.xlabel('PC1')
         plt.ylabel('PC2')
-        plt.title(norm_label)
+        plt.title(title_label)
         legend = plt.legend(markerscale=2)
         for lh in legend.legendHandles:
             lh.set_alpha(1)
@@ -107,7 +107,7 @@ for min_length in min_lengths:
         plt.scatter(transform[:, 0], transform[:, 1], label=data_label, color=color, s=5, alpha=0.1, edgecolors='none')
         plt.xlabel('PC1')
         plt.ylabel('PC2')
-        plt.title(norm_label)
+        plt.title(title_label)
 
         xmin, xmax = plt.xlim()
         ymin, ymax = plt.ylim()
@@ -128,7 +128,7 @@ for min_length in min_lengths:
         plt.bar(range(1, len(pca.explained_variance_ratio_)+1), pca.explained_variance_ratio_, label=data_label, color=color)
         plt.xlabel('Principal component')
         plt.ylabel('Explained variance ratio')
-        plt.title(norm_label)
+        plt.title(title_label)
         plt.legend()
         plt.savefig(f'out/regions_{min_length}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
