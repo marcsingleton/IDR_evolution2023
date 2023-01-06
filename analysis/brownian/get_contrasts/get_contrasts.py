@@ -25,7 +25,6 @@ def apply_contrasts(args):
         tip.value = group.loc[idx, feature_labels]
 
     # Get contrasts
-    tree.length = 0  # Set root length to 0 for convenience
     contrasts, value = get_contrasts(tree)
 
     return name, contrasts, value

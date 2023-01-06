@@ -55,7 +55,6 @@ for OGid, group in groups:
     for row in group.itertuples():
         tip = spid2tip[row.spid]
         tip.value = np.array([getattr(row, column) for column in columns])
-    tree.length = 0
 
     contrasts, root_values = get_contrasts(tree)
     contrasts = np.stack(contrasts)
