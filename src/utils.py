@@ -172,20 +172,11 @@ def get_OU_covariance(alpha, tree=None, tips=None, ds=None):
             s = ds[i, j]
 
             x = np.exp(-alpha * T) * (np.exp(2*alpha*s) - 1) / (2*alpha)
+            if np.isnan(x):  # Check for limiting case
+                x = s
             cov[i, j] = x
             cov[j, i] = x
     return tips, cov
-
-
-def get_OU_weights(alpha, tree=None, tips=None, ds=None):
-    if tips is None or ds is None:
-        tips, ds = get_brownian_covariance(tree)
-    ws = np.zeros((len(tips), 2))
-    for i in range(len(tips)):
-        w = np.exp(-alpha * ds[i, i])  # Common factor to both weights
-        ws[i, 0] = w
-        ws[i, 1] = 1 - w
-    return tips, ws
 
 
 def get_OU_mles(tree=None, tips=None, ds=None):
@@ -194,46 +185,51 @@ def get_OU_mles(tree=None, tips=None, ds=None):
     values = np.array([tip.value for tip in tree.tips()])
 
     def f(alpha):
-        alpha = np.exp(alpha)
-        _, ws = get_OU_weights(alpha, tips=tips, ds=ds)
+        if alpha <= 0:
+            return np.inf
+
         _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
         inv = np.linalg.inv(cov)
         det = np.linalg.det(cov)
+        row_sum = inv.sum(axis=1)
+        total_sum = inv.sum()
+        weights = row_sum / total_sum
         N = len(cov)
 
-        theta = np.linalg.solve(ws.transpose() @ inv @ ws, ws.transpose() @ inv @ values)
-        x = values - ws @ theta
+        mu = weights.transpose() @ values
+        x = values - mu
         sigma2 = x.transpose() @ inv @ x / N
         loglikelihood = 0.5 * (x.transpose() @ inv @ x / sigma2 + np.log((2 * np.pi * sigma2) ** N * det))  # No negative since using minimize
 
         return loglikelihood
 
     result = optimize.minimize_scalar(f)
-    alpha = np.exp(result.x)
-    _, ws = get_OU_weights(alpha, tips=tips, ds=ds)
+    alpha = result.x
     _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
     inv = np.linalg.inv(cov)
+    row_sum = inv.sum(axis=1)
+    total_sum = inv.sum()
+    weights = row_sum / total_sum
     N = len(cov)
 
-    theta = np.linalg.solve(ws.transpose() @ inv @ ws, ws.transpose() @ inv @ values)
-    x = values - ws @ theta
+    mu = weights.transpose() @ values
+    x = values - mu
     sigma2 = x.transpose() @ inv @ x / N
 
-    return theta, sigma2, alpha
+    return mu, sigma2, alpha
 
 
-def get_OU_loglikelihood(theta, sigma2, alpha, tree=None, tips=None, ds=None):
+def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ds=None):
     if tips is None or ds is None:
         tips, ds = get_brownian_covariance(tree)
     values = np.array([tip.value for tip in tree.tips()])
 
-    _, ws = get_OU_weights(alpha, tips=tips, ds=ds)
     _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
     inv = np.linalg.inv(cov)
     det = np.linalg.det(cov)
     N = len(cov)
 
-    x = values - ws @ theta
+    x = values - mu
     loglikelihood = -0.5 * (x.transpose() @ inv @ x / sigma2 + np.log((2 * np.pi * sigma2) ** N * det))
 
     return loglikelihood
