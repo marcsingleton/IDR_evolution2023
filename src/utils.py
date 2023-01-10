@@ -3,6 +3,7 @@
 from itertools import product
 
 import numpy as np
+import scipy.optimize as optimize
 
 
 def get_brownian_weights(tree):
@@ -113,10 +114,11 @@ def get_brownian_mles(tree=None, cov=None, inv=None, values=None):
     row_sum = inv.sum(axis=1)
     total_sum = inv.sum()
     weights = row_sum / total_sum
+    N = len(cov)
 
     mu = weights.transpose() @ values
     x = values - mu
-    sigma2 = (x.transpose() @ inv @ x) / (len(cov) - 1)
+    sigma2 = (x.transpose() @ inv @ x) / (N - 1)
 
     return mu, sigma2
 
@@ -149,15 +151,90 @@ def get_brownian_loglikelihood(mu, sigma2, tree=None, cov=None, inv=None, values
         values = np.array([tip.value for tip in tips])
     elif any([arg is None for arg in [cov, inv, values]]):
         raise RuntimeError('Invalid combination of arguments.')
-    # Check degenerate case
-    if sigma2 == 0:
-        return 0
 
     cov = sigma2 * cov
     inv = inv / sigma2
     det = np.linalg.det(cov)
+    N = len(cov)
     x = values - mu
-    loglikelihood = -0.5 * (x.transpose() @ inv @ x - np.log(det) - len(cov) * np.log(2 * np.pi))
+    loglikelihood = -0.5 * (x.transpose() @ inv @ x + np.log((2 * np.pi) ** N * det))
+
+    return loglikelihood
+
+
+def get_OU_covariance(alpha, tree=None, tips=None, ds=None):
+    if tips is None or ds is None:
+        tips, ds = get_brownian_covariance(tree)
+    cov = np.zeros((len(tips), len(tips)))
+    for i in range(len(tips)):
+        for j in range(i+1):
+            T = ds[i, i] + ds[j, j]
+            s = ds[i, j]
+
+            x = np.exp(-alpha * T) * (np.exp(2*alpha*s) - 1) / (2*alpha)
+            cov[i, j] = x
+            cov[j, i] = x
+    return tips, cov
+
+
+def get_OU_weights(alpha, tree=None, tips=None, ds=None):
+    if tips is None or ds is None:
+        tips, ds = get_brownian_covariance(tree)
+    ws = np.zeros((len(tips), 2))
+    for i in range(len(tips)):
+        w = np.exp(-alpha * ds[i, i])  # Common factor to both weights
+        ws[i, 0] = w
+        ws[i, 1] = 1 - w
+    return tips, ws
+
+
+def get_OU_mles(tree=None, tips=None, ds=None):
+    if tips is None or ds is None:
+        tips, ds = get_brownian_covariance(tree)
+    values = np.array([tip.value for tip in tree.tips()])
+
+    def f(alpha):
+        alpha = np.exp(alpha)
+        _, ws = get_OU_weights(alpha, tips=tips, ds=ds)
+        _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
+        inv = np.linalg.inv(cov)
+        det = np.linalg.det(cov)
+        N = len(cov)
+
+        theta = np.linalg.solve(ws.transpose() @ inv @ ws, ws.transpose() @ inv @ values)
+        x = values - ws @ theta
+        sigma2 = x.transpose() @ inv @ x / N
+        loglikelihood = 0.5 * (x.transpose() @ inv @ x / sigma2 + np.log((2 * np.pi * sigma2) ** N * det))  # No negative since using minimize
+
+        return loglikelihood
+
+    result = optimize.minimize_scalar(f)
+    alpha = np.exp(result.x)
+    _, ws = get_OU_weights(alpha, tips=tips, ds=ds)
+    _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
+    inv = np.linalg.inv(cov)
+    N = len(cov)
+
+    theta = np.linalg.solve(ws.transpose() @ inv @ ws, ws.transpose() @ inv @ values)
+    x = values - ws @ theta
+    sigma2 = x.transpose() @ inv @ x / N
+
+    return theta, sigma2, alpha
+
+
+def get_OU_loglikelihood(theta, sigma2, alpha, tree=None, tips=None, ds=None):
+    if tips is None or ds is None:
+        tips, ds = get_brownian_covariance(tree)
+    values = np.array([tip.value for tip in tree.tips()])
+
+    _, ws = get_OU_weights(alpha, tips=tips, ds=ds)
+    _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
+    inv = np.linalg.inv(cov)
+    det = np.linalg.det(cov)
+    N = len(cov)
+
+    x = values - ws @ theta
+    loglikelihood = -0.5 * (x.transpose() @ inv @ x / sigma2 + np.log((2 * np.pi * sigma2) ** N * det))
 
     return loglikelihood
 
