@@ -18,7 +18,7 @@ def get_brownian_weights(tree):
 
     The formula is given in the appendix of:
     Weights for Data Related by a Tree. SF Altschul et al.
-    J. Mol. Biol. (1989) 207, 647-653. 10.1016/0022-2836(89)90234-9
+    J. Mol. Biol. 207, 647-653. 10.1016/0022-2836(89)90234-9.
 
     Parameters
     ----------
@@ -162,8 +162,20 @@ def get_brownian_loglikelihood(mu, sigma2, tree=None, cov=None, inv=None, values
     return loglikelihood
 
 
-def get_OU_covariance(alpha, tree=None, tips=None, ds=None):
+def get_OU_covariance(alpha, tree=None, tips=None, ts=None):
     """Get covariance matrix corresponding to Ornstein-Uhlenbeck process on tree.
+
+    This assumes the process is stationary. The root value is then a random
+    variable distributed normally with mean mu and variance gamma =
+    sigma2 / (2 * alpha). The covariance matrix is then given by elements
+    V_ij = gamma * exp(-alpha * d_ij) where d_ij is the length of the path
+    between tips i and j.
+
+    These equations are given in the following article:
+    Asymptotic theory with hierarchical autocorrelation: Ornstein–Uhlenbeck tree models.
+    LST Ho, C Ané.
+    Ann. Statist. 41(2): 957-981.
+    10.1214/13-AOS1105.
 
     Parameters
     ----------
@@ -172,7 +184,7 @@ def get_OU_covariance(alpha, tree=None, tips=None, ds=None):
     tree: TreeNode (skbio)
     tips: list of TreeNodes (skbio)
         List of tips in order of entries in distance matrix
-    ds: ndarray
+    ts: ndarray
         Pre-computed matrix of lengths of shared paths between tips
 
     Returns
@@ -182,23 +194,19 @@ def get_OU_covariance(alpha, tree=None, tips=None, ds=None):
     cov: ndarray
         Covariance matrix
     """
-    if tips is None or ds is None:
-        tips, ds = get_brownian_covariance(tree)
+    if tips is None or ts is None:
+        tips, ts = get_brownian_covariance(tree)
     cov = np.zeros((len(tips), len(tips)))
     for i in range(len(tips)):
         for j in range(i+1):
-            T = ds[i, i] + ds[j, j]
-            s = ds[i, j]
-
-            x = np.exp(-alpha * T) * (np.exp(2*alpha*s) - 1) / (2*alpha)
-            if np.isnan(x):  # Check for limiting case
-                x = s
+            dij = ts[i, i] + ts[j, j] - 2*ts[i, j]
+            x = np.exp(-alpha * dij) / (2*alpha)
             cov[i, j] = x
             cov[j, i] = x
     return tips, cov
 
 
-def get_OU_mles(tree=None, tips=None, ds=None):
+def get_OU_mles(tree=None, tips=None, ts=None):
     """Get MLEs under Ornstein-Uhlenbeck model of trait evolution.
 
     Parameters
@@ -206,7 +214,7 @@ def get_OU_mles(tree=None, tips=None, ds=None):
     tree: TreeNode (skbio)
     tips: list of TreeNodes (skbio)
         List of tips in order of entries in distance matrix
-    ds: ndarray
+    ts: ndarray
         Pre-computed matrix of lengths of shared paths between tips
 
     Returns
@@ -218,15 +226,15 @@ def get_OU_mles(tree=None, tips=None, ds=None):
     alpha: float
         Strength of selection
     """
-    if tips is None or ds is None:
-        tips, ds = get_brownian_covariance(tree)
+    if tips is None or ts is None:
+        tips, ts = get_brownian_covariance(tree)
     values = np.array([tip.value for tip in tree.tips()])
 
     def f(alpha):
         if alpha <= 0:
             return np.inf
 
-        _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
+        _, cov = get_OU_covariance(alpha, tips=tips, ts=ts)
         inv = np.linalg.inv(cov)
         det = np.linalg.det(cov)
         row_sum = inv.sum(axis=1)
@@ -243,7 +251,7 @@ def get_OU_mles(tree=None, tips=None, ds=None):
 
     result = optimize.minimize_scalar(f)
     alpha = result.x
-    _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
+    _, cov = get_OU_covariance(alpha, tips=tips, ts=ts)
     inv = np.linalg.inv(cov)
     row_sum = inv.sum(axis=1)
     total_sum = inv.sum()
@@ -257,7 +265,7 @@ def get_OU_mles(tree=None, tips=None, ds=None):
     return mu, sigma2, alpha
 
 
-def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ds=None):
+def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ts=None):
     """Get log-likelihood of Ornstein-Uhlenbeck model of trait evolution.
 
     Parameters
@@ -271,18 +279,18 @@ def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ds=None):
     tree: TreeNode (skbio)
     tips: list of TreeNodes (skbio)
         List of tips in order of entries in distance matrix
-    ds: darray
+    ts: ndarray
         Pre-computed matrix of lengths of shared paths between tips
 
     Returns
     -------
     loglikelihood: float
     """
-    if tips is None or ds is None:
-        tips, ds = get_brownian_covariance(tree)
+    if tips is None or ts is None:
+        tips, ts = get_brownian_covariance(tree)
     values = np.array([tip.value for tip in tree.tips()])
 
-    _, cov = get_OU_covariance(alpha, tips=tips, ds=ds)
+    _, cov = get_OU_covariance(alpha, tips=tips, ts=ts)
     inv = np.linalg.inv(cov)
     det = np.linalg.det(cov)
     N = len(cov)
