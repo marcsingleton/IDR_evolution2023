@@ -19,9 +19,165 @@ def zscore(df):
     return (df - df.mean()) / df.std()
 
 
+def plot_pcas_combined(prefix, pca, data, title_label, file_label):
+    idx1 = data.index.get_level_values('disorder').array.astype(bool)
+    transform = pca.fit_transform(data.to_numpy())
+
+    # PCs 1 and 2
+    plt.scatter(transform[idx1, 0], transform[idx1, 1], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
+    plt.scatter(transform[~idx1, 0], transform[~idx1, 1], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
+    plt.xlabel('PC1')
+    plt.ylabel('PC2')
+    plt.title(title_label)
+    legend = plt.legend(markerscale=2)
+    for lh in legend.legendHandles:
+        lh.set_alpha(1)
+    plt.savefig(f'{prefix}/scatter_pca_{file_label}1.png')
+    plt.close()
+
+    # PCs 2 and 3
+    plt.scatter(transform[idx1, 1], transform[idx1, 2], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
+    plt.scatter(transform[~idx1, 1], transform[~idx1, 2], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
+    plt.xlabel('PC2')
+    plt.ylabel('PC3')
+    plt.title(title_label)
+    legend = plt.legend(markerscale=2)
+    for lh in legend.legendHandles:
+        lh.set_alpha(1)
+    plt.savefig(f'{prefix}/scatter_pca_{file_label}2.png')
+    plt.close()
+
+    # PCs 2 and 3 with trimmed range
+    r2 = transform[:, 1] ** 2 + transform[:, 2] ** 2  # radius**2 from center
+    idx2 = r2 <= quantile(r2, 0.999, method='lower')  # Capture at least 99.9% of the data
+
+    plt.scatter(transform[idx1 & idx2, 1], transform[idx1 & idx2, 2],
+                label='disorder', s=5, color='C0', alpha=0.2, edgecolors='none')
+    plt.scatter(transform[~idx1 & idx2, 1], transform[~idx1 & idx2, 2],
+                label='order', s=5, color='C1', alpha=0.2, edgecolors='none')
+    plt.xlabel('PC2')
+    plt.ylabel('PC3')
+    plt.title(title_label)
+    legend = plt.legend(markerscale=2)
+    for lh in legend.legendHandles:
+        lh.set_alpha(1)
+    plt.savefig(f'{prefix}/scatter_pca_{file_label}3.png')
+    plt.close()
+
+    # PCs 2 and 3 with trimmed range and arrows
+    plt.scatter(transform[idx2, 1], transform[idx2, 2],
+                label=title_label, color='C0', s=5, alpha=0.2, edgecolors='none')
+    plt.xlabel('PC2')
+    plt.ylabel('PC3')
+    plt.title(title_label)
+
+    xmin, xmax = plt.xlim()
+    ymin, ymax = plt.ylim()
+    scale = (xmax + ymax - xmin - ymin) / 2.5
+    projections = sorted(zip(data.columns, pca.components_[1:3].transpose()),
+                         key=lambda x: x[1][0] ** 2 + x[1][1] ** 2, reverse=True)
+
+    handles = []
+    for i in range(len(arrow_colors)):
+        feature_label, (x, y) = projections[i]
+        arrow_color = arrow_colors[i % len(arrow_colors)]
+        handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
+        plt.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
+                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
+    plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
+    plt.savefig(f'{prefix}/scatter_pca_{file_label}3_arrow.png')
+    plt.close()
+
+    # Scree plot
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'{prefix}/bar_scree_{file_label}.png')
+    plt.close()
+
+
+def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label):
+    color = 'C0' if data_label == 'disorder' else 'C1'
+    transform = pca.fit_transform(data.to_numpy())
+
+    # PCs 1 and 2
+    plt.scatter(transform[:, 0], transform[:, 1], label=data_label, s=5, color=color, alpha=0.1, edgecolors='none')
+    plt.xlabel('PC1')
+    plt.ylabel('PC2')
+    plt.title(title_label)
+    legend = plt.legend(markerscale=2)
+    for lh in legend.legendHandles:
+        lh.set_alpha(1)
+    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}1.png')
+    plt.close()
+
+    # PCs 2 and 3
+    plt.scatter(transform[:, 1], transform[:, 2], label=data_label, s=5, color=color, alpha=0.1, edgecolors='none')
+    plt.xlabel('PC2')
+    plt.ylabel('PC3')
+    plt.title(title_label)
+    legend = plt.legend(markerscale=2)
+    for lh in legend.legendHandles:
+        lh.set_alpha(1)
+    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}2.png')
+    plt.close()
+
+    # PCs 2 and 3 with trimmed range
+    r2 = transform[:, 1] ** 2 + transform[:, 2] ** 2  # radius**2 from center
+    idx = r2 <= quantile(r2, 0.999, method='lower')  # Capture at least 99.9% of the data
+
+    plt.scatter(transform[idx, 1], transform[idx, 2], label=data_label, s=5, color=color, alpha=0.2, edgecolors='none')
+    plt.xlabel('PC2')
+    plt.ylabel('PC3')
+    plt.title(title_label)
+    legend = plt.legend(markerscale=2)
+    for lh in legend.legendHandles:
+        lh.set_alpha(1)
+    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}3.png')
+    plt.close()
+
+    # PCs 2 and 3 with trimmed range and arrows
+    plt.scatter(transform[idx, 1], transform[idx, 2], label=data_label, color=color, s=5, alpha=0.2, edgecolors='none')
+    plt.xlabel('PC2')
+    plt.ylabel('PC3')
+    plt.title(title_label)
+
+    xmin, xmax = plt.xlim()
+    ymin, ymax = plt.ylim()
+    scale = (xmax + ymax - xmin - ymin) / 2.5
+    projections = sorted(zip(data.columns, pca.components_[1:3].transpose()),
+                         key=lambda x: x[1][0] ** 2 + x[1][1] ** 2, reverse=True)
+
+    handles = []
+    for i in range(len(arrow_colors)):
+        feature_label, (x, y) = projections[i]
+        arrow_color = arrow_colors[i % len(arrow_colors)]
+        handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
+        plt.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
+                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
+    plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
+    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}3_arrow.png')
+    plt.close()
+
+    # Scree plot
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label,
+            color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.legend()
+    plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+    plt.close()
+
+
 pdidx = pd.IndexSlice
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
+
+pca = PCA(n_components=10)
+arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
+                '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
 # Load contrasts and tree
 features = pd.read_table('../get_features/out/features.tsv')
@@ -153,36 +309,7 @@ for feature_label in feature_labels:
     plt.savefig(f'out/means/hist_numregions-{feature_label}_std.png')
     plt.close()
 
-# 2.3 Plot contrast mean PCAs
-pca = PCA(n_components=10)
-idx = means.index.get_level_values('disorder').array.astype(bool)
-
-transform = pca.fit_transform(means.to_numpy())
-plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
-plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
-plt.xlabel('PC1')
-plt.ylabel('PC2')
-plt.title('raw means')
-legend = plt.legend(markerscale=2)
-for lh in legend.legendHandles:
-    lh.set_alpha(1)
-plt.savefig(f'out/means/scatter_pca_mean.png')
-plt.close()
-
-idx = stds.index.get_level_values('disorder').array.astype(bool)
-transform = pca.fit_transform(stds.to_numpy())
-plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
-plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
-plt.xlabel('PC1')
-plt.ylabel('PC2')
-plt.title('standardized means')
-legend = plt.legend(markerscale=2)
-for lh in legend.legendHandles:
-    lh.set_alpha(1)
-plt.savefig(f'out/means/scatter_pca_mean_std.png')
-plt.close()
-
-# 2.4 Plot regions with extreme means
+# 2.3 Plot regions with extreme means
 df = means.abs()
 for feature_label in feature_labels:
     if not os.path.exists(f'out/means/{feature_label}/'):
@@ -212,6 +339,7 @@ if not os.path.exists('out/rates/'):
 
 # 3.1 Plot rate distributions
 rates = ((contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean())
+rates_motifs = rates.drop(motif_labels, axis=1)
 disorder = rates.loc[pdidx[:, :, :, True, :], :]
 order = rates.loc[pdidx[:, :, :, False, :], :]
 disorder_motifs = disorder.drop(motif_labels, axis=1)
@@ -232,85 +360,12 @@ for feature_label in feature_labels:
     plt.close()
 
 # 3.2.1 Plot rate PCAs (combined)
-pca = PCA(n_components=10)
-colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
-          '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
-
 plots = [(rates, 'no norm', 'nonorm_all'),
          (zscore(rates), 'z-score', 'zscore_all'),
-         (rates.drop(motif_labels, axis=1), 'no norm', 'nonorm_motifs'),
-         (zscore(rates.drop(motif_labels, axis=1)), 'z-score', 'z-score_motifs')]
+         (rates_motifs, 'no norm', 'nonorm_motifs'),
+         (zscore(rates_motifs), 'z-score', 'z-score_motifs')]
 for data, title_label, file_label in plots:
-    idx1 = data.index.get_level_values('disorder').array.astype(bool)
-    transform = pca.fit_transform(data.to_numpy())
-
-    # PCs 1 and 2
-    plt.scatter(transform[idx1, 0], transform[idx1, 1], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
-    plt.scatter(transform[~idx1, 0], transform[~idx1, 1], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/rates/scatter_pca_{file_label}1.png')
-    plt.close()
-
-    # PCs 2 and 3
-    plt.scatter(transform[idx1, 1], transform[idx1, 2], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
-    plt.scatter(transform[~idx1, 1], transform[~idx1, 2], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/rates/scatter_pca_{file_label}2.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range
-    r2 = transform[:, 1]**2 + transform[:, 2]**2  # radius**2 from center
-    idx2 = r2 <= quantile(r2, 0.999, method='lower')  # Capture at least 99.9% of the data
-
-    plt.scatter(transform[idx1 & idx2, 1], transform[idx1 & idx2, 2], label='disorder', s=5, color='C0', alpha=0.2, edgecolors='none')
-    plt.scatter(transform[~idx1 & idx2, 1], transform[~idx1 & idx2, 2], label='order', s=5, color='C1', alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/rates/scatter_pca_{file_label}3.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range and arrows
-    plt.scatter(transform[idx2, 1], transform[idx2, 2], label=title_label, color='C0', s=5, alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-
-    xmin, xmax = plt.xlim()
-    ymin, ymax = plt.ylim()
-    scale = (xmax + ymax - xmin - ymin) / 2.5
-    projections = sorted(zip(data.columns, pca.components_[1:3].transpose()), key=lambda x: x[1][0]**2 + x[1][1]**2, reverse=True)
-
-    handles = []
-    for i in range(len(colors)):
-        feature_label, (x, y) = projections[i]
-        handles.append(Line2D([], [], color=colors[i % len(colors)], linewidth=2, label=feature_label))
-        plt.annotate('', xy=(scale*x, scale*y), xytext=(0, 0),
-                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': colors[i % len(colors)]})
-    plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
-    plt.savefig(f'out/rates/scatter_pca_{file_label}3_arrow.png')
-    plt.close()
-
-    # Scree plot
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_)
-    plt.xlabel('Principal component')
-    plt.ylabel('Explained variance ratio')
-    plt.title(title_label)
-    plt.savefig(f'out/rates/bar_scree_{file_label}.png')
-    plt.close()
+    plot_pcas_combined('out/rates/', pca, data, title_label, file_label)
 
 # 3.2.2 Plot rate PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
@@ -322,74 +377,7 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    color = 'C0' if data_label == 'disorder' else 'C1'
-    transform = pca.fit_transform(data.to_numpy())
-
-    # PCs 1 and 2
-    plt.scatter(transform[:, 0], transform[:, 1], label=data_label, s=5, color=color, alpha=0.1, edgecolors='none')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/rates/scatter_pca_{data_label}_{file_label}1.png')
-    plt.close()
-
-    # PCs 2 and 3
-    plt.scatter(transform[:, 1], transform[:, 2], label=data_label, s=5, color=color, alpha=0.1, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/rates/scatter_pca_{data_label}_{file_label}2.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range
-    r2 = transform[:, 1]**2 + transform[:, 2]**2  # radius**2 from center
-    idx = r2 <= quantile(r2, 0.999, method='lower')  # Capture at least 99.9% of the data
-
-    plt.scatter(transform[idx, 1], transform[idx, 2], label=data_label, s=5, color=color, alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/rates/scatter_pca_{data_label}_{file_label}3.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range and arrows
-    plt.scatter(transform[idx, 1], transform[idx, 2], label=data_label, color=color, s=5, alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-
-    xmin, xmax = plt.xlim()
-    ymin, ymax = plt.ylim()
-    scale = (xmax + ymax - xmin - ymin) / 2.5
-    projections = sorted(zip(data.columns, pca.components_[1:3].transpose()), key=lambda x: x[1][0]**2 + x[1][1]**2, reverse=True)
-
-    handles = []
-    for i in range(len(colors)):
-        feature_label, (x, y) = projections[i]
-        handles.append(Line2D([], [], color=colors[i % len(colors)], linewidth=2, label=feature_label))
-        plt.annotate('', xy=(scale*x, scale*y), xytext=(0, 0),
-                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': colors[i % len(colors)]})
-    plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
-    plt.savefig(f'out/rates/scatter_pca_{data_label}_{file_label}3_arrow.png')
-    plt.close()
-
-    # Scree plot
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=color)
-    plt.xlabel('Principal component')
-    plt.ylabel('Explained variance ratio')
-    plt.title(title_label)
-    plt.legend()
-    plt.savefig(f'out/rates/bar_scree_{data_label}_{file_label}.png')
-    plt.close()
+    plot_pcas_individual('out/rates/', pca, data, data_label, title_label, file_label)
 
 # 3.3 Plot regions with extreme rates
 for feature_label in feature_labels:
@@ -419,8 +407,11 @@ if not os.path.exists('out/roots/'):
     os.makedirs('out/roots/')
 
 # 4.1 Plot root distributions
+roots_motifs = roots.drop(motif_labels, axis=1)
 disorder = roots.loc[pdidx[:, :, :, True, :], :]
 order = roots.loc[pdidx[:, :, :, False, :], :]
+disorder_motifs = disorder.drop(motif_labels, axis=1)
+order_motifs = order.drop(motif_labels, axis=1)
 for feature_label in feature_labels:
     fig, axs = plt.subplots(2, 1, sharex=True)
     xmin, xmax = roots[feature_label].min(), roots[feature_label].max()
@@ -433,7 +424,31 @@ for feature_label in feature_labels:
     plt.savefig(f'out/roots/hist_numregions-{feature_label}.png')
     plt.close()
 
-# 4.2 Plot correlations of roots and feature means
+# 4.2.1 Plot root PCAs (combined)
+plots = [(roots, 'no norm', 'nonorm_all'),
+         (zscore(roots), 'z-score', 'zscore_all'),
+         (roots_motifs, 'no norm', 'nonorm_motifs'),
+         (zscore(roots_motifs), 'z-score', 'z-score_motifs')]
+for data, title_label, file_label in plots:
+    plot_pcas_combined('out/roots/', pca, data, title_label, file_label)
+
+# 4.2.2 Plot rate PCAs (individual)
+plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
+         (order, 'order', 'no norm', 'nonorm_all'),
+         (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
+         (zscore(order), 'order', 'z-score', 'zscore_all'),
+         (disorder_motifs, 'disorder', 'no norm', 'nonorm_motifs'),
+         (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
+         (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
+         (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
+for data, data_label, title_label, file_label in plots:
+    plot_pcas_individual('out/roots/', pca, data, data_label, title_label, file_label)
+
+# 5 MERGE
+if not os.path.exists('out/merge/'):
+    os.makedirs('out/merge/')
+
+# 5.1 Plot correlations of roots and feature means
 df = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean().merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 for feature_label in feature_labels:
     plt.scatter(df[feature_label + '_x'], df[feature_label + '_y'], s=5, alpha=0.1, edgecolor='none')
@@ -449,25 +464,29 @@ for feature_label in feature_labels:
     xmin, xmax = plt.xlim()
     plt.plot([xmin, xmax], [m*xmin+b, m*xmax+b], color='black', linewidth=1)
     plt.annotate(r'$\mathregular{R^2}$' + f' = {round(r2, 2)}', (0.85, 0.75), xycoords='axes fraction')
-    plt.savefig(f'out/roots/scatter_root-mean_{feature_label}.png')
+    plt.savefig(f'out/merge/scatter_root-mean_{feature_label}.png')
     plt.close()
 
-# 4.3 Plot correlation of roots and rates
-df = roots.merge(rates, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
+# 5.2 Plot correlation of roots and rates
+df = roots.merge(rates, how='inner', on=['OGid', 'start', 'stop', 'disorder'], suffixes=('_root', '_rate'))
+motif_labels_merge = [f'{motif_label}_root' for motif_label in motif_labels] + [f'{motif_label}_rate' for motif_label in motif_labels]
+df_motifs = df.drop(motif_labels_merge, axis=1)
 disorder = df.loc[pdidx[:, :, :, True, :], :]
 order = df.loc[pdidx[:, :, :, False, :], :]
+disorder_motifs = disorder.drop(motif_labels_merge, axis=1)
+order_motifs = order.drop(motif_labels_merge, axis=1)
 for feature_label in feature_labels:
-    plt.scatter(df[feature_label + '_x'], df[feature_label + '_y'], s=5, alpha=0.15, edgecolor='none')
+    plt.scatter(df[feature_label + '_root'], df[feature_label + '_rate'], s=5, alpha=0.15, edgecolor='none')
     plt.xlabel('Inferred root value')
     plt.ylabel('Rate')
     plt.title(feature_label)
-    plt.savefig(f'out/roots/scatter_rate-root_{feature_label}1.png')
+    plt.savefig(f'out/merge/scatter_rate-root_{feature_label}1.png')
     plt.close()
 
     fig, axs = plt.subplots(2, 1, sharex=True)
-    axs[0].scatter(disorder[feature_label + '_x'], disorder[feature_label + '_y'],
+    axs[0].scatter(disorder[feature_label + '_root'], disorder[feature_label + '_rate'],
                    label='disorder', s=5, alpha=0.15, facecolor='C0', edgecolor='none')
-    axs[1].scatter(order[feature_label + '_x'], order[feature_label + '_y'],
+    axs[1].scatter(order[feature_label + '_root'], order[feature_label + '_rate'],
                    label='order', s=5, alpha=0.15, facecolor='C1', edgecolor='none')
     axs[1].set_xlabel('Inferred root value')
     for i in range(2):
@@ -476,5 +495,25 @@ for feature_label in feature_labels:
         for lh in leg.legendHandles:
             lh.set_alpha(1)
     fig.suptitle(feature_label)
-    plt.savefig(f'out/roots/scatter_rate-root_{feature_label}2.png')
+    plt.savefig(f'out/merge/scatter_rate-root_{feature_label}2.png')
     plt.close()
+
+# 5.3.1 Plot root-rate PCAs (combined)
+plots = [(df, 'no norm', 'nonorm_all'),
+         (zscore(df), 'z-score', 'zscore_all'),
+         (df_motifs, 'no norm', 'nonorm_motifs'),
+         (zscore(df_motifs), 'z-score', 'z-score_motifs')]
+for data, title_label, file_label in plots:
+    plot_pcas_combined('out/merge/', pca, data, title_label, file_label)
+
+# 5.3.2 Plot root-rate PCAs (individual)
+plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
+         (order, 'order', 'no norm', 'nonorm_all'),
+         (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
+         (zscore(order), 'order', 'z-score', 'zscore_all'),
+         (disorder_motifs, 'disorder', 'no norm', 'nonorm_motifs'),
+         (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
+         (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
+         (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
+for data, data_label, title_label, file_label in plots:
+    plot_pcas_individual('out/merge/', pca, data, data_label, title_label, file_label)

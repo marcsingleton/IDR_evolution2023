@@ -18,6 +18,10 @@ def zscore(df):
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
 
+pca = PCA(n_components=10)
+arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
+                '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
+
 # Get minimum lengths
 min_lengths = []
 for path in os.listdir('../regions_filter/out/'):
@@ -76,10 +80,6 @@ for min_length in min_lengths:
         plt.close()
 
     # Individual PCAs
-    pca = PCA(n_components=10)
-    colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
-              '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
-
     plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
              (order, 'order', 'no norm', 'nonorm_all'),
              (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
@@ -112,14 +112,16 @@ for min_length in min_lengths:
         xmin, xmax = plt.xlim()
         ymin, ymax = plt.ylim()
         scale = (xmax + ymax - xmin - ymin) / 3
-        projections = sorted(zip(data.columns, pca.components_[:2].transpose()), key=lambda x: x[1][0]**2 + x[1][1]**2, reverse=True)
+        projections = sorted(zip(data.columns, pca.components_[:2].transpose()),
+                             key=lambda x: x[1][0]**2 + x[1][1]**2, reverse=True)
 
         handles = []
-        for i in range(len(colors)):
+        for i in range(len(arrow_colors)):
             feature_label, (x, y) = projections[i]
-            handles.append(Line2D([], [], color=colors[i % len(colors)], linewidth=2, label=feature_label))
+            color = arrow_colors[i % len(arrow_colors)]
+            handles.append(Line2D([], [], color=color, linewidth=2, label=feature_label))
             plt.annotate('', xy=(scale*x, scale*y), xytext=(0, 0),
-                         arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': colors[i % len(colors)]})
+                         arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': color})
         plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
         plt.savefig(f'out/regions_{min_length}/scatter_pca-arrow_{data_label}_{file_label}.png')
         plt.close()
