@@ -2,6 +2,7 @@
 
 import os
 import re
+from math import atan2, pi
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,6 +14,13 @@ from src.brownian.features import motif_regexes
 
 def zscore(df):
     return (df - df.mean()) / df.std()
+
+
+def get_angle(y, x):
+    angle = atan2(y, x)
+    if angle < 0:
+        angle = 2 * pi + angle
+    return angle
 
 
 length_regex = r'regions_([0-9]+).tsv'
@@ -116,16 +124,21 @@ for min_length in min_lengths:
         ax.set_ylabel('PC2')
         ax.set_title(title_label)
 
+        projections = zip(data.columns, pca.components_[0], pca.components_[1])  # Match features to components in PC space
+        projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
+        projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
+
         xmin, xmax = plt.xlim()
         ymin, ymax = plt.ylim()
-        scale = (xmax + ymax - xmin - ymin) / 3
-        projections = sorted(zip(data.columns, pca.components_[:2].transpose()),
-                             key=lambda x: x[1][0]**2 + x[1][1]**2, reverse=True)
+        ratios = []
+        for projection in projections:
+            _, x, y = projection
+            ratios.extend([x / xmin, x / xmax, y / ymin, y / ymax])
+        scale = 0.9 / max(ratios)  # Scale the largest arrow within fraction of axes
 
         handles = []
-        for i in range(len(arrow_colors)):
-            feature_label, (x, y) = projections[i]
-            arrow_color = arrow_colors[i % len(arrow_colors)]
+        for arrow_color, projection in zip(arrow_colors, projections):
+            feature_label, x, y = projection
             handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
             ax.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
                         arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})

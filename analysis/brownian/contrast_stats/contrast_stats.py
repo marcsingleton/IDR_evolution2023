@@ -2,7 +2,7 @@
 
 import os
 import re
-from math import exp, pi
+from math import atan2, exp, pi
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -19,6 +19,13 @@ from src.utils import read_fasta
 
 def zscore(df):
     return (df - df.mean()) / df.std()
+
+
+def get_angle(y, x):
+    angle = atan2(y, x)
+    if angle < 0:
+        angle = 2 * pi + angle
+    return angle
 
 
 def plot_hexbin_pca(x1, y1, x2, y2, gridsize=None, bins=None, cmap1=None, cmap2=None, ax=None):
@@ -87,8 +94,8 @@ def plot_pcas_combined(prefix, pca, data, title_label, file_label, width_ratios,
     gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('PC3')
     ax.set_title(title_label)
     handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
                       markeredgecolor='None', markersize=8, linestyle='None'),
@@ -110,8 +117,8 @@ def plot_pcas_combined(prefix, pca, data, title_label, file_label, width_ratios,
     gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('PC3')
     ax.set_title(title_label)
     handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
                       markeredgecolor='None', markersize=8, linestyle='None'),
@@ -128,20 +135,25 @@ def plot_pcas_combined(prefix, pca, data, title_label, file_label, width_ratios,
     gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('PC3')
     ax.set_title(title_label)
+
+    projections = zip(data.columns, pca.components_[1], pca.components_[2])  # Match features to components in PC space
+    projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
+    projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
 
     xmin, xmax = plt.xlim()
     ymin, ymax = plt.ylim()
-    scale = (xmax + ymax - xmin - ymin) / 2.5
-    projections = sorted(zip(data.columns, pca.components_[1:3].transpose()),
-                         key=lambda x: x[1][0] ** 2 + x[1][1] ** 2, reverse=True)
+    ratios = []
+    for projection in projections:
+        _, x, y = projection
+        ratios.extend([x / xmin, x / xmax, y / ymin, y / ymax])
+    scale = 0.9 / max(ratios)  # Scale the largest arrow within fraction of axes
 
     handles = []
-    for i in range(len(arrow_colors)):
-        feature_label, (x, y) = projections[i]
-        arrow_color = arrow_colors[i % len(arrow_colors)]
+    for arrow_color, projection in zip(arrow_colors, projections):
+        feature_label, x, y = projection
         handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
         plt.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
                      arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
@@ -183,8 +195,8 @@ def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label,
     gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     hb = ax.hexbin(transform[:, 1], transform[:, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('PC3')
     ax.set_title(title_label)
     handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
                       markeredgecolor='None', markersize=8, linestyle='None')]
@@ -201,8 +213,8 @@ def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label,
     gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     hb = ax.hexbin(transform[idx, 1], transform[idx, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('PC3')
     ax.set_title(title_label)
     handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
                       markeredgecolor='None', markersize=8, linestyle='None')]
@@ -216,20 +228,25 @@ def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label,
     gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     ax.hexbin(transform[idx, 1], transform[idx, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('PC3')
     ax.set_title(title_label)
+
+    projections = zip(data.columns, pca.components_[1], pca.components_[2])  # Match features to components in PC space
+    projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
+    projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
 
     xmin, xmax = plt.xlim()
     ymin, ymax = plt.ylim()
-    scale = (xmax + ymax - xmin - ymin) / 2.5
-    projections = sorted(zip(data.columns, pca.components_[1:3].transpose()),
-                         key=lambda x: x[1][0] ** 2 + x[1][1] ** 2, reverse=True)
+    ratios = []
+    for projection in projections:
+        _, x, y = projection
+        ratios.extend([x / xmin, x / xmax, y / ymin, y / ymax])
+    scale = 0.9 / max(ratios)  # Scale the largest arrow within fraction of axes
 
     handles = []
-    for i in range(len(arrow_colors)):
-        feature_label, (x, y) = projections[i]
-        arrow_color = arrow_colors[i % len(arrow_colors)]
+    for arrow_color, projection in zip(arrow_colors, projections):
+        feature_label, x, y = projection
         handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
         ax.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
