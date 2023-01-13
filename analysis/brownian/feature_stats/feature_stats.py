@@ -89,25 +89,32 @@ for min_length in min_lengths:
              (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
              (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
-        color = 'C0' if data_label == 'disorder' else 'C1'
+        cmap = plt.colormaps['Blues'] if data_label == 'disorder' else plt.colormaps['Reds']
         transform = pca.fit_transform(data.to_numpy())
 
         # PCA without arrows
-        plt.scatter(transform[:, 0], transform[:, 1], label=data_label, color=color, s=5, alpha=0.1, edgecolors='none')
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        plt.title(title_label)
-        legend = plt.legend(markerscale=2)
-        for lh in legend.legendHandles:
-            lh.set_alpha(1)
-        plt.savefig(f'out/regions_{min_length}/scatter_pca_{data_label}_{file_label}.png')
+        fig = plt.figure()
+        gs = fig.add_gridspec(1, 4, width_ratios=(0.79, 0.06, 0.03, 0.12), wspace=0)
+        ax = fig.add_subplot(gs[:, 0])
+        hb = ax.hexbin(transform[:, 0], transform[:, 1], gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('PC2')
+        ax.set_title(title_label)
+        handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
+                          markeredgecolor='None', markersize=8, linestyle='None')]
+        ax.legend(handles=handles)
+        fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA with arrows
-        plt.scatter(transform[:, 0], transform[:, 1], label=data_label, color=color, s=5, alpha=0.1, edgecolors='none')
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        plt.title(title_label)
+        fig = plt.figure()
+        gs = fig.add_gridspec(1, 4, width_ratios=(0.79, 0.06, 0.03, 0.12), wspace=0)
+        ax = fig.add_subplot(gs[:, 0])
+        hb = ax.hexbin(transform[:, 0], transform[:, 1], gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('PC2')
+        ax.set_title(title_label)
 
         xmin, xmax = plt.xlim()
         ymin, ymax = plt.ylim()
@@ -118,16 +125,16 @@ for min_length in min_lengths:
         handles = []
         for i in range(len(arrow_colors)):
             feature_label, (x, y) = projections[i]
-            color = arrow_colors[i % len(arrow_colors)]
-            handles.append(Line2D([], [], color=color, linewidth=2, label=feature_label))
-            plt.annotate('', xy=(scale*x, scale*y), xytext=(0, 0),
-                         arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': color})
-        plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
-        plt.savefig(f'out/regions_{min_length}/scatter_pca-arrow_{data_label}_{file_label}.png')
+            arrow_color = arrow_colors[i % len(arrow_colors)]
+            handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
+            ax.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
+                        arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
+        ax.legend(handles=handles, fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_)+1), pca.explained_variance_ratio_, label=data_label, color=color)
+        plt.bar(range(1, len(pca.explained_variance_ratio_)+1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
         plt.xlabel('Principal component')
         plt.ylabel('Explained variance ratio')
         plt.title(title_label)

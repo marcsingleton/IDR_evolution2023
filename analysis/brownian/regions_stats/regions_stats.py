@@ -3,8 +3,11 @@
 import os
 import re
 
+import matplotlib.colors as colors
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+from matplotlib.lines import Line2D
 from numpy import linspace
 from sklearn.decomposition import PCA
 from src.brownian.features import motif_regexes
@@ -12,6 +15,38 @@ from src.brownian.features import motif_regexes
 
 def zscore(df):
     return (df - df.mean()) / df.std()
+
+
+def plot_hexbin_pca(x1, y1, x2, y2, gridsize=None, bins=None, cmap1=None, cmap2=None, ax=None):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    x = np.concatenate([x1, x2], axis=0)
+    y = np.concatenate([y1, y2], axis=0)
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+    extent = (xmin, xmax, ymin, ymax)
+
+    hb1 = ax.hexbin(x1, y1, gridsize=gridsize, extent=extent, cmap=cmap1, linewidth=0)
+    hb2 = ax.hexbin(x2, y2, gridsize=gridsize, extent=extent, cmap=cmap2, linewidth=0)
+
+    array1 = np.expand_dims(hb1.get_array().data, -1)
+    array2 = np.expand_dims(hb2.get_array().data, -1)
+    norm1 = colors.Normalize(array1.min(), array1.max())
+    norm2 = colors.Normalize(array2.min(), array2.max())
+    fc1 = np.array([cmap1(norm1(count)) for count in array1.squeeze()])
+    fc2 = np.array([cmap2(norm2(count)) for count in array2.squeeze()])
+
+    total = array1 + array2
+    total[total == 0] = 1
+    fc = (array1 * fc1 + array2 * fc2) / total
+    ax.clear()
+
+    z = ax.hexbin([], [], bins=bins, gridsize=gridsize, extent=extent, linewidth=0)
+    z.set_array(None)
+    z.set_facecolor(fc)
+
+    return ax, hb1, hb2
 
 
 length_regex = r'regions_([0-9]+).tsv'
@@ -130,44 +165,43 @@ for min_length in min_lengths:
     plt.savefig(f'out/regions_{min_length}/bar_numOGs-DO.png')
     plt.close()
 
-    plots = [(means.drop(['length'], axis=1), 'all'),
-             (means.drop(['length'] + motif_labels, axis=1), 'motifs')]
-    for data, file_label in plots:
+    plots = [(means.drop(['length'], axis=1), 'no norm', 'nonorm_all'),
+             (means.drop(['length'] + motif_labels, axis=1), 'no norm', 'nonorm_motifs'),
+             (zscore(means.drop(['length'], axis=1)), 'z-score', 'zscore_all'),
+             (zscore(means.drop(['length'] + motif_labels, axis=1)), 'z-score', 'zscore_motifs')]
+    for data, title_label, file_label in plots:
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
-        truncate = pd.concat([var[:4], pd.Series({'other': var[4:].sum()})])
+        truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
         plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance, length ≥ {min_length}')
-        plt.legend(loc='center left', bbox_to_anchor=(1.1, 0.5))
-        plt.subplots_adjust(right=0.7)
+        plt.title(f'Feature variance\n{title_label}, length ≥ {min_length}')
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.subplots_adjust(right=0.65)
         plt.savefig(f'out/regions_{min_length}/pie_variance_{file_label}.png')
         plt.close()
 
         # Feature PCAs
         pca = PCA(n_components=5)
         idx = data.index.get_level_values('disorder').array.astype(bool)
-
+        cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
         transform = pca.fit_transform(data.to_numpy())
-        plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
-        plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
-        plt.title(f'no norm, length ≥ {min_length}')
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        legend = plt.legend(markerscale=2)
-        for lh in legend.legendHandles:
-            lh.set_alpha(1)
-        plt.savefig(f'out/regions_{min_length}/pca_nonorm_{file_label}.png')
-        plt.close()
 
-        norm = zscore(data)
-        transform = pca.fit_transform(norm.to_numpy())
-        plt.scatter(transform[idx, 0], transform[idx, 1], label='disorder', s=5, alpha=0.05, edgecolors='none')
-        plt.scatter(transform[~idx, 0], transform[~idx, 1], label='order', s=5, alpha=0.05, edgecolors='none')
-        plt.title(f'z-score, length ≥ {min_length}')
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-        legend = plt.legend(markerscale=2)
-        for lh in legend.legendHandles:
-            lh.set_alpha(1)
-        plt.savefig(f'out/regions_{min_length}/pca_zscore_{file_label}.png')
+        x1, x2 = transform[idx, 0], transform[~idx, 0]
+        y1, y2 = transform[idx, 1], transform[~idx, 1]
+
+        fig = plt.figure()
+        gs = fig.add_gridspec(1, 5, width_ratios=(0.79, 0.03, 0.03, 0.12, 0.03), wspace=0)
+        ax = fig.add_subplot(gs[:, 0])
+        _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, cmap1=cmap1, cmap2=cmap2, ax=ax)
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('PC2')
+        ax.set_title(f'{title_label}, length ≥ {min_length}')
+        handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
+                          markeredgecolor='None', markersize=8, linestyle='None'),
+                   Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
+                          markeredgecolor='None', markersize=8, linestyle='None')]
+        ax.legend(handles=handles)
+        fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
+        fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{file_label}.png')
         plt.close()

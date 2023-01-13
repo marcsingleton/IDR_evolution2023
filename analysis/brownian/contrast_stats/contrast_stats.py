@@ -4,7 +4,9 @@ import os
 import re
 from math import exp, pi
 
+import matplotlib.colors as colors
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import skbio
 from matplotlib.lines import Line2D
@@ -19,57 +21,116 @@ def zscore(df):
     return (df - df.mean()) / df.std()
 
 
-def plot_pcas_combined(prefix, pca, data, title_label, file_label):
+def plot_hexbin_pca(x1, y1, x2, y2, gridsize=None, bins=None, cmap1=None, cmap2=None, ax=None):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    x = np.concatenate([x1, x2], axis=0)
+    y = np.concatenate([y1, y2], axis=0)
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+    extent = (xmin, xmax, ymin, ymax)
+
+    hb1 = ax.hexbin(x1, y1, gridsize=gridsize, extent=extent, cmap=cmap1, linewidth=0)
+    hb2 = ax.hexbin(x2, y2, gridsize=gridsize, extent=extent, cmap=cmap2, linewidth=0)
+
+    array1 = np.expand_dims(hb1.get_array().data, -1)
+    array2 = np.expand_dims(hb2.get_array().data, -1)
+    norm1 = colors.Normalize(array1.min(), array1.max())
+    norm2 = colors.Normalize(array2.min(), array2.max())
+    fc1 = np.array([cmap1(norm1(count)) for count in array1.squeeze()])
+    fc2 = np.array([cmap2(norm2(count)) for count in array2.squeeze()])
+
+    total = array1 + array2
+    total[total == 0] = 1
+    fc = (array1 * fc1 + array2 * fc2) / total
+    ax.clear()
+
+    z = ax.hexbin([], [], bins=bins, gridsize=gridsize, extent=extent, linewidth=0)
+    z.set_array(None)
+    z.set_facecolor(fc)
+
+    return ax, hb1, hb2
+
+
+def plot_pcas_combined(prefix, pca, data, title_label, file_label, width_ratios, bins=None):
     idx1 = data.index.get_level_values('disorder').array.astype(bool)
+    cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
     transform = pca.fit_transform(data.to_numpy())
 
     # PCs 1 and 2
-    plt.scatter(transform[idx1, 0], transform[idx1, 1], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
-    plt.scatter(transform[~idx1, 0], transform[~idx1, 1], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'{prefix}/scatter_pca_{file_label}1.png')
+    x1, x2 = transform[idx1, 0], transform[~idx1, 0]
+    y1, y2 = transform[idx1, 1], transform[~idx1, 1]
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
+    handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None'),
+               Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None')]
+    ax.legend(handles=handles)
+    fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
+    fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
+    fig.savefig(f'{prefix}/hexbin_pc1-pc2_merge_{file_label}.png')
     plt.close()
 
     # PCs 2 and 3
-    plt.scatter(transform[idx1, 1], transform[idx1, 2], label='disorder', s=5, color='C0', alpha=0.1, edgecolors='none')
-    plt.scatter(transform[~idx1, 1], transform[~idx1, 2], label='order', s=5, color='C1', alpha=0.1, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'{prefix}/scatter_pca_{file_label}2.png')
+    x1, x2 = transform[idx1, 1], transform[~idx1, 1]
+    y1, y2 = transform[idx1, 2], transform[~idx1, 2]
+
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
+    handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None'),
+               Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None')]
+    ax.legend(handles=handles)
+    fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
+    fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
+    fig.savefig(f'{prefix}/hexbin_pc2-pc3_merge_{file_label}1.png')
     plt.close()
 
     # PCs 2 and 3 with trimmed range
     r2 = transform[:, 1] ** 2 + transform[:, 2] ** 2  # radius**2 from center
-    idx2 = r2 <= quantile(r2, 0.999, method='lower')  # Capture at least 99.9% of the data
+    idx2 = r2 <= quantile(r2, 0.99, method='lower')  # Capture at least 99% of the data
+    x1, x2 = transform[idx1 & idx2, 1], transform[~idx1 & idx2, 1]
+    y1, y2 = transform[idx1 & idx2, 2], transform[~idx1 & idx2, 2]
 
-    plt.scatter(transform[idx1 & idx2, 1], transform[idx1 & idx2, 2],
-                label='disorder', s=5, color='C0', alpha=0.2, edgecolors='none')
-    plt.scatter(transform[~idx1 & idx2, 1], transform[~idx1 & idx2, 2],
-                label='order', s=5, color='C1', alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'{prefix}/scatter_pca_{file_label}3.png')
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
+    handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None'),
+               Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None')]
+    ax.legend(handles=handles)
+    fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
+    fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
+    fig.savefig(f'{prefix}/hexbin_pc2-pc3_merge_{file_label}2.png')
     plt.close()
 
     # PCs 2 and 3 with trimmed range and arrows
-    plt.scatter(transform[idx2, 1], transform[idx2, 2],
-                label=title_label, color='C0', s=5, alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
 
     xmin, xmax = plt.xlim()
     ymin, ymax = plt.ylim()
@@ -84,12 +145,13 @@ def plot_pcas_combined(prefix, pca, data, title_label, file_label):
         handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
         plt.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
                      arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
-    plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
-    plt.savefig(f'{prefix}/scatter_pca_{file_label}3_arrow.png')
+    plt.legend(handles=handles, fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig(f'{prefix}/hexbin_pc2-pc3_merge_{file_label}2_arrow.png')
     plt.close()
 
     # Scree plot
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_)
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
     plt.xlabel('Principal component')
     plt.ylabel('Explained variance ratio')
     plt.title(title_label)
@@ -97,51 +159,66 @@ def plot_pcas_combined(prefix, pca, data, title_label, file_label):
     plt.close()
 
 
-def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label):
-    color = 'C0' if data_label == 'disorder' else 'C1'
+def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label, width_ratios, bins=None):
+    cmap = plt.colormaps['Blues'] if data_label == 'disorder' else plt.colormaps['Reds']
     transform = pca.fit_transform(data.to_numpy())
 
     # PCs 1 and 2
-    plt.scatter(transform[:, 0], transform[:, 1], label=data_label, s=5, color=color, alpha=0.1, edgecolors='none')
-    plt.xlabel('PC1')
-    plt.ylabel('PC2')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}1.png')
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    hb = ax.hexbin(transform[:, 0], transform[:, 1], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
+    handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None')]
+    ax.legend(handles=handles)
+    fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
+    fig.savefig(f'{prefix}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
     plt.close()
 
     # PCs 2 and 3
-    plt.scatter(transform[:, 1], transform[:, 2], label=data_label, s=5, color=color, alpha=0.1, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}2.png')
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    hb = ax.hexbin(transform[:, 1], transform[:, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
+    handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None')]
+    ax.legend(handles=handles)
+    fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
+    fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}1.png')
     plt.close()
 
     # PCs 2 and 3 with trimmed range
     r2 = transform[:, 1] ** 2 + transform[:, 2] ** 2  # radius**2 from center
-    idx = r2 <= quantile(r2, 0.999, method='lower')  # Capture at least 99.9% of the data
+    idx = r2 <= quantile(r2, 0.99, method='lower')  # Capture at least 99% of the data
 
-    plt.scatter(transform[idx, 1], transform[idx, 2], label=data_label, s=5, color=color, alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
-    legend = plt.legend(markerscale=2)
-    for lh in legend.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}3.png')
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    hb = ax.hexbin(transform[idx, 1], transform[idx, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
+    handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
+                      markeredgecolor='None', markersize=8, linestyle='None')]
+    ax.legend(handles=handles)
+    fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
+    fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}2.png')
     plt.close()
 
     # PCs 2 and 3 with trimmed range and arrows
-    plt.scatter(transform[idx, 1], transform[idx, 2], label=data_label, color=color, s=5, alpha=0.2, edgecolors='none')
-    plt.xlabel('PC2')
-    plt.ylabel('PC3')
-    plt.title(title_label)
+    fig = plt.figure()
+    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
+    ax = fig.add_subplot(gs[:, 0])
+    ax.hexbin(transform[idx, 1], transform[idx, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC2')
+    ax.set_title(title_label)
 
     xmin, xmax = plt.xlim()
     ymin, ymax = plt.ylim()
@@ -154,15 +231,14 @@ def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label)
         feature_label, (x, y) = projections[i]
         arrow_color = arrow_colors[i % len(arrow_colors)]
         handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
-        plt.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
-                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
-    plt.legend(handles=handles, fontsize=8, loc='right', bbox_to_anchor=(1.05, 0.5))
-    plt.savefig(f'{prefix}/scatter_pca_{data_label}_{file_label}3_arrow.png')
+        ax.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
+                    arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
+    ax.legend(handles=handles, fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
+    fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}2_arrow.png')
     plt.close()
 
     # Scree plot
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label,
-            color=color)
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
     plt.xlabel('Principal component')
     plt.ylabel('Explained variance ratio')
     plt.title(title_label)
@@ -363,9 +439,9 @@ for feature_label in feature_labels:
 plots = [(rates, 'no norm', 'nonorm_all'),
          (zscore(rates), 'z-score', 'zscore_all'),
          (rates_motifs, 'no norm', 'nonorm_motifs'),
-         (zscore(rates_motifs), 'z-score', 'z-score_motifs')]
+         (zscore(rates_motifs), 'z-score', 'zscore_motifs')]
 for data, title_label, file_label in plots:
-    plot_pcas_combined('out/rates/', pca, data, title_label, file_label)
+    plot_pcas_combined('out/rates/', pca, data, title_label, file_label, (0.79, 0.03, 0.03, 0.12, 0.03), bins='log')
 
 # 3.2.2 Plot rate PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
@@ -377,7 +453,7 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    plot_pcas_individual('out/rates/', pca, data, data_label, title_label, file_label)
+    plot_pcas_individual('out/rates/', pca, data, data_label, title_label, file_label, (0.79, 0.06, 0.03, 0.12), bins='log')
 
 # 3.3 Plot regions with extreme rates
 for feature_label in feature_labels:
@@ -428,9 +504,9 @@ for feature_label in feature_labels:
 plots = [(roots, 'no norm', 'nonorm_all'),
          (zscore(roots), 'z-score', 'zscore_all'),
          (roots_motifs, 'no norm', 'nonorm_motifs'),
-         (zscore(roots_motifs), 'z-score', 'z-score_motifs')]
+         (zscore(roots_motifs), 'z-score', 'zscore_motifs')]
 for data, title_label, file_label in plots:
-    plot_pcas_combined('out/roots/', pca, data, title_label, file_label)
+    plot_pcas_combined('out/roots/', pca, data, title_label, file_label, (0.79, 0.03, 0.03, 0.12, 0.03))
 
 # 4.2.2 Plot rate PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
@@ -442,7 +518,7 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    plot_pcas_individual('out/roots/', pca, data, data_label, title_label, file_label)
+    plot_pcas_individual('out/roots/', pca, data, data_label, title_label, file_label, (0.79, 0.06, 0.03, 0.12))
 
 # 5 MERGE
 if not os.path.exists('out/merge/'):
@@ -451,10 +527,11 @@ if not os.path.exists('out/merge/'):
 # 5.1 Plot correlations of roots and feature means
 df = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean().merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 for feature_label in feature_labels:
-    plt.scatter(df[feature_label + '_x'], df[feature_label + '_y'], s=5, alpha=0.1, edgecolor='none')
+    plt.hexbin(df[feature_label + '_x'], df[feature_label + '_y'], gridsize=75, linewidth=0, mincnt=1)
     plt.xlabel('Tip mean')
     plt.ylabel('Inferred root value')
     plt.title(feature_label)
+    plt.colorbar()
 
     x, y = df[feature_label + '_x'], df[feature_label + '_y']
     m = ((x - x.mean())*(y - y.mean())).sum() / ((x - x.mean())**2).sum()
@@ -463,8 +540,8 @@ for feature_label in feature_labels:
 
     xmin, xmax = plt.xlim()
     plt.plot([xmin, xmax], [m*xmin+b, m*xmax+b], color='black', linewidth=1)
-    plt.annotate(r'$\mathregular{R^2}$' + f' = {round(r2, 2)}', (0.85, 0.75), xycoords='axes fraction')
-    plt.savefig(f'out/merge/scatter_root-mean_{feature_label}.png')
+    plt.annotate(r'$\mathregular{R^2}$' + f' = {round(r2, 2)}', (0.85, 0.65), xycoords='axes fraction')
+    plt.savefig(f'out/merge/hexbin_root-mean_{feature_label}.png')
     plt.close()
 
 # 5.2 Plot correlation of roots and rates
@@ -476,35 +553,35 @@ order = df.loc[pdidx[:, :, :, False, :], :]
 disorder_motifs = disorder.drop(motif_labels_merge, axis=1)
 order_motifs = order.drop(motif_labels_merge, axis=1)
 for feature_label in feature_labels:
-    plt.scatter(df[feature_label + '_root'], df[feature_label + '_rate'], s=5, alpha=0.15, edgecolor='none')
+    plt.hexbin(df[feature_label + '_root'], df[feature_label + '_rate'], gridsize=75, linewidth=0, mincnt=1)
     plt.xlabel('Inferred root value')
     plt.ylabel('Rate')
     plt.title(feature_label)
-    plt.savefig(f'out/merge/scatter_rate-root_{feature_label}1.png')
+    plt.colorbar()
+    plt.savefig(f'out/merge/hexbin_rate-root_{feature_label}1.png')
     plt.close()
 
-    fig, axs = plt.subplots(2, 1, sharex=True)
-    axs[0].scatter(disorder[feature_label + '_root'], disorder[feature_label + '_rate'],
-                   label='disorder', s=5, alpha=0.15, facecolor='C0', edgecolor='none')
-    axs[1].scatter(order[feature_label + '_root'], order[feature_label + '_rate'],
-                   label='order', s=5, alpha=0.15, facecolor='C1', edgecolor='none')
+    fig, axs = plt.subplots(2, 1, figsize=(6.4, 7.2), sharex=True)
+    for ax, data, label, cmap in zip(axs, [disorder, order], ['disorder', 'order'], [plt.colormaps['Blues'], plt.colormaps['Reds']]):
+        hb = ax.hexbin(disorder[feature_label + '_root'], disorder[feature_label + '_rate'],
+                       cmap=cmap, gridsize=50, linewidth=0, mincnt=1)
+        ax.set_ylabel('Rate')
+        handles = [Line2D([], [], label=label, marker='h', markerfacecolor=cmap(0.6),
+                          markeredgecolor='None', markersize=8, linestyle='None')]
+        ax.legend(handles=handles)
+        fig.colorbar(hb, ax=ax)
     axs[1].set_xlabel('Inferred root value')
-    for i in range(2):
-        axs[i].set_ylabel('Rate')
-        leg = axs[i].legend(markerscale=2)
-        for lh in leg.legendHandles:
-            lh.set_alpha(1)
     fig.suptitle(feature_label)
-    plt.savefig(f'out/merge/scatter_rate-root_{feature_label}2.png')
+    plt.savefig(f'out/merge/hexbin_rate-root_{feature_label}2.png')
     plt.close()
 
 # 5.3.1 Plot root-rate PCAs (combined)
 plots = [(df, 'no norm', 'nonorm_all'),
          (zscore(df), 'z-score', 'zscore_all'),
          (df_motifs, 'no norm', 'nonorm_motifs'),
-         (zscore(df_motifs), 'z-score', 'z-score_motifs')]
+         (zscore(df_motifs), 'z-score', 'zscore_motifs')]
 for data, title_label, file_label in plots:
-    plot_pcas_combined('out/merge/', pca, data, title_label, file_label)
+    plot_pcas_combined('out/merge/', pca, data, title_label, file_label, (0.79, 0.03, 0.03, 0.15, 0.03))
 
 # 5.3.2 Plot root-rate PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
@@ -516,4 +593,4 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    plot_pcas_individual('out/merge/', pca, data, data_label, title_label, file_label)
+    plot_pcas_individual('out/merge/', pca, data, data_label, title_label, file_label, (0.76, 0.06, 0.03, 0.15))
