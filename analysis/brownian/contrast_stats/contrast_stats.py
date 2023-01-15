@@ -10,7 +10,6 @@ import pandas as pd
 import skbio
 from matplotlib.lines import Line2D
 from numpy import linspace
-from src.draw import plot_msa
 from sklearn.decomposition import PCA
 from src.brownian.features import motif_regexes
 from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
@@ -95,30 +94,6 @@ for feature_label in feature_labels:
     plt.savefig(f'out/contrasts/hist_numcontrasts-{feature_label}_log.png')
     plt.close()
 
-# 1.2 Plot regions with extreme contrasts
-df = contrasts.abs()
-for feature_label in feature_labels:
-    if not os.path.exists(f'out/contrasts/{feature_label}/'):
-        os.makedirs(f'out/contrasts/{feature_label}/')
-
-    regions = set()
-    ranked = df[feature_label].sort_values(ascending=False).iteritems()  # Series have no itertuples method
-    while len(regions) < 20:
-        (OGid, start, stop, _, _), _ = next(ranked)
-        if (OGid, start, stop) in regions:
-            continue
-        regions.add((OGid, start, stop))
-
-        # Load MSA, filter seqs, and re-order
-        msa1 = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-        msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
-
-        spids = region2spids[(OGid, start, stop)]
-        msa2 = [msa1[spid][start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
-        fig = plot_msa(msa2, figsize=(8, 6), x_start=start)
-        plt.savefig(f'out/contrasts/{feature_label}/{len(regions)-1}_{OGid}-{start}-{stop}.png', bbox_inches='tight')
-        plt.close()
-
 # 2 CONTRAST MEANS
 if not os.path.exists('out/means/'):
     os.makedirs('out/means/')
@@ -163,30 +138,6 @@ for feature_label in feature_labels:
         axs[i].legend()
     plt.savefig(f'out/means/hist_numregions-{feature_label}_std.png')
     plt.close()
-
-# 2.3 Plot regions with extreme means
-df = means.abs()
-for feature_label in feature_labels:
-    if not os.path.exists(f'out/means/{feature_label}/'):
-        os.makedirs(f'out/means/{feature_label}/')
-
-    regions = set()
-    ranked = df[feature_label].sort_values(ascending=False).iteritems()  # Series have no itertuples method
-    while len(regions) < 20:
-        (OGid, start, stop, _), _ = next(ranked)
-        if (OGid, start, stop) in regions:
-            continue
-        regions.add((OGid, start, stop))
-
-        # Load MSA, filter seqs, and re-order
-        msa1 = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-        msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
-
-        spids = region2spids[(OGid, start, stop)]
-        msa2 = [msa1[spid][start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
-        fig = plot_msa(msa2, figsize=(8, 6), x_start=start)
-        plt.savefig(f'out/means/{feature_label}/{len(regions)-1}_{OGid}-{start}-{stop}.png', bbox_inches='tight')
-        plt.close()
 
 # 3 RATES
 if not os.path.exists('out/rates/'):
@@ -285,29 +236,6 @@ for data, data_label, title_label, file_label in plots:
     plt.title(title_label)
     plt.savefig(f'out/rates/bar_scree_{data_label}_{file_label}.png')
     plt.close()
-
-# 3.3 Plot regions with extreme rates
-for feature_label in feature_labels:
-    if not os.path.exists(f'out/rates/{feature_label}/'):
-        os.makedirs(f'out/rates/{feature_label}/')
-
-    regions = set()
-    ranked = rates[feature_label].sort_values(ascending=False).iteritems()  # Series have no itertuples method
-    while len(regions) < 20:
-        (OGid, start, stop, _), _ = next(ranked)
-        if (OGid, start, stop) in regions:
-            continue
-        regions.add((OGid, start, stop))
-
-        # Load MSA, filter seqs, and re-order
-        msa1 = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-        msa1 = {re.search(spid_regex, header).group(1): seq for header, seq in msa1}
-
-        spids = region2spids[(OGid, start, stop)]
-        msa2 = [msa1[spid][start:stop] for spid in sorted(spids, key=lambda x: tip_order[x])]
-        fig = plot_msa(msa2, figsize=(8, 6), x_start=start)
-        plt.savefig(f'out/rates/{feature_label}/{len(regions)-1}_{OGid}-{start}-{stop}.png', bbox_inches='tight')
-        plt.close()
 
 # 4 ROOTS
 if not os.path.exists('out/roots/'):
