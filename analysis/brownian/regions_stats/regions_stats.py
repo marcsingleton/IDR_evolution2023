@@ -1,4 +1,4 @@
-"""Plot statistics of filtered OGs."""
+"""Plot statistics of filtered regions."""
 
 import os
 import re
@@ -6,25 +6,9 @@ import re
 import matplotlib.pyplot as plt
 import pandas as pd
 from numpy import linspace
-from sklearn.decomposition import PCA
-from src.brownian.features import motif_regexes
-from src.brownian.pca_plots import plot_pca2, plot_pca2_arrows
 
-
-def zscore(df):
-    return (df - df.mean()) / df.std()
-
-
-length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
-
-cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
-hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
-handle_markerfacecolor = 0.6
-legend_kwargs = {'fontsize': 8, 'loc': 'center left', 'bbox_to_anchor': (1, 0.5)}
-pca_components = 10
-arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
-                '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
+length_regex = r'regions_([0-9]+).tsv'
 
 # Get minimum lengths
 min_lengths = []
@@ -39,8 +23,6 @@ features = pd.read_table('../get_features/out/features.tsv')
 features.loc[features['kappa'] == -1, 'kappa'] = 1
 features.loc[features['omega'] == -1, 'omega'] = 1
 features['radius_gyration'] = features['length'] ** 0.6
-
-motif_labels = list(motif_regexes)
 
 # Load regions
 rows = []
@@ -138,30 +120,3 @@ for min_length in min_lengths:
     plt.ylabel('Number of unique OGs')
     plt.savefig(f'out/regions_{min_length}/bar_numOGs-DO.png')
     plt.close()
-
-    plots = [(means.drop(['length'], axis=1), 'no norm', 'nonorm_all'),
-             (means.drop(['length'] + motif_labels, axis=1), 'no norm', 'nonorm_motifs'),
-             (zscore(means.drop(['length'], axis=1)), 'z-score', 'zscore_all'),
-             (zscore(means.drop(['length'] + motif_labels, axis=1)), 'z-score', 'zscore_motifs')]
-    for data, title_label, file_label in plots:
-        # Feature variance pie chart
-        var = data.var().sort_values(ascending=False)
-        truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}, length ≥ {min_length}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'out/regions_{min_length}/pie_variance_{file_label}.png')
-        plt.close()
-
-        # Feature PCAs
-        pca = PCA(n_components=pca_components)
-        transform = pca.fit_transform(data.to_numpy())
-        idx = data.index.get_level_values('disorder').array.astype(bool)
-
-        plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
-                  f'out/regions_{min_length}/hexbin_pc1-pc2_{file_label}.png',
-                  hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
-        plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
-                         f'out/regions_{min_length}/hexbin_pc1-pc2_{file_label}_arrow.png',
-                         hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
