@@ -56,15 +56,15 @@ if __name__ == '__main__':
     min_lengths = sorted(min_lengths)
 
     # Load features
-    features = pd.read_table('../get_features/out/features.tsv')
-    features.loc[features['kappa'] == -1, 'kappa'] = 1
-    features.loc[features['omega'] == -1, 'omega'] = 1
-    features['length'] = features['length'] ** 0.6
-    features.rename(columns={'length': 'radius_gyration'}, inplace=True)
+    all_features = pd.read_table('../get_features/out/features.tsv')
+    all_features.loc[all_features['kappa'] == -1, 'kappa'] = 1
+    all_features.loc[all_features['omega'] == -1, 'omega'] = 1
+    all_features['length'] = all_features['length'] ** 0.6
+    all_features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
-    feature_labels = list(features.columns.drop(['OGid', 'start', 'stop', 'ppid']))
+    feature_labels = list(all_features.columns.drop(['OGid', 'ppid', 'start', 'stop']))
 
-    # Load regions
+    # Load regions as segments
     rows = []
     for min_length in min_lengths:
         with open(f'../regions_filter/out/regions_{min_length}.tsv') as file:
@@ -74,15 +74,16 @@ if __name__ == '__main__':
                 OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
                 for ppid in fields['ppids'].split(','):
                     rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
-                                 'ppid': ppid, 'spid': ppid2spid[ppid], 'min_length': min_length})
-    df = pd.DataFrame(rows)
+                                 'ppid': ppid, 'min_length': min_length})
+    all_segments = pd.DataFrame(rows)
 
     if not os.path.exists('out/'):
         os.mkdir('out/')
 
     for min_length in min_lengths:
-        segments = df[df['min_length'] == min_length].merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid']).drop('min_length', axis=1)
-        regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
+        segment_keys = all_segments[all_segments['min_length'] == min_length].drop('min_length', axis=1)
+        features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+        regions = features.groupby(['OGid', 'start', 'stop', 'disorder'])
 
         # Apply contrasts
         args = get_args(regions, tree_template, feature_labels)

@@ -46,7 +46,7 @@ with open('../../ortho_search/sequence_data/out/sequence_data.tsv') as file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
         ppid2gnid[fields['ppid']] = fields['gnid']
 
-# Load regions
+# Load regions as segments
 rows = []
 with open('../../brownian/aucpred_filter/out/regions_30.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
@@ -55,7 +55,7 @@ with open('../../brownian/aucpred_filter/out/regions_30.tsv') as file:
         for ppid in fields['ppids'].split(','):
             rows.append({'OGid': fields['OGid'], 'start': int(fields['start']), 'stop': int(fields['stop']),
                          'disorder': fields['disorder'] == 'True', 'gnid': ppid2gnid[ppid]})
-regions = pd.DataFrame(rows)
+segments = pd.DataFrame(rows)
 
 # Load ontology
 GO = {}
@@ -133,8 +133,8 @@ df4['GOid'] = df4['GOid'].apply(lambda x: GO[x]['primary_id'])
 counts = df3.loc[df3['GOid'] != df4['GOid'], ['GOid', 'name']].value_counts()
 write_table(counts, 'TOP 10 RENAMED ANNOTATIONS')
 
-# Join with regions
-df5 = regions.merge(df4, on='gnid')
+# Join with segments
+df5 = segments.merge(df4, on='gnid')
 
 # Propagate ancestors to table and drop poorly represented annotations
 df6 = df5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1).rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()

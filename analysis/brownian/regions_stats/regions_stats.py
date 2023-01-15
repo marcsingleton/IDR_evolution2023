@@ -19,12 +19,9 @@ for path in os.listdir('../regions_filter/out/'):
 min_lengths = sorted(min_lengths)
 
 # Load features
-features = pd.read_table('../get_features/out/features.tsv')
-features.loc[features['kappa'] == -1, 'kappa'] = 1
-features.loc[features['omega'] == -1, 'omega'] = 1
-features['radius_gyration'] = features['length'] ** 0.6
+all_lengths = pd.read_table('../get_features/out/features.tsv', usecols=['OGid', 'start', 'stop', 'ppid', 'length'])
 
-# Load regions
+# Load regions as segments
 rows = []
 for min_length in min_lengths:
     with open(f'../regions_filter/out/regions_{min_length}.tsv') as file:
@@ -35,7 +32,7 @@ for min_length in min_lengths:
             for ppid in fields['ppids'].split(','):
                 rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
                              'ppid': ppid, 'min_length': min_length})
-df = pd.DataFrame(rows)
+all_segments = pd.DataFrame(rows)
 
 # Plots of combined segment sets
 if not os.path.exists('out/'):
@@ -44,8 +41,9 @@ if not os.path.exists('out/'):
 # Number of regions by length cutoff
 disorder, order = [], []
 for min_length in min_lengths:
-    disorder.append(len(df.loc[df['disorder'] & (df['min_length'] == min_length), ['OGid', 'start', 'stop']].drop_duplicates()))
-    order.append(len(df.loc[~df['disorder'] & (df['min_length'] == min_length), ['OGid', 'start', 'stop']].drop_duplicates()))
+    df = all_segments[all_segments['min_length'] == min_length]
+    disorder.append(len(df.loc[df['disorder'], ['OGid', 'start', 'stop']].drop_duplicates()))
+    order.append(len(df.loc[~df['disorder'], ['OGid', 'start', 'stop']].drop_duplicates()))
 plt.plot(min_lengths, disorder, color='C0', label='disorder')
 plt.plot(min_lengths, order, color='C1', label='order')
 plt.xlabel('Length cutoff')
@@ -57,8 +55,9 @@ plt.close()
 # Number of OGs by length cutoff
 disorder, order = [], []
 for min_length in min_lengths:
-    disorder.append(len(df.loc[df['disorder'] & (df['min_length'] == min_length), 'OGid'].drop_duplicates()))
-    order.append(len(df.loc[~df['disorder'] & (df['min_length'] == min_length), 'OGid'].drop_duplicates()))
+    df = all_segments[all_segments['min_length'] == min_length]
+    disorder.append(len(df.loc[df['disorder'], 'OGid'].drop_duplicates()))
+    order.append(len(df.loc[~df['disorder'], 'OGid'].drop_duplicates()))
 plt.plot(min_lengths, disorder, color='C0', label='disorder')
 plt.plot(min_lengths, order, color='C1', label='order')
 plt.xlabel('Length cutoff')
@@ -72,7 +71,7 @@ for min_length in min_lengths:
     if not os.path.exists(f'out/regions_{min_length}/'):
         os.mkdir(f'out/regions_{min_length}/')
 
-    segments = df[df['min_length'] == min_length].merge(features, how='left', on=['OGid', 'start', 'stop', 'ppid']).drop('min_length', axis=1)
+    segments = all_segments[all_segments['min_length'] == min_length].merge(all_lengths, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
 
     means = regions.mean()
