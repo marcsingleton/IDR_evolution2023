@@ -2,31 +2,23 @@
 
 import os
 import re
-from math import atan2, pi
 
 import matplotlib.pyplot as plt
 import pandas as pd
 from numpy import linspace
 from sklearn.decomposition import PCA
 from src.brownian.features import motif_regexes
-from src.brownian.pca_plots import plot_pca, plot_pca_arrows
+from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
 
 
 def zscore(df):
     return (df - df.mean()) / df.std()
 
 
-def get_angle(y, x):
-    angle = atan2(y, x)
-    if angle < 0:
-        angle = 2 * pi + angle
-    return angle
-
-
-length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
+length_regex = r'regions_([0-9]+).tsv'
 
-cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
+cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
 hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 handle_markerfacecolor = 0.6
 legend_kwargs = {'fontsize': 8, 'loc': 'center left', 'bbox_to_anchor': (1, 0.5)}
@@ -73,6 +65,7 @@ for min_length in min_lengths:
     regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
 
     means = regions.mean()
+    means_motifs = means.drop(motif_labels, axis=1)
     disorder = means.loc[pdidx[:, :, :, True], :]
     order = means.loc[pdidx[:, :, :, False], :]
     disorder_motifs = disorder.drop(motif_labels, axis=1)
@@ -91,6 +84,44 @@ for min_length in min_lengths:
         plt.savefig(f'out/regions_{min_length}/hist_numregions-{feature_label}.png')
         plt.close()
 
+    # Combined PCAs
+    plots = [(means, 'merge', 'no norm', 'nonorm_all'),
+             (zscore(means), 'merge', 'z-score', 'zscore_all'),
+             (means_motifs, 'merge', 'no norm', 'nonorm_motifs'),
+             (zscore(means_motifs), 'merge', 'z-score', 'zscore_motifs')]
+    for data, data_label, title_label, file_label in plots:
+        pca = PCA(n_components=pca_components)
+        transform = pca.fit_transform(data.to_numpy())
+        idx = data.index.get_level_values('disorder').array.astype(bool)
+        cmap = cmap3
+
+        # Feature variance pie chart
+        var = data.var().sort_values(ascending=False)
+        truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
+        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        plt.title(f'Feature variance\n{title_label}')
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.subplots_adjust(right=0.65)
+        plt.savefig(f'out/regions_{min_length}/pie_variance_{data_label}_{file_label}.png')
+        plt.close()
+
+        # Scree plot
+        plt.bar(range(1, len(pca.explained_variance_ratio_)+1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
+        plt.xlabel('Principal component')
+        plt.ylabel('Explained variance ratio')
+        plt.title(title_label)
+        plt.legend()
+        plt.savefig(f'out/regions_{min_length}/bar_scree_{data_label}_{file_label}.png')
+        plt.close()
+
+        # PCA scatters
+        plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+                  f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
+                  hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+        plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
+                         f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
+                         hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
     # Individual PCAs
     plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
              (order, 'order', 'no norm', 'nonorm_all'),
@@ -105,12 +136,15 @@ for min_length in min_lengths:
         transform = pca.fit_transform(data.to_numpy())
         cmap = plt.colormaps['Blues'] if data_label == 'disorder' else plt.colormaps['Reds']
 
-        plot_pca(transform, 0, 1, cmap, data_label, title_label,
-                 f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
-                 hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
-        plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
-                        f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrows.png',
-                        hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+        # Feature variance pie chart
+        var = data.var().sort_values(ascending=False)
+        truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
+        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        plt.title(f'Feature variance\n{title_label}')
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.subplots_adjust(right=0.65)
+        plt.savefig(f'out/regions_{min_length}/pie_variance_{data_label}_{file_label}.png')
+        plt.close()
 
         # Scree plot
         plt.bar(range(1, len(pca.explained_variance_ratio_)+1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
@@ -120,3 +154,11 @@ for min_length in min_lengths:
         plt.legend()
         plt.savefig(f'out/regions_{min_length}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
+
+        # PCA scatters
+        plot_pca(transform, 0, 1, cmap, data_label, title_label,
+                 f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
+                 hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+        plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
+                        f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrows.png',
+                        hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
