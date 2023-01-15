@@ -3,54 +3,28 @@
 import os
 import re
 
-import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-from matplotlib.lines import Line2D
 from numpy import linspace
 from sklearn.decomposition import PCA
 from src.brownian.features import motif_regexes
+from src.brownian.pca_plots import plot_pca2, plot_pca2_arrows
 
 
 def zscore(df):
     return (df - df.mean()) / df.std()
 
 
-def plot_hexbin_pca(x1, y1, x2, y2, gridsize=None, bins=None, cmap1=None, cmap2=None, ax=None):
-    if ax is None:
-        _, ax = plt.subplots()
-
-    x = np.concatenate([x1, x2], axis=0)
-    y = np.concatenate([y1, y2], axis=0)
-    xmin, xmax = x.min(), x.max()
-    ymin, ymax = y.min(), y.max()
-    extent = (xmin, xmax, ymin, ymax)
-
-    hb1 = ax.hexbin(x1, y1, gridsize=gridsize, extent=extent, cmap=cmap1, linewidth=0)
-    hb2 = ax.hexbin(x2, y2, gridsize=gridsize, extent=extent, cmap=cmap2, linewidth=0)
-
-    array1 = np.expand_dims(hb1.get_array().data, -1)
-    array2 = np.expand_dims(hb2.get_array().data, -1)
-    norm1 = colors.Normalize(array1.min(), array1.max())
-    norm2 = colors.Normalize(array2.min(), array2.max())
-    fc1 = np.array([cmap1(norm1(count)) for count in array1.squeeze()])
-    fc2 = np.array([cmap2(norm2(count)) for count in array2.squeeze()])
-
-    total = array1 + array2
-    total[total == 0] = 1
-    fc = (array1 * fc1 + array2 * fc2) / total
-    ax.clear()
-
-    z = ax.hexbin([], [], bins=bins, gridsize=gridsize, extent=extent, linewidth=0)
-    z.set_array(None)
-    z.set_facecolor(fc)
-
-    return ax, hb1, hb2
-
-
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
+
+cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
+hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
+handle_markerfacecolor = 0.6
+legend_kwargs = {'fontsize': 8, 'loc': 'center left', 'bbox_to_anchor': (1, 0.5)}
+pca_components = 10
+arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
+                '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
 # Get minimum lengths
 min_lengths = []
@@ -181,27 +155,13 @@ for min_length in min_lengths:
         plt.close()
 
         # Feature PCAs
-        pca = PCA(n_components=5)
-        idx = data.index.get_level_values('disorder').array.astype(bool)
-        cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
+        pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
+        idx = data.index.get_level_values('disorder').array.astype(bool)
 
-        x1, x2 = transform[idx, 0], transform[~idx, 0]
-        y1, y2 = transform[idx, 1], transform[~idx, 1]
-
-        fig = plt.figure()
-        gs = fig.add_gridspec(1, 5, width_ratios=(0.79, 0.03, 0.03, 0.12, 0.03), wspace=0)
-        ax = fig.add_subplot(gs[:, 0])
-        _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, cmap1=cmap1, cmap2=cmap2, ax=ax)
-        ax.set_xlabel('PC1')
-        ax.set_ylabel('PC2')
-        ax.set_title(f'{title_label}, length ≥ {min_length}')
-        handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
-                          markeredgecolor='None', markersize=8, linestyle='None'),
-                   Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
-                          markeredgecolor='None', markersize=8, linestyle='None')]
-        ax.legend(handles=handles)
-        fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
-        fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{file_label}.png')
-        plt.close()
+        plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+                  f'out/regions_{min_length}/hexbin_pc1-pc2_{file_label}.png',
+                  hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+        plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
+                         f'out/regions_{min_length}/hexbin_pc1-pc2_{file_label}_arrow.png',
+                         hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)

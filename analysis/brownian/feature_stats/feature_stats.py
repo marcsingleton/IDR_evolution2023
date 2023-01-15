@@ -6,10 +6,10 @@ from math import atan2, pi
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.lines import Line2D
 from numpy import linspace
 from sklearn.decomposition import PCA
 from src.brownian.features import motif_regexes
+from src.brownian.pca_plots import plot_pca, plot_pca_arrows
 
 
 def zscore(df):
@@ -26,7 +26,11 @@ def get_angle(y, x):
 length_regex = r'regions_([0-9]+).tsv'
 pdidx = pd.IndexSlice
 
-pca = PCA(n_components=10)
+cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
+hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
+handle_markerfacecolor = 0.6
+legend_kwargs = {'fontsize': 8, 'loc': 'center left', 'bbox_to_anchor': (1, 0.5)}
+pca_components = 10
 arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
                 '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
@@ -97,54 +101,16 @@ for min_length in min_lengths:
              (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
              (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
-        cmap = plt.colormaps['Blues'] if data_label == 'disorder' else plt.colormaps['Reds']
+        pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
+        cmap = plt.colormaps['Blues'] if data_label == 'disorder' else plt.colormaps['Reds']
 
-        # PCA without arrows
-        fig = plt.figure()
-        gs = fig.add_gridspec(1, 4, width_ratios=(0.79, 0.06, 0.03, 0.12), wspace=0)
-        ax = fig.add_subplot(gs[:, 0])
-        hb = ax.hexbin(transform[:, 0], transform[:, 1], gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-        ax.set_xlabel('PC1')
-        ax.set_ylabel('PC2')
-        ax.set_title(title_label)
-        handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
-                          markeredgecolor='None', markersize=8, linestyle='None')]
-        ax.legend(handles=handles)
-        fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
-        plt.close()
-
-        # PCA with arrows
-        fig = plt.figure()
-        gs = fig.add_gridspec(1, 4, width_ratios=(0.79, 0.06, 0.03, 0.12), wspace=0)
-        ax = fig.add_subplot(gs[:, 0])
-        hb = ax.hexbin(transform[:, 0], transform[:, 1], gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-        ax.set_xlabel('PC1')
-        ax.set_ylabel('PC2')
-        ax.set_title(title_label)
-
-        projections = zip(data.columns, pca.components_[0], pca.components_[1])  # Match features to components in PC space
-        projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
-        projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
-
-        xmin, xmax = plt.xlim()
-        ymin, ymax = plt.ylim()
-        ratios = []
-        for projection in projections:
-            _, x, y = projection
-            ratios.extend([x / xmin, x / xmax, y / ymin, y / ymax])
-        scale = 0.9 / max(ratios)  # Scale the largest arrow within fraction of axes
-
-        handles = []
-        for arrow_color, projection in zip(arrow_colors, projections):
-            feature_label, x, y = projection
-            handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
-            ax.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
-                        arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
-        ax.legend(handles=handles, fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png')
-        plt.close()
+        plot_pca(transform, 0, 1, cmap, data_label, title_label,
+                 f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
+                 hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+        plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
+                        f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrows.png',
+                        hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
         # Scree plot
         plt.bar(range(1, len(pca.explained_variance_ratio_)+1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))

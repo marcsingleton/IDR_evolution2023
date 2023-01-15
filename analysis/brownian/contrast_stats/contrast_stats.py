@@ -2,18 +2,18 @@
 
 import os
 import re
-from math import atan2, exp, pi
+from math import exp, pi
 
-import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import skbio
 from matplotlib.lines import Line2D
-from numpy import linspace, quantile
+from numpy import linspace
 from src.draw import plot_msa
 from sklearn.decomposition import PCA
 from src.brownian.features import motif_regexes
+from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
 from src.utils import read_fasta
 
 
@@ -21,254 +21,16 @@ def zscore(df):
     return (df - df.mean()) / df.std()
 
 
-def get_angle(y, x):
-    angle = atan2(y, x)
-    if angle < 0:
-        angle = 2 * pi + angle
-    return angle
-
-
-def plot_hexbin_pca(x1, y1, x2, y2, gridsize=None, bins=None, cmap1=None, cmap2=None, ax=None):
-    if ax is None:
-        _, ax = plt.subplots()
-
-    x = np.concatenate([x1, x2], axis=0)
-    y = np.concatenate([y1, y2], axis=0)
-    xmin, xmax = x.min(), x.max()
-    ymin, ymax = y.min(), y.max()
-    extent = (xmin, xmax, ymin, ymax)
-
-    hb1 = ax.hexbin(x1, y1, gridsize=gridsize, extent=extent, cmap=cmap1, linewidth=0)
-    hb2 = ax.hexbin(x2, y2, gridsize=gridsize, extent=extent, cmap=cmap2, linewidth=0)
-
-    array1 = np.expand_dims(hb1.get_array().data, -1)
-    array2 = np.expand_dims(hb2.get_array().data, -1)
-    norm1 = colors.Normalize(array1.min(), array1.max())
-    norm2 = colors.Normalize(array2.min(), array2.max())
-    fc1 = np.array([cmap1(norm1(count)) for count in array1.squeeze()])
-    fc2 = np.array([cmap2(norm2(count)) for count in array2.squeeze()])
-
-    total = array1 + array2
-    total[total == 0] = 1
-    fc = (array1 * fc1 + array2 * fc2) / total
-    ax.clear()
-
-    z = ax.hexbin([], [], bins=bins, gridsize=gridsize, extent=extent, linewidth=0)
-    z.set_array(None)
-    z.set_facecolor(fc)
-
-    return ax, hb1, hb2
-
-
-def plot_pcas_combined(prefix, pca, data, title_label, file_label, width_ratios, bins=None):
-    idx1 = data.index.get_level_values('disorder').array.astype(bool)
-    cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
-    transform = pca.fit_transform(data.to_numpy())
-
-    # PCs 1 and 2
-    x1, x2 = transform[idx1, 0], transform[~idx1, 0]
-    y1, y2 = transform[idx1, 1], transform[~idx1, 1]
-
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
-    ax.set_title(title_label)
-    handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None'),
-               Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None')]
-    ax.legend(handles=handles)
-    fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
-    fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
-    fig.savefig(f'{prefix}/hexbin_pc1-pc2_merge_{file_label}.png')
-    plt.close()
-
-    # PCs 2 and 3
-    x1, x2 = transform[idx1, 1], transform[~idx1, 1]
-    y1, y2 = transform[idx1, 2], transform[~idx1, 2]
-
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC2')
-    ax.set_ylabel('PC3')
-    ax.set_title(title_label)
-    handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None'),
-               Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None')]
-    ax.legend(handles=handles)
-    fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
-    fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
-    fig.savefig(f'{prefix}/hexbin_pc2-pc3_merge_{file_label}1.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range
-    r2 = transform[:, 1] ** 2 + transform[:, 2] ** 2  # radius**2 from center
-    idx2 = r2 <= quantile(r2, 0.99, method='lower')  # Capture at least 99% of the data
-    x1, x2 = transform[idx1 & idx2, 1], transform[~idx1 & idx2, 1]
-    y1, y2 = transform[idx1 & idx2, 2], transform[~idx1 & idx2, 2]
-
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC2')
-    ax.set_ylabel('PC3')
-    ax.set_title(title_label)
-    handles = [Line2D([], [], label='disorder', marker='h', markerfacecolor=cmap1(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None'),
-               Line2D([], [], label='order', marker='h', markerfacecolor=cmap2(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None')]
-    ax.legend(handles=handles)
-    fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
-    fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
-    fig.savefig(f'{prefix}/hexbin_pc2-pc3_merge_{file_label}2.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range and arrows
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    _, hb1, hb2 = plot_hexbin_pca(x1, y1, x2, y2, gridsize=75, bins=bins, cmap1=cmap1, cmap2=cmap2, ax=ax)
-    ax.set_xlabel('PC2')
-    ax.set_ylabel('PC3')
-    ax.set_title(title_label)
-
-    projections = zip(data.columns, pca.components_[1], pca.components_[2])  # Match features to components in PC space
-    projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
-    projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
-
-    xmin, xmax = plt.xlim()
-    ymin, ymax = plt.ylim()
-    ratios = []
-    for projection in projections:
-        _, x, y = projection
-        ratios.extend([x / xmin, x / xmax, y / ymin, y / ymax])
-    scale = 0.9 / max(ratios)  # Scale the largest arrow within fraction of axes
-
-    handles = []
-    for arrow_color, projection in zip(arrow_colors, projections):
-        feature_label, x, y = projection
-        handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
-        plt.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
-                     arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
-    plt.legend(handles=handles, fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(f'{prefix}/hexbin_pc2-pc3_merge_{file_label}2_arrow.png')
-    plt.close()
-
-    # Scree plot
-    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
-    plt.xlabel('Principal component')
-    plt.ylabel('Explained variance ratio')
-    plt.title(title_label)
-    plt.savefig(f'{prefix}/bar_scree_{file_label}.png')
-    plt.close()
-
-
-def plot_pcas_individual(prefix, pca, data, data_label, title_label, file_label, width_ratios, bins=None):
-    cmap = plt.colormaps['Blues'] if data_label == 'disorder' else plt.colormaps['Reds']
-    transform = pca.fit_transform(data.to_numpy())
-
-    # PCs 1 and 2
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    hb = ax.hexbin(transform[:, 0], transform[:, 1], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC2')
-    ax.set_title(title_label)
-    handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None')]
-    ax.legend(handles=handles)
-    fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
-    fig.savefig(f'{prefix}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
-    plt.close()
-
-    # PCs 2 and 3
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    hb = ax.hexbin(transform[:, 1], transform[:, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC2')
-    ax.set_ylabel('PC3')
-    ax.set_title(title_label)
-    handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None')]
-    ax.legend(handles=handles)
-    fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
-    fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}1.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range
-    r2 = transform[:, 1] ** 2 + transform[:, 2] ** 2  # radius**2 from center
-    idx = r2 <= quantile(r2, 0.99, method='lower')  # Capture at least 99% of the data
-
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    hb = ax.hexbin(transform[idx, 1], transform[idx, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC2')
-    ax.set_ylabel('PC3')
-    ax.set_title(title_label)
-    handles = [Line2D([], [], label=data_label, marker='h', markerfacecolor=cmap(0.6),
-                      markeredgecolor='None', markersize=8, linestyle='None')]
-    ax.legend(handles=handles)
-    fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
-    fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}2.png')
-    plt.close()
-
-    # PCs 2 and 3 with trimmed range and arrows
-    fig = plt.figure()
-    gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
-    ax = fig.add_subplot(gs[:, 0])
-    ax.hexbin(transform[idx, 1], transform[idx, 2], bins=bins, gridsize=75, cmap=cmap, linewidth=0, mincnt=1)
-    ax.set_xlabel('PC2')
-    ax.set_ylabel('PC3')
-    ax.set_title(title_label)
-
-    projections = zip(data.columns, pca.components_[1], pca.components_[2])  # Match features to components in PC space
-    projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
-    projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
-
-    xmin, xmax = plt.xlim()
-    ymin, ymax = plt.ylim()
-    ratios = []
-    for projection in projections:
-        _, x, y = projection
-        ratios.extend([x / xmin, x / xmax, y / ymin, y / ymax])
-    scale = 0.9 / max(ratios)  # Scale the largest arrow within fraction of axes
-
-    handles = []
-    for arrow_color, projection in zip(arrow_colors, projections):
-        feature_label, x, y = projection
-        handles.append(Line2D([], [], color=arrow_color, linewidth=2, label=feature_label))
-        ax.annotate('', xy=(scale * x, scale * y), xytext=(0, 0),
-                    arrowprops={'headwidth': 6, 'headlength': 6, 'width': 1.75, 'color': arrow_color})
-    ax.legend(handles=handles, fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5))
-    fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}2_arrow.png')
-    plt.close()
-
-    # Scree plot
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-    plt.xlabel('Principal component')
-    plt.ylabel('Explained variance ratio')
-    plt.title(title_label)
-    plt.legend()
-    plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
-    plt.close()
-
-
 pdidx = pd.IndexSlice
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 
-pca = PCA(n_components=10)
+cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
+hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
+hexbin_kwargs_log = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0, 'bins': 'log'}
+handle_markerfacecolor = 0.6
+legend_kwargs = {'fontsize': 8, 'loc': 'center left', 'bbox_to_anchor': (1, 0.5)}
+pca_components = 10
 arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
                 '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
@@ -458,7 +220,33 @@ plots = [(rates, 'no norm', 'nonorm_all'),
          (rates_motifs, 'no norm', 'nonorm_motifs'),
          (zscore(rates_motifs), 'z-score', 'zscore_motifs')]
 for data, title_label, file_label in plots:
-    plot_pcas_combined('out/rates/', pca, data, title_label, file_label, (0.79, 0.03, 0.03, 0.12, 0.03), bins='log')
+    pca = PCA(n_components=pca_components)
+    transform = pca.fit_transform(data.to_numpy())
+    idx = data.index.get_level_values('disorder').array.astype(bool)
+
+    # PC plots
+    plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+              f'out/rates/hexbin_pc1-pc2_merge_{file_label}.png',
+              hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor)
+    plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
+                     f'out/rates/hexbin_pc1-pc2_merge_{file_label}_arrow.png',
+                     hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+    plot_pca2(transform, 1, 2, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+              f'out/rates/hexbin_pc2-pc3_merge_{file_label}.png',
+              hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor)
+    plot_pca2_arrows(pca, transform, data.columns, 1, 2, idx, ~idx, cmap1, cmap2, title_label,
+                     f'out/rates/hexbin_pc2-pc3_merge_{file_label}_arrow.png',
+                     hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+    # Scree plot
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'out/rates/bar_scree_merge_{file_label}.png')
+    plt.close()
 
 # 3.2.2 Plot rate PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
@@ -470,7 +258,33 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    plot_pcas_individual('out/rates/', pca, data, data_label, title_label, file_label, (0.79, 0.06, 0.03, 0.12), bins='log')
+    pca = PCA(n_components=pca_components)
+    transform = pca.fit_transform(data.to_numpy())
+    cmap = cmap1 if data_label == 'disorder' else cmap2
+
+    # PC plots
+    plot_pca(transform, 0, 1, cmap, data_label, title_label,
+             f'out/rates/hexbin_pc1-pc2_{data_label}_{file_label}.png',
+             hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor)
+    plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
+                    f'out/rates/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
+                    hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+    plot_pca(transform, 1, 2, cmap, data_label, title_label,
+             f'out/rates/hexbin_pc2-pc3_{data_label}_{file_label}.png',
+             hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor)
+    plot_pca_arrows(pca, transform, data.columns, 1, 2, cmap, title_label,
+                    f'out/rates/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
+                    hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+    # Scree plot
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'out/rates/bar_scree_{data_label}_{file_label}.png')
+    plt.close()
 
 # 3.3 Plot regions with extreme rates
 for feature_label in feature_labels:
@@ -523,9 +337,28 @@ plots = [(roots, 'no norm', 'nonorm_all'),
          (roots_motifs, 'no norm', 'nonorm_motifs'),
          (zscore(roots_motifs), 'z-score', 'zscore_motifs')]
 for data, title_label, file_label in plots:
-    plot_pcas_combined('out/roots/', pca, data, title_label, file_label, (0.79, 0.03, 0.03, 0.12, 0.03))
+    pca = PCA(n_components=pca_components)
+    transform = pca.fit_transform(data.to_numpy())
+    idx = data.index.get_level_values('disorder').array.astype(bool)
 
-# 4.2.2 Plot rate PCAs (individual)
+    # PC plots
+    plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+              f'out/roots/hexbin_pc1-pc2_merge_{file_label}.png',
+              hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+    plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
+                     f'out/roots/hexbin_pc1-pc2_merge_{file_label}_arrow.png',
+                     hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+    # Scree plot
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'out/roots/bar_scree_merge_{file_label}.png')
+    plt.close()
+
+# 4.2.2 Plot root PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (order, 'order', 'no norm', 'nonorm_all'),
          (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
@@ -535,7 +368,26 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    plot_pcas_individual('out/roots/', pca, data, data_label, title_label, file_label, (0.79, 0.06, 0.03, 0.12))
+    pca = PCA(n_components=pca_components)
+    transform = pca.fit_transform(data.to_numpy())
+    cmap = cmap1 if data_label == 'disorder' else cmap2
+
+    # PC plots
+    plot_pca(transform, 0, 1, cmap, data_label, title_label,
+             f'out/roots/hexbin_pc1-pc2_{data_label}_{file_label}.png',
+             hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+    plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
+                    f'out/roots/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
+                    hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+    # Scree plot
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'out/roots/bar_scree_{data_label}_{file_label}.png')
+    plt.close()
 
 # 5 MERGE
 if not os.path.exists('out/merge/'):
@@ -598,7 +450,38 @@ plots = [(df, 'no norm', 'nonorm_all'),
          (df_motifs, 'no norm', 'nonorm_motifs'),
          (zscore(df_motifs), 'z-score', 'zscore_motifs')]
 for data, title_label, file_label in plots:
-    plot_pcas_combined('out/merge/', pca, data, title_label, file_label, (0.79, 0.03, 0.03, 0.15, 0.03))
+    pca = PCA(n_components=pca_components)
+    transform = pca.fit_transform(data.to_numpy())
+    idx = data.index.get_level_values('disorder').array.astype(bool)
+    width_ratios = (0.76, 0.03, 0.03, 0.15, 0.03)
+
+    # PC plots
+    plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+              f'out/merge/hexbin_pc1-pc2_merge_{file_label}.png',
+              hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor,
+              width_ratios=width_ratios)
+    plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
+                     f'out/merge/hexbin_pc1-pc2_merge_{file_label}_arrow.png',
+                     hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
+                     width_ratios=width_ratios)
+
+    plot_pca2(transform, 1, 2, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+              f'out/merge/hexbin_pc2-pc3_merge_{file_label}.png',
+              hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor,
+              width_ratios=width_ratios)
+    plot_pca2_arrows(pca, transform, data.columns, 1, 2, idx, ~idx, cmap1, cmap2, title_label,
+                     f'out/merge/hexbin_pc2-pc3_merge_{file_label}_arrow.png',
+                     hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
+                     width_ratios=width_ratios)
+
+    # Scree plot
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'out/merge/bar_scree_merge_{file_label}.png')
+    plt.close()
 
 # 5.3.2 Plot root-rate PCAs (individual)
 plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
@@ -610,4 +493,35 @@ plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
          (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
          (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
 for data, data_label, title_label, file_label in plots:
-    plot_pcas_individual('out/merge/', pca, data, data_label, title_label, file_label, (0.76, 0.06, 0.03, 0.15))
+    pca = PCA(n_components=pca_components)
+    transform = pca.fit_transform(data.to_numpy())
+    cmap = cmap1 if data_label == 'disorder' else cmap2
+    width_ratios = (0.76, 0.03, 0.03, 0.18)
+
+    # PC plots
+    plot_pca(transform, 0, 1, cmap, data_label, title_label,
+             f'out/merge/hexbin_pc1-pc2_{data_label}_{file_label}.png',
+             hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor,
+             width_ratios=width_ratios)
+    plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
+                    f'out/merge/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
+                    hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
+                    width_ratios=width_ratios)
+
+    plot_pca(transform, 1, 2, cmap, data_label, title_label,
+             f'out/merge/hexbin_pc2-pc3_{data_label}_{file_label}.png',
+             hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor,
+             width_ratios=width_ratios)
+    plot_pca_arrows(pca, transform, data.columns, 1, 2, cmap, title_label,
+                    f'out/merge/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
+                    hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
+                    width_ratios=width_ratios)
+
+    # Scree plot
+    color = 0.5 * (np.array(cmap1(0.6)) + np.array(cmap2(0.6)))
+    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, color=color)
+    plt.xlabel('Principal component')
+    plt.ylabel('Explained variance ratio')
+    plt.title(title_label)
+    plt.savefig(f'out/merge/bar_scree_{data_label}_{file_label}.png')
+    plt.close()
