@@ -118,7 +118,7 @@ def get_brownian_mles(tree=None, cov=None, inv=None, values=None):
 
     mu = weights.transpose() @ values
     x = values - mu
-    sigma2 = (x.transpose() @ inv @ x) / (N - 1)
+    sigma2 = (x.transpose() @ inv @ x) / N
 
     return mu, sigma2
 
