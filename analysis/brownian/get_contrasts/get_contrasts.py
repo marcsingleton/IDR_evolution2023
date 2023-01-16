@@ -11,7 +11,7 @@ from src.utils import get_contrasts, read_fasta
 
 def get_args(grouped, tree, feature_labels):
     for name, group in grouped:
-        yield name, group, tree.copy(), feature_labels
+        yield name, group, tree, feature_labels
 
 
 def apply_contrasts(args):
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                 OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
                 for ppid in fields['ppids'].split(','):
                     rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
-                                 'ppid': ppid, 'min_length': min_length})
+                                 'ppid': ppid, 'spid': ppid2spid[ppid], 'min_length': min_length})
     all_segments = pd.DataFrame(rows)
 
     if not os.path.exists('out/'):
@@ -88,9 +88,7 @@ if __name__ == '__main__':
         # Apply contrasts
         args = get_args(regions, tree_template, feature_labels)
         with mp.Pool(processes=num_processes) as pool:
-            # Using imap distributes the construction of the args tuples
-            # However to force computation before pool is closed we must call list on it
-            records = list(pool.imap(apply_contrasts, args, chunksize=50))
+            records = pool.map(apply_contrasts, args, chunksize=50)
 
         # Write contrasts and means to file
         with open(f'out/contrasts_{min_length}.tsv', 'w') as file1, open(f'out/roots_{min_length}.tsv', 'w') as file2:
