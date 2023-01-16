@@ -23,7 +23,7 @@ spid_regex = r'spid=([a-z]+)'
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 OGids = set()
-with open('../../brownian/aucpred_filter/out/regions_30.tsv') as file:
+with open('../../brownian/regions_filter/out/regions_30.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
