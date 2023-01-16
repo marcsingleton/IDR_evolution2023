@@ -228,7 +228,7 @@ def get_OU_mles(tree=None, tips=None, ts=None):
     """
     if tips is None or ts is None:
         tips, ts = get_brownian_covariance(tree)
-    values = np.array([tip.value for tip in tree.tips()])
+    values = np.array([tip.value for tip in tips])
 
     def f(alpha):
         if alpha <= 0:
@@ -288,7 +288,7 @@ def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ts=None):
     """
     if tips is None or ts is None:
         tips, ts = get_brownian_covariance(tree)
-    values = np.array([tip.value for tip in tree.tips()])
+    values = np.array([tip.value for tip in tips])
 
     _, cov = get_OU_covariance(alpha, tips=tips, ts=ts)
     inv = np.linalg.inv(cov)
