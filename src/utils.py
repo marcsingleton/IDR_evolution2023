@@ -152,12 +152,11 @@ def get_brownian_loglikelihood(mu, sigma2, tree=None, cov=None, inv=None, values
     elif any([arg is None for arg in [cov, inv, values]]):
         raise RuntimeError('Invalid combination of arguments.')
 
-    cov = sigma2 * cov
-    inv = inv / sigma2
     det = np.linalg.det(cov)
     N = len(cov)
+
     x = values - mu
-    loglikelihood = -0.5 * (x.transpose() @ inv @ x + np.log((2 * np.pi) ** N * det))
+    loglikelihood = -0.5 * (x.transpose() @ inv @ x / sigma2 + N * np.log(2 * np.pi * sigma2) + np.log(det))
 
     return loglikelihood
 
@@ -245,7 +244,7 @@ def get_OU_mles(tree=None, tips=None, ts=None):
         mu = weights.transpose() @ values
         x = values - mu
         sigma2 = x.transpose() @ inv @ x / N
-        loglikelihood = 0.5 * (x.transpose() @ inv @ x / sigma2 + np.log((2 * np.pi * sigma2) ** N * det))  # No negative since using minimize
+        loglikelihood = 0.5 * (x.transpose() @ inv @ x / sigma2 + N * np.log(2 * np.pi * sigma2) + np.log(det))  # No negative since using minimize
 
         return loglikelihood
 
@@ -296,7 +295,7 @@ def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ts=None):
     N = len(cov)
 
     x = values - mu
-    loglikelihood = -0.5 * (x.transpose() @ inv @ x / sigma2 + np.log((2 * np.pi * sigma2) ** N * det))
+    loglikelihood = -0.5 * (x.transpose() @ inv @ x / sigma2 + N * np.log(2 * np.pi * sigma2) + np.log(det))
 
     return loglikelihood
 
