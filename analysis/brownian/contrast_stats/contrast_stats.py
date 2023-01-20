@@ -89,6 +89,7 @@ for min_length in min_lengths:
         axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
         axs[1].set_xlabel(f'Contrast value ({feature_label})')
+        axs[0].set_title(f'minimum length ≥ {min_length}')
         for i in range(2):
             axs[i].set_ylabel('Number of contrasts')
             axs[i].legend()
@@ -113,6 +114,7 @@ for min_length in min_lengths:
         axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
         axs[1].set_xlabel(f'Mean contrast value ({feature_label})')
+        axs[0].set_title(f'minimum length ≥ {min_length}')
         for i in range(2):
             axs[i].set_ylabel('Number of regions')
             axs[i].legend()
@@ -137,6 +139,7 @@ for min_length in min_lengths:
         axs[0].hist(disorder[feature_label], density=True, bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
         axs[1].hist(order[feature_label], density=True, bins=linspace(xmin, xmax, 150), color='C1', label='order')
         axs[1].set_xlabel(f'Standardized mean contrast value ({feature_label})')
+        axs[0].set_title(f'minimum length ≥ {min_length}')
         for i in range(2):
             axs[i].plot(linspace(xmin, xmax), [1/(2*pi)**0.5 * exp(-x**2/2) for x in linspace(xmin, xmax)], color='black')
             axs[i].set_ylabel('Density of regions')
@@ -162,6 +165,7 @@ for min_length in min_lengths:
         axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
         axs[1].set_xlabel(f'Rate ({feature_label})')
+        axs[0].set_title(f'minimum length ≥ {min_length}')
         for i in range(2):
             axs[i].set_ylabel('Number of regions')
             axs[i].legend()
@@ -172,10 +176,10 @@ for min_length in min_lengths:
         plt.close()
 
     # 3.2.1 Plot rate PCAs (combined)
-    plots = [(rates, 'merge', 'no norm', 'nonorm_all'),
-             (zscore(rates), 'merge', 'z-score', 'zscore_all'),
-             (rates_motifs, 'merge', 'no norm', 'nonorm_motifs'),
-             (zscore(rates_motifs), 'merge', 'z-score', 'zscore_motifs')]
+    plots = [(rates, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(rates), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (rates_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (zscore(rates_motifs), 'merge', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -217,14 +221,14 @@ for min_length in min_lengths:
                          hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
     # 3.2.2 Plot rate PCAs (individual)
-    plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
-             (order, 'order', 'no norm', 'nonorm_all'),
-             (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
-             (zscore(order), 'order', 'z-score', 'zscore_all'),
-             (disorder_motifs, 'disorder', 'no norm', 'nonorm_motifs'),
-             (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
-             (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
-             (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
+    plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (zscore(order), 'order', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (disorder_motifs, 'disorder', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (order_motifs, 'order', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (zscore(disorder_motifs), 'disorder', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs'),
+             (zscore(order_motifs), 'order', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -281,6 +285,7 @@ for min_length in min_lengths:
         axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color='C0', label='disorder')
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color='C1', label='order')
         axs[1].set_xlabel(f'Inferred root value ({feature_label})')
+        axs[0].set_title(f'minimum length ≥ {min_length}')
         for i in range(2):
             axs[i].set_ylabel('Number of regions')
             axs[i].legend()
@@ -288,10 +293,10 @@ for min_length in min_lengths:
         plt.close()
 
     # 4.2.1 Plot root PCAs (combined)
-    plots = [(roots, 'merge', 'no norm', 'nonorm_all'),
-             (zscore(roots), 'merge', 'z-score', 'zscore_all'),
-             (roots_motifs, 'merge', 'no norm', 'nonorm_motifs'),
-             (zscore(roots_motifs), 'merge', 'z-score', 'zscore_motifs')]
+    plots = [(roots, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(roots), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (roots_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (zscore(roots_motifs), 'merge', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -326,14 +331,14 @@ for min_length in min_lengths:
                          hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
     # 4.2.2 Plot root PCAs (individual)
-    plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
-             (order, 'order', 'no norm', 'nonorm_all'),
-             (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
-             (zscore(order), 'order', 'z-score', 'zscore_all'),
-             (disorder_motifs, 'disorder', 'no norm', 'nonorm_motifs'),
-             (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
-             (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
-             (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
+    plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (zscore(order), 'order', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (disorder_motifs, 'disorder', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (order_motifs, 'order', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (zscore(disorder_motifs), 'disorder', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs'),
+             (zscore(order_motifs), 'order', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -377,7 +382,7 @@ for min_length in min_lengths:
         plt.hexbin(merge[feature_label + '_x'], merge[feature_label + '_y'], gridsize=75, linewidth=0, mincnt=1)
         plt.xlabel('Tip mean')
         plt.ylabel('Inferred root value')
-        plt.title(feature_label)
+        plt.title(f'{feature_label}\nminimum length ≥ {min_length}')
         plt.colorbar()
 
         x, y = merge[feature_label + '_x'], merge[feature_label + '_y']
@@ -404,7 +409,7 @@ for min_length in min_lengths:
                    cmap=cmap3, gridsize=75, linewidth=0, mincnt=1)
         plt.xlabel('Inferred root value')
         plt.ylabel('Rate')
-        plt.title(feature_label)
+        plt.title(f'{feature_label}\nminimum length ≥ {min_length}')
         plt.colorbar()
         plt.savefig(f'{prefix}/hexbin_rate-root_{feature_label}1.png')
         plt.close()
@@ -421,15 +426,15 @@ for min_length in min_lengths:
             ax.legend(handles=handles)
             fig.colorbar(hb, ax=ax)
         axs[1].set_xlabel('Inferred root value')
-        fig.suptitle(feature_label)
+        fig.suptitle(f'{feature_label}\nminimum length ≥ {min_length}')
         plt.savefig(f'{prefix}/hexbin_rate-root_{feature_label}2.png')
         plt.close()
 
     # 5.3.1 Plot root-rate PCAs (combined)
-    plots = [(merge, 'merge', 'no norm', 'nonorm_all'),
-             (zscore(merge), 'merge', 'z-score', 'zscore_all'),
-             (merge_motifs, 'merge', 'no norm', 'nonorm_motifs'),
-             (zscore(merge_motifs), 'merge', 'z-score', 'zscore_motifs')]
+    plots = [(merge, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(merge), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (merge_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (zscore(merge_motifs), 'merge', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -476,14 +481,14 @@ for min_length in min_lengths:
                          width_ratios=width_ratios)
 
     # 5.3.2 Plot root-rate PCAs (individual)
-    plots = [(disorder, 'disorder', 'no norm', 'nonorm_all'),
-             (order, 'order', 'no norm', 'nonorm_all'),
-             (zscore(disorder), 'disorder', 'z-score', 'zscore_all'),
-             (zscore(order), 'order', 'z-score', 'zscore_all'),
-             (disorder_motifs, 'disorder', 'no norm', 'nonorm_motifs'),
-             (order_motifs, 'order', 'no norm', 'nonorm_motifs'),
-             (zscore(disorder_motifs), 'disorder', 'z-score', 'zscore_motifs'),
-             (zscore(order_motifs), 'order', 'z-score', 'zscore_motifs')]
+    plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (zscore(order), 'order', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (disorder_motifs, 'disorder', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (order_motifs, 'order', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
+             (zscore(disorder_motifs), 'disorder', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs'),
+             (zscore(order_motifs), 'order', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())

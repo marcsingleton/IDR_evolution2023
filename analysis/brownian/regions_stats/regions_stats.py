@@ -84,6 +84,7 @@ for min_length in min_lengths:
     axs[0].hist(disorder['length'], bins=linspace(xmin, xmax, 100), color='C0', label='disorder')
     axs[1].hist(order['length'], bins=linspace(xmin, xmax, 100), color='C1', label='order')
     axs[1].set_xlabel('Mean length of region')
+    axs[0].set_title(f'minimum length ≥ {min_length}')
     for i in range(2):
         axs[i].set_ylabel('Number of regions')
         axs[i].legend()
@@ -98,6 +99,7 @@ for min_length in min_lengths:
     ax.bar(counts2.index + 0.35/2, counts2.values, color='C1', label='order', width=0.35)
     ax.set_xlabel('Number of sequences in region')
     ax.set_ylabel('Number of regions')
+    ax.set_title(f'minimum length ≥ {min_length}')
     ax.legend()
     plt.savefig(f'out/regions_{min_length}/bar_numregions-numseqs.png')
     plt.close()
@@ -110,6 +112,7 @@ for min_length in min_lengths:
             tick_label=['disorder', 'order'], color=['C0', 'C1'], width=0.35)
     plt.xlim((-0.5, 1.5))
     plt.ylabel('Number of regions')
+    plt.title(f'minimum length ≥ {min_length}')
     plt.savefig(f'out/regions_{min_length}/bar_numregions-DO.png')
     plt.close()
 
@@ -117,5 +120,6 @@ for min_length in min_lengths:
             tick_label=['disorder', 'order'], color=['C0', 'C1'], width=0.35)
     plt.xlim((-0.5, 1.5))
     plt.ylabel('Number of unique OGs')
+    plt.title(f'minimum length ≥ {min_length}')
     plt.savefig(f'out/regions_{min_length}/bar_numOGs-DO.png')
     plt.close()
