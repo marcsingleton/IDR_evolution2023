@@ -31,11 +31,11 @@ def apply_contrasts(args):
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 10))
-tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 length_regex = r'regions_([0-9]+).tsv'
+tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 if __name__ == '__main__':
     # Load sequence data
