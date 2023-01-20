@@ -66,5 +66,5 @@ if not os.path.exists('out/'):
 columns = ['OGid', 'ppid', 'gnid', 'spid', 'scores_sum', 'binary_sum', 'binary_regions', 'length']
 with open('out/stats.tsv', 'w') as file:
     file.write('\t'.join(columns) + '\n')
-    for record in sorted(records, key=lambda x: (x['OGid'], x['spid'])):
+    for record in records:
         file.write('\t'.join([str(record[column]) for column in columns]) + '\n')

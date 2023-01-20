@@ -44,8 +44,8 @@ if __name__ == '__main__':
     if not os.path.exists('out/'):
         os.makedirs('out/')
 
+    OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
     with mp.Pool(processes=num_processes) as pool:
-        OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
         records = pool.map(run_cmd, OGids)
 
     with open('out/errors.tsv', 'w') as file:
