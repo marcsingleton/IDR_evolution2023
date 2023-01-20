@@ -16,7 +16,7 @@ def get_args(grouped, tree, feature_labels):
         yield name, group, tree, feature_labels
 
 
-def get_model_fits(args):
+def get_models(args):
     # Unpack variables
     name, group, tree, feature_labels = args
     OGid, start, stop, disorder = name
@@ -46,20 +46,20 @@ def get_model_fits(args):
             # alpha = inf could cause zero observed variance. The convention taken here is to assume sigma2 = 0, and
             # consider alpha as unidentifiable from the data, i.e. set its value to nan. Under this interpretation,
             # the log-likelihood is 0 because it also reduces to a constant random variable.
-            mu, sigma2 = values[0], 0
-            loglikelihood = 0
+            mu_BM, sigma2_BM = values[0], 0
+            loglikelihood_BM = 0
 
             mu_OU, sigma2_OU, alpha_OU = values[0], 0, np.nan
             loglikelihood_OU = 0
         else:
-            mu, sigma2 = utils.get_brownian_mles(cov=cov, inv=inv, values=values)
-            loglikelihood = utils.get_brownian_loglikelihood(mu, sigma2, cov=cov, inv=inv, values=values)
+            mu_BM, sigma2_BM = utils.get_brownian_mles(cov=cov, inv=inv, values=values)
+            loglikelihood_BM = utils.get_brownian_loglikelihood(mu_BM, sigma2_BM, cov=cov, inv=inv, values=values)
 
             mu_OU, sigma2_OU, alpha_OU = utils.get_OU_mles(tips=tips, ts=cov)
             loglikelihood_OU = utils.get_OU_loglikelihood(mu_OU, sigma2_OU, alpha_OU, tips=tips, ts=cov)
 
-        record.update({f'{feature_label}_mu': mu, f'{feature_label}_sigma2': sigma2,
-                       f'{feature_label}_loglikelihood': loglikelihood,
+        record.update({f'{feature_label}_mu_BM': mu_BM, f'{feature_label}_sigma2_BM': sigma2_BM,
+                       f'{feature_label}_loglikelihood_BM': loglikelihood_BM,
                        f'{feature_label}_mu_OU': mu_OU, f'{feature_label}_sigma2_OU': sigma2_OU,
                        f'{feature_label}_alpha_OU': alpha_OU,
                        f'{feature_label}_loglikelihood_OU': loglikelihood_OU})
@@ -72,7 +72,7 @@ tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newi
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
-length_regex = r'regions_([0-9]+).tsv'
+min_lengths = [30, 60, 90]
 
 if __name__ == '__main__':
     # Load sequence data
@@ -83,14 +83,6 @@ if __name__ == '__main__':
             ppid = re.search(ppid_regex, header).group(1)
             spid = re.search(spid_regex, header).group(1)
             ppid2spid[ppid] = spid
-
-    # Get minimum lengths
-    min_lengths = []
-    for path in os.listdir('../regions_filter/out/'):
-        match = re.search(length_regex, path)
-        if match:
-            min_lengths.append(int(match.group(1)))
-    min_lengths = sorted(min_lengths)
 
     # Load features
     all_features = pd.read_table('../get_features/out/features.tsv')
@@ -124,7 +116,7 @@ if __name__ == '__main__':
 
         args = get_args(regions, tree_template, feature_labels)
         with mp.Pool(processes=num_processes) as pool:
-            records = pool.map(get_model_fits, args, chunksize=10)
+            records = pool.map(get_models, args, chunksize=10)
 
         with open(f'out/models_{min_length}.tsv', 'w') as file:
             if records:
