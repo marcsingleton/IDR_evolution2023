@@ -28,7 +28,7 @@ arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295'
 
 # Get minimum lengths
 min_lengths = []
-for path in os.listdir('../regions_filter/out/'):
+for path in os.listdir('../../IDR_pred/regions_filter/out/'):
     match = re.search(length_regex, path)
     if match:
         min_lengths.append(int(match.group(1)))
@@ -47,7 +47,7 @@ motif_labels = list(motif_regexes)
 # Load regions as segments
 rows = []
 for min_length in min_lengths:
-    with open(f'../regions_filter/out/regions_{min_length}.tsv') as file:
+    with open(f'../../IDRpred/regions_filter/out/regions_{min_length}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
