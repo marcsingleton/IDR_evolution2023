@@ -14,7 +14,7 @@ def get_complement_slices(slices, start=0, stop=None):
 
     Parameters
     ----------
-    slices: list of slices
+    slices: list of slice
         Must be sorted and merged.
     start: int
         Start of interval from which complement slices are given.
@@ -23,7 +23,7 @@ def get_complement_slices(slices, start=0, stop=None):
 
     Returns
     -------
-    complement: list of slices
+    complement: list of slice
     """
     complement = []
     if slices:
@@ -45,11 +45,11 @@ def get_merged_slices(slices):
 
     Parameters
     ----------
-    slices: list of slices
+    slices: list of slice
 
     Returns
     -------
-    merged: list of slices
+    merged: list of slice
     """
     merged = []
     if slices:
@@ -171,9 +171,9 @@ for OGid in OGids:
         while start-1 >= 0 and binary2[start-1]:
             start -= 1
         stop = s.stop
-        while stop+1 < len(root_scores) and binary2[stop+1]:
+        while stop+1 <= len(root_scores) and binary2[stop]:
             stop += 1
-        slices.append(slice(start, stop+1))
+        slices.append(slice(start, stop))
     disorder_slices = get_merged_slices(slices)
     order_slices = get_complement_slices(disorder_slices, stop=len(root_scores))
 
