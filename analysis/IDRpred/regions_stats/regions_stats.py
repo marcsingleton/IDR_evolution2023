@@ -6,8 +6,10 @@ import re
 import matplotlib.pyplot as plt
 import pandas as pd
 from numpy import linspace
+from src.utils import read_fasta
 
 pdidx = pd.IndexSlice
+ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 length_regex = r'regions_([0-9]+).tsv'
 
 # Get minimum lengths
@@ -17,9 +19,6 @@ for path in os.listdir('../regions_filter/out/'):
     if match:
         min_lengths.append(int(match.group(1)))
 min_lengths = sorted(min_lengths)
-
-# Load features
-all_lengths = pd.read_table('../get_features/out/features.tsv', usecols=['OGid', 'start', 'stop', 'ppid', 'length'])
 
 # Load regions as segments
 rows = []
@@ -33,6 +32,20 @@ for min_length in min_lengths:
                 rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
                              'ppid': ppid, 'min_length': min_length})
 all_segments = pd.DataFrame(rows)
+
+# Get segment lengths
+rows = []
+for OGid, group in all_segments[['OGid', 'start', 'stop']].drop_duplicates().groupby('OGid'):
+    msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
+    msa = [(re.search(ppid_regex, header).group(1), seq) for header, seq in msa]
+
+    for row in group.itertuples():
+        region_length = row.stop - row.start
+        for ppid, seq in msa:
+            segment = seq[row.start:row.stop]
+            segment_length = region_length - segment.count('.') - segment.count('-')
+            rows.append({'OGid': OGid, 'start': row.start, 'stop': row.stop, 'ppid': ppid, 'length': segment_length})
+all_lengths = pd.DataFrame(rows)
 
 # Plots of combined segment sets
 if not os.path.exists('out/'):
