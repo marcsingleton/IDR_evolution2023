@@ -4,4 +4,4 @@ if [ ! -d out/ ]; then
   mkdir out/
 fi
 
-../../../bin/iqtree -s ../make_meta/out/${1}.fasta -m GTR20+FO+I+R -pre out/${1} -nt $SLURM_CPUS_ON_NODE -quiet
+../../../bin/iqtree -s ../make_meta/out/${1}.afa -m GTR20+FO+I+R -pre out/${1} -nt ${2} -quiet

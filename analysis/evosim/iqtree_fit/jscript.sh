@@ -6,7 +6,7 @@
 #SBATCH --qos=savio_normal
 #
 # Process parameters
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --cpus-per-task=1
 #
 # Reporting parameters
@@ -20,8 +20,17 @@ source /global/home/users/singleton/.bashrc
 conda activate IDR_evolution
 module load gnu-parallel
 
+export WDIR=~/IDR_evolution/analysis/evosim/iqtree_fit/
+cd $WDIR
+
+echo $SLURM_JOB_NODELIST | sed s/\,/\\n/g > hostfile
+
 for file in $(ls ../make_meta/out/); do
   if [[ $file == *.afa ]]; then
-    bash iqtree_fit.sh $(basename $file .afa)
+    echo $(basename $file .afa) $SLURM_CPUS_ON_NODE
   fi
-done
+done | parallel --jobs 1 --slf hostfile --wd $WDIR --joblog task.log --resume --colsep ' ' bash iqtree_fit.sh {1} {2}
+
+if [[ -f hostfile ]]; then
+  rm hostfile
+fi
