@@ -17,7 +17,7 @@ labels_suffix = r'_[0-9]+\.iqtree'
 Record = namedtuple('Record', ['label', 'matrix', 'rates', 'freqs'])
 
 # Load LG model
-with open('../config/LG.paml') as file:
+with open('../../../data/matrices/LG.paml') as file:
     # Load exchangeability matrix
     matrix = np.zeros((len(alphabet), len(alphabet)))
     for i in range(len(alphabet)-1):
