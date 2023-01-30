@@ -9,27 +9,12 @@ import skbio
 from scipy.special import gammainc
 from scipy.stats import gamma
 from src.evosim.asr import get_conditional, get_tree
-from src.utils import read_fasta
+from src.utils import read_fasta, read_paml
 
 
 def load_model(path):
-    with open(path) as file:
-        # Load exchangeability matrix
-        matrix = np.zeros((len(alphabet), len(alphabet)))
-        for i in range(1, len(alphabet)):
-            line = file.readline()
-            for j, value in enumerate(line.split()):
-                matrix[i, j] = float(value)
-                matrix[j, i] = float(value)
-
-        # Load equilibrium frequencies
-        for _ in range(2):
-            line = file.readline()
-        freqs = np.array([float(value) for value in line.split()])
-        freqs = freqs / freqs.sum()  # Re-normalize to ensure sums to 1
-    matrix = freqs * matrix
-    rate = (freqs * matrix.sum(axis=1)).sum()
-    matrix = matrix / rate  # Normalize average rate to 1
+    matrix, freqs = read_paml(path, norm=True)
+    matrix = freqs * matrix  # TODO: Check normalization
     np.fill_diagonal(matrix, -matrix.sum(axis=1))
     return matrix, freqs
 

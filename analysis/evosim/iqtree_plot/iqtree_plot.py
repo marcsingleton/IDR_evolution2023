@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.patches import Circle
+from src.utils import read_paml
 
 alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 labels = ['0R_disorder', '50R_disorder', '100R_disorder',
@@ -17,22 +18,7 @@ labels_suffix = r'_[0-9]+\.iqtree'
 Record = namedtuple('Record', ['label', 'matrix', 'rates', 'freqs'])
 
 # Load LG model
-with open('../../../data/matrices/LG.paml') as file:
-    # Load exchangeability matrix
-    matrix = np.zeros((len(alphabet), len(alphabet)))
-    for i in range(1, len(alphabet)):
-        line = file.readline()
-        for j, value in enumerate(line.split()):
-            matrix[i, j] = float(value)
-            matrix[j, i] = float(value)
-
-    # Load equilibrium frequencies
-    for _ in range(2):
-        line = file.readline()
-    freqs = np.array([float(value) for value in line.split()])
-    freqs = freqs / freqs.sum()  # Re-normalize to ensure sums to 1
-rate = (freqs * (freqs * matrix).sum(axis=1)).sum()
-matrix = matrix / rate  # Normalize average rate to 1
+matrix, freqs = read_paml('../../../data/matrices/LG.paml', norm=True)
 rates = freqs * matrix
 LG_record = Record('LG', np.stack([matrix]), np.stack([rates]), np.stack([freqs]))
 
