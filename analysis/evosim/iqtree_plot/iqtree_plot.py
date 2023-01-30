@@ -20,11 +20,11 @@ Record = namedtuple('Record', ['label', 'matrix', 'rates', 'freqs'])
 with open('../../../data/matrices/LG.paml') as file:
     # Load exchangeability matrix
     matrix = np.zeros((len(alphabet), len(alphabet)))
-    for i in range(len(alphabet)-1):
+    for i in range(1, len(alphabet)):
         line = file.readline()
         for j, value in enumerate(line.split()):
-            matrix[i + 1, j] = float(value)
-            matrix[j, i + 1] = float(value)
+            matrix[i, j] = float(value)
+            matrix[j, i] = float(value)
 
     # Load equilibrium frequencies
     for _ in range(2):
