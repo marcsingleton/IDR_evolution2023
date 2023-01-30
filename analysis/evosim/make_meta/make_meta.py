@@ -20,8 +20,8 @@ spid_regex = r'spid=([a-z]+)'
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 rng = np.random.default_rng(seed=930715)
-num_columns = int(1E4)  # Scientific notation defaults to float
-num_samples = 100
+num_columns = int(1E5)  # Scientific notation defaults to float
+num_samples = 25
 
 # Load spids
 spids = sorted([tip.name for tip in tree_template.tips() if tip.name != 'sleb'])

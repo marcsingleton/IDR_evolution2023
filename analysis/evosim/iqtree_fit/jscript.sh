@@ -6,7 +6,7 @@
 #SBATCH --qos=savio_normal
 #
 # Process parameters
-#SBATCH --nodes=6
+#SBATCH --nodes=10
 #SBATCH --cpus-per-task=1
 #
 # Reporting parameters
