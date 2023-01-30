@@ -7,6 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 import skbio
+import src.phylo as phylo
 import src.utils as utils
 
 
@@ -23,7 +24,7 @@ def get_models(args):
     # Calculate some common quantities for all features
     spid2idx = {spid: idx for idx, spid in zip(group.index, group['spid'])}
     tree = tree_template.shear(group['spid'])
-    tips, cov = utils.get_brownian_covariance(tree)
+    tips, cov = phylo.get_brownian_covariance(tree)
     inv = np.linalg.inv(cov)
 
     record = {'OGid': OGid, 'start': start, 'stop': stop}
@@ -51,11 +52,11 @@ def get_models(args):
             mu_OU, sigma2_OU, alpha_OU = values[0], 0, np.nan
             loglikelihood_OU = 0
         else:
-            mu_BM, sigma2_BM = utils.get_brownian_mles(cov=cov, inv=inv, values=values)
-            loglikelihood_BM = utils.get_brownian_loglikelihood(mu_BM, sigma2_BM, cov=cov, inv=inv, values=values)
+            mu_BM, sigma2_BM = phylo.get_brownian_mles(cov=cov, inv=inv, values=values)
+            loglikelihood_BM = phylo.get_brownian_loglikelihood(mu_BM, sigma2_BM, cov=cov, inv=inv, values=values)
 
-            mu_OU, sigma2_OU, alpha_OU = utils.get_OU_mles(tips=tips, ts=cov)
-            loglikelihood_OU = utils.get_OU_loglikelihood(mu_OU, sigma2_OU, alpha_OU, tips=tips, ts=cov)
+            mu_OU, sigma2_OU, alpha_OU = phylo.get_OU_mles(tips=tips, ts=cov)
+            loglikelihood_OU = phylo.get_OU_loglikelihood(mu_OU, sigma2_OU, alpha_OU, tips=tips, ts=cov)
 
         record.update({f'{feature_label}_mu_BM': mu_BM, f'{feature_label}_sigma2_BM': sigma2_BM,
                        f'{feature_label}_loglikelihood_BM': loglikelihood_BM,

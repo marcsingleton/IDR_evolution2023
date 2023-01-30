@@ -6,7 +6,8 @@ import re
 import scipy.ndimage as ndimage
 import numpy as np
 import skbio
-from src.utils import get_brownian_weights, read_fasta
+from src.phylo import get_brownian_weights
+from src.utils import read_fasta
 
 
 def get_complement_slices(slices, start=0, stop=None):

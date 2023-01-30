@@ -6,7 +6,8 @@ import re
 
 import pandas as pd
 import skbio
-from src.utils import get_contrasts, read_fasta
+from src.phylo import get_contrasts
+from src.utils import read_fasta
 
 
 def get_args(grouped, tree, feature_labels):

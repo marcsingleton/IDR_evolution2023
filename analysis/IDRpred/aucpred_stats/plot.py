@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 import skbio
 from src.draw import plot_msa_data
-from src.utils import get_brownian_weights, get_contrasts, read_fasta
+from src.phylo import get_brownian_weights, get_contrasts
+from src.utils import read_fasta
 
 
 def get_quantile(x, q):
