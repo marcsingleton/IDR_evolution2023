@@ -170,16 +170,41 @@ for record1, record2 in plots:
     matrix1 = record1.matrix.mean(axis=0)
     matrix2 = record2.matrix.mean(axis=0)
 
-    logr = np.log10(matrix1 / matrix2)
-    vext = np.nanmax(np.abs(logr))
+    rs = np.log10(matrix1 / matrix2)
+    vext = np.nanmax(np.abs(rs))
     fig, ax = plt.subplots()
-    im = ax.imshow(logr, vmin=-vext, vmax=vext, cmap='RdBu')
+    im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
     ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_title(f'log10 ratio of {record1.label} to {record2.label}')
     fig.colorbar(im)
     fig.savefig(f'out/heatmap_ratio_{record1.label}-{record2.label}.png')
     plt.close()
+
+vext = -np.inf
+for record1, record2 in plots:
+    matrix1 = record1.matrix.mean(axis=0)
+    matrix2 = record2.matrix.mean(axis=0)
+
+    rs = np.log10(matrix1 / matrix2)
+    v = np.nanmax(np.abs(rs))
+    if v > vext:
+        vext = v
+fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.2), layout='constrained')
+for ax, plot in zip(axs.ravel(), plots):
+    record1, record2 = plot
+    matrix1 = record1.matrix.mean(axis=0)
+    matrix2 = record2.matrix.mean(axis=0)
+
+    rs = np.log10(matrix1 / matrix2)
+    im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
+    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+    ax.set_title(f'{record1.label} to {record2.label}')
+fig.suptitle('log10 ratios of matrix pairs')
+fig.colorbar(ScalarMappable(Normalize(-vext, vext), cmap='RdBu'), ax=axs[-1])
+fig.savefig('out/heatmap_ratio.png')
+plt.close()
 
 # 5 DIFFERENCE HEATMAPS
 scale = 0.25
@@ -190,16 +215,41 @@ for record1, record2 in plots:
     matrix1 = record1.matrix.mean(axis=0)
     matrix2 = record2.matrix.mean(axis=0)
 
-    d = matrix1 - matrix2
-    vext = np.nanmax(np.abs(d))
+    ds = matrix1 - matrix2
+    vext = np.nanmax(np.abs(ds))
     fig, ax = plt.subplots()
-    im = ax.imshow(d, vmin=-vext, vmax=vext, cmap='RdBu')
+    im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
     ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_title(f'Difference of {record1.label} to {record2.label}')
     fig.colorbar(im)
     fig.savefig(f'out/heatmap_diff_{record1.label}-{record2.label}.png')
     plt.close()
+
+vext = -np.inf
+for record1, record2 in plots:
+    matrix1 = record1.matrix.mean(axis=0)
+    matrix2 = record2.matrix.mean(axis=0)
+
+    ds = matrix1 - matrix2
+    v = np.nanmax(np.abs(ds))
+    if v > vext:
+        vext = v
+fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.2), layout='constrained')
+for ax, plot in zip(axs.ravel(), plots):
+    record1, record2 = plot
+    matrix1 = record1.matrix.mean(axis=0)
+    matrix2 = record2.matrix.mean(axis=0)
+
+    ds = matrix1 - matrix2
+    im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
+    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+    ax.set_title(f'{record1.label} to {record2.label}')
+fig.suptitle('Differences of matrix pairs')
+fig.colorbar(ScalarMappable(Normalize(-vext, vext), cmap='RdBu'), ax=axs[-1])
+fig.savefig('out/heatmap_diff.png')
+plt.close()
 
 # 6 FREQUENCIES
 width = 0.2
