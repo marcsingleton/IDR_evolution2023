@@ -141,7 +141,29 @@ for data_label, title_label in plots:
     fig.savefig(f'out/heatmap_{data_label}.png')
     plt.close()
 
-# 3 VARIATION
+# 3 CORRELATION GRID
+plots = [('ematrix', 'exchangeability'),
+         ('rmatrix', 'rate')]
+for data_label, title_label in plots:
+    corr = np.zeros((len(labels), len(labels)))
+    for i, label1 in enumerate(labels):
+        matrix1 = getattr(records[label1], data_label).mean(axis=0)
+        for j, label2 in enumerate(labels[:i+1]):
+            matrix2 = getattr(records[label2], data_label).mean(axis=0)
+            r = np.corrcoef(matrix1.ravel(), matrix2.ravel())
+            corr[i, j] = r[0, 1]
+            corr[j, i] = r[0, 1]
+    fig, ax = plt.subplots()
+    im = ax.imshow(corr)
+    ax.set_xticks(range(len(labels)), labels, fontsize=8, rotation=30, rotation_mode='anchor',
+                  horizontalalignment='right', verticalalignment='center')
+    ax.set_yticks(range(len(labels)), labels, fontsize=8)
+    ax.set_title(f'Meta-alignment correlations: {title_label} matrix')
+    fig.colorbar(im)
+    fig.savefig(f'out/heatmap_corr_{data_label}.png')
+    plt.close()
+
+# 4 VARIATION
 plots = [(records['50R_disorder'], 'ematrix', 'exchangeability'),
          (records['50R_order'], 'ematrix', 'exchangeability'),
          (records['50R_disorder'], 'rmatrix', 'rate'),
@@ -183,7 +205,7 @@ pairs = [(records['50R_disorder'], LG_record),
 plots = [(pairs, 'ematrix', 'exchangeability'),
          (pairs, 'rmatrix', 'rate')]
 
-# 4 RATIO HEATMAPS
+# 5 RATIO HEATMAPS
 for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
@@ -226,7 +248,7 @@ for pairs, data_label, title_label in plots:
     fig.savefig(f'out/heatmap_ratio_{data_label}.png')
     plt.close()
 
-# 5 DIFFERENCE HEATMAPS
+# 6 DIFFERENCE HEATMAPS
 for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
@@ -269,7 +291,7 @@ for pairs, data_label, title_label in plots:
     fig.savefig(f'out/heatmap_diff_{data_label}.png')
     plt.close()
 
-# 6 FREQUENCIES
+# 7 FREQUENCIES
 width = 0.2
 bars = [records['50R_disorder'], records['50R_order'], LG_record]
 fig, ax = plt.subplots(figsize=(8, 4), layout='constrained')
