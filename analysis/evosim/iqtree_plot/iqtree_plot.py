@@ -6,6 +6,7 @@ from collections import namedtuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+import skbio
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.patches import Circle
@@ -13,28 +14,29 @@ from src.utils import read_paml
 
 paml_order = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 labels = ['0R_disorder', '50R_disorder', '100R_disorder', '0R_order', '50R_order', '100R_order']
-labels_suffix = r'_[0-9]+\.iqtree'
-Record = namedtuple('Record', ['label', 'ematrix', 'rmatrix', 'freqs'])
+labels_suffix = r'_[0-9]+'
+Record = namedtuple('Record', ['label', 'ematrix', 'rmatrix', 'freqs', 'length'])
 
 # Load LG model
 ematrix, freqs = read_paml('../../../data/matrices/LG.paml', norm=True)
 rmatrix = freqs * ematrix
-LG_record = Record('LG', np.stack([ematrix]), np.stack([rmatrix]), np.stack([freqs]))
+LG_record = Record('LG', np.stack([ematrix]), np.stack([rmatrix]), np.stack([freqs]), np.stack([np.nan]))
 
 # Load IQ-TREE matrices
 records = {}
 for label in labels:
     file_labels = []
     for path in os.listdir('../iqtree_fit/out/'):
-        match = re.match(f'{label}{labels_suffix}', path)
+        match = re.match(f'({label}{labels_suffix})\.iqtree', path)
         if match:
-            file_labels.append(match.group(0))
+            file_labels.append(match.group(1))
 
     ematrix_stack = []
     rmatrix_stack = []
     freqs_stack = []
-    for file_label in file_labels:
-        with open(f'../iqtree_fit/out/{file_label}') as file:
+    length_stack = []
+    for file_label in sorted(file_labels):
+        with open(f'../iqtree_fit/out/{file_label}.iqtree') as file:
             # Move to exchangeability matrix and load
             line = file.readline()
             while not line.startswith('Substitution parameters'):
@@ -76,7 +78,15 @@ for label in labels:
             ematrix_stack.append(ematrix)
             rmatrix_stack.append(rmatrix)
             freqs_stack.append(freqs)
-    records[label] = Record(label, np.stack(ematrix_stack), np.stack(rmatrix_stack), np.stack(freqs_stack))
+
+        tree = skbio.read(f'../iqtree_fit/out/{file_label}.treefile', 'newick', skbio.TreeNode)
+        length = tree.descending_branch_length()
+        length_stack.append(length)
+    records[label] = Record(label,
+                            np.stack(ematrix_stack),
+                            np.stack(rmatrix_stack),
+                            np.stack(freqs_stack),
+                            np.stack(length_stack))
 
 # Make plots
 if not os.path.exists('out/'):
@@ -90,15 +100,17 @@ sym2idx = {sym: idx for idx, sym in enumerate(paml_order)}
 alphabet = sorted(paml_order, key=lambda x: sym2ratio[x])
 ix = [sym2idx[sym] for sym in alphabet]
 ixgrid = np.ix_(ix, ix)
-LG_record = Record('LG',
+LG_record = Record(LG_record.label,
                    LG_record.ematrix[:, ixgrid[0], ixgrid[1]],
                    LG_record.rmatrix[:, ixgrid[0], ixgrid[1]],
-                   LG_record.freqs[:, ix])
+                   LG_record.freqs[:, ix],
+                   LG_record.length)
 for label, record in records.items():
     records[label] = Record(label,
                             record.ematrix[:, ixgrid[0], ixgrid[1]],
                             record.rmatrix[:, ixgrid[0], ixgrid[1]],
-                            record.freqs[:, ix])
+                            record.freqs[:, ix],
+                            record.length)
 
 # 1 BUBBLE PLOT
 plots = [('ematrix', 'exchangeability', 0.125),
@@ -317,4 +329,19 @@ ax.set_xticks(range(len(alphabet)), alphabet)
 ax.set_xlabel('Amino acid')
 ax.set_ylabel('Frequency ratio')
 fig.savefig('out/bar_ratios.png')
+plt.close()
+
+# 8 TREE LENGTHS
+ys = []
+yerr = []
+for label in labels:
+    length = records[label].length
+    ys.append(length.mean())
+    yerr.append(length.std())
+fig, ax = plt.subplots()
+ax.bar(range(len(ys)), ys, yerr=yerr, width=0.5)
+ax.set_xticks(range(len(ys)), labels, fontsize=8)
+ax.set_xlabel('Meta-alignment')
+ax.set_ylabel('Total tree length')
+fig.savefig('out/bar_length.png')
 plt.close()
