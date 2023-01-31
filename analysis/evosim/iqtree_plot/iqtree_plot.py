@@ -11,16 +11,15 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.patches import Circle
 from src.utils import read_paml
 
-alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
-labels = ['0R_disorder', '50R_disorder', '100R_disorder',
-          '0R_order', '50R_order', '100R_order']
+paml_order = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
+labels = ['0R_disorder', '50R_disorder', '100R_disorder', '0R_order', '50R_order', '100R_order']
 labels_suffix = r'_[0-9]+\.iqtree'
-Record = namedtuple('Record', ['label', 'matrix', 'rates', 'freqs'])
+Record = namedtuple('Record', ['label', 'ematrix', 'rmatrix', 'freqs'])
 
 # Load LG model
-matrix, freqs = read_paml('../../../data/matrices/LG.paml', norm=True)
-rates = freqs * matrix
-LG_record = Record('LG', np.stack([matrix]), np.stack([rates]), np.stack([freqs]))
+ematrix, freqs = read_paml('../../../data/matrices/LG.paml', norm=True)
+rmatrix = freqs * ematrix
+LG_record = Record('LG', np.stack([ematrix]), np.stack([rmatrix]), np.stack([freqs]))
 
 # Load IQ-TREE matrices
 records = {}
@@ -31,8 +30,8 @@ for label in labels:
         if match:
             file_labels.append(match.group(0))
 
-    matrix_stack = []
-    rates_stack = []
+    ematrix_stack = []
+    rmatrix_stack = []
     freqs_stack = []
     for file_label in file_labels:
         with open(f'../iqtree_fit/out/{file_label}') as file:
@@ -60,49 +59,100 @@ for label in labels:
                 line = file.readline()
             freqs = np.array(freqs)
 
-            if syms != alphabet:
+            if syms != paml_order:
                 raise RuntimeError('Symbols in matrix are not in expected order.')
 
             # Make matrix and scale
-            matrix = np.zeros((len(syms), len(syms)))
+            ematrix = np.zeros((len(syms), len(syms)))
             for i, row in enumerate(rows[:-1]):
                 for j, value in enumerate(row):
-                    matrix[i+1, j] = value
-                    matrix[j, i+1] = value
+                    ematrix[i+1, j] = value
+                    ematrix[j, i+1] = value
 
-            rate = (freqs * (freqs * matrix).sum(axis=1)).sum()
-            matrix = matrix / rate
-            rates = freqs * matrix
+            rate = (freqs * (freqs * ematrix).sum(axis=1)).sum()
+            ematrix = ematrix / rate
+            rmatrix = freqs * ematrix
 
-            matrix_stack.append(matrix)
-            rates_stack.append(rates)
+            ematrix_stack.append(ematrix)
+            rmatrix_stack.append(rmatrix)
             freqs_stack.append(freqs)
-    records[label] = Record(label, np.stack(matrix_stack), np.stack(rates_stack), np.stack(freqs_stack))
+    records[label] = Record(label, np.stack(ematrix_stack), np.stack(rmatrix_stack), np.stack(freqs_stack))
 
 # Make plots
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-# 1 HEATMAP
-vmax = max([record.matrix.mean(axis=0).max() for record in records.values()])
-fig, axs = plt.subplots(2, 3, figsize=(8, 6), layout='constrained')
-for ax, record in zip(axs.ravel(), records.values()):
-    ax.imshow(record.matrix.mean(axis=0), vmax=vmax, cmap='Greys')
-    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_title(record.label)
-fig.colorbar(ScalarMappable(Normalize(0, vmax), cmap='Greys'), ax=axs, fraction=0.025)
-fig.savefig('out/heatmap_all.png')
-plt.close()
+# 0 RE-ORDER SYMBOLS BY DISORDER RATIO
+freqs1 = records['50R_disorder'].freqs.mean(axis=0)
+freqs2 = records['50R_order'].freqs.mean(axis=0)
+sym2ratio = {sym: ratio for sym, ratio in zip(paml_order, freqs1 / freqs2)}
+sym2idx = {sym: idx for idx, sym in enumerate(paml_order)}
+alphabet = sorted(paml_order, key=lambda x: sym2ratio[x])
+ix = [sym2idx[sym] for sym in alphabet]
+ixgrid = np.ix_(ix, ix)
+LG_record = Record('LG',
+                   LG_record.ematrix[:, ixgrid[0], ixgrid[1]],
+                   LG_record.rmatrix[:, ixgrid[0], ixgrid[1]],
+                   LG_record.freqs[:, ix])
+for label, record in records.items():
+    records[label] = Record(label,
+                            record.ematrix[:, ixgrid[0], ixgrid[1]],
+                            record.rmatrix[:, ixgrid[0], ixgrid[1]],
+                            record.freqs[:, ix])
 
-# 2 VARIATION
-plots = [records['50R_disorder'], records['50R_order']]
-for record in plots:
+# 1 BUBBLE PLOT
+plots = [('ematrix', 'exchangeability', 0.125),
+         ('rmatrix', 'rate', 0.55)]
+for data_label, title_label, scale in plots:
+    fig, axs = plt.subplots(2, 3, figsize=(8, 6), layout='constrained')
+    for ax, record in zip(axs.ravel(), records.values()):
+        ax.set_xlim(0, len(alphabet)+1)
+        ax.set_xticks(range(1, len(alphabet)+1), alphabet, fontsize=7)
+        ax.set_ylim(0, len(alphabet)+1)
+        ax.set_yticks(range(1, len(alphabet)+1), alphabet[::-1], fontsize=7)
+        ax.set_title(record.label)
+        ax.grid(True)
+        ax.set_axisbelow(True)
+        ax.set_aspect(1)
+
+        data = getattr(record, data_label)
+        for i, row in enumerate(data.mean(axis=0)):
+            for j, value in enumerate(row):
+                c = Circle((j+1, len(alphabet)-i), scale*value**0.5, color='black')
+                ax.add_patch(c)
+    fig.suptitle(f'{title_label.capitalize()} matrices')
+    fig.savefig(f'out/bubble_{data_label}.png')
+    plt.close()
+
+# 2 HEATMAP
+plots = [('ematrix', 'exchangeability'),
+         ('rmatrix', 'rate')]
+for data_label, title_label in plots:
+    vmax = max([getattr(record, data_label).mean(axis=0).max() for record in records.values()])
+    fig, axs = plt.subplots(2, 3, figsize=(8, 6), layout='constrained')
+    for ax, record in zip(axs.ravel(), records.values()):
+        data = getattr(record, data_label)
+        ax.imshow(data.mean(axis=0), vmax=vmax, cmap='Greys')
+        ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_title(record.label)
+    fig.suptitle(f'{title_label.capitalize()} matrices')
+    fig.colorbar(ScalarMappable(Normalize(0, vmax), cmap='Greys'), ax=axs, fraction=0.025)
+    fig.savefig(f'out/heatmap_{data_label}.png')
+    plt.close()
+
+# 3 VARIATION
+plots = [(records['50R_disorder'], 'ematrix', 'exchangeability'),
+         (records['50R_order'], 'ematrix', 'exchangeability'),
+         (records['50R_disorder'], 'rmatrix', 'rate'),
+         (records['50R_order'], 'rmatrix', 'rate')]
+for record, data_label, title_label in plots:
     fig = plt.figure()
-    gs = plt.GridSpec(2, 2, left=0.1, right=0.95, top=0.95, bottom=0.1, height_ratios=[2, 1])
+    gs = plt.GridSpec(2, 2, left=0.1, right=0.95, top=0.9, bottom=0.1, height_ratios=[2, 1])
 
-    mean = record.matrix.mean(axis=0)
-    std = record.matrix.std(axis=0, ddof=1)
+    data = getattr(record, data_label)
+    mean = data.mean(axis=0)
+    std = data.std(axis=0, ddof=1)
 
     ax = fig.add_subplot(gs[0, 0])
     im = ax.imshow(mean, cmap='Greys')
@@ -123,119 +173,101 @@ for record in plots:
     ax.set_xlabel('Mean')
     ax.set_ylabel('Coefficient of variation')
 
-    fig.savefig(f'out/panel_CV_{record.label}.png')
+    fig.suptitle(f'{record.label}: {title_label} matrix')
+    fig.savefig(f'out/panel_CV_{record.label}_{data_label}.png')
     plt.close()
 
-# 3 BUBBLE PLOT
-scale = 0.15
-fig, axs = plt.subplots(2, 3, figsize=(8, 6), layout='constrained')
-for ax, record in zip(axs.ravel(), records.values()):
-    ax.set_xlim(0, len(alphabet))
-    ax.set_xticks(range(1, len(alphabet)+1), alphabet, fontsize=7)
-    ax.set_ylim(0, len(alphabet))
-    ax.set_yticks(range(1, len(alphabet)+1), alphabet[::-1], fontsize=7)
-    ax.set_title(record.label)
-    ax.grid(True)
-    ax.set_axisbelow(True)
-    ax.set_aspect(1)
-
-    for i, row in enumerate(record.matrix.mean(axis=0)):
-        for j, value in enumerate(row):
-            if j >= i:
-                continue
-            c = Circle((j+1, len(alphabet)-i), scale*value**0.5, color='black')
-            ax.add_patch(c)
-fig.savefig('out/bubble_all.png')
-plt.close()
+pairs = [(records['50R_disorder'], LG_record),
+         (records['50R_order'], LG_record),
+         (records['50R_disorder'], records['50R_order'])]
+plots = [(pairs, 'ematrix', 'exchangeability'),
+         (pairs, 'rmatrix', 'rate')]
 
 # 4 RATIO HEATMAPS
-plots = [(records['50R_disorder'], LG_record),
-         (records['50R_order'], LG_record),
-         (records['50R_disorder'], records['50R_order'])]
-for record1, record2 in plots:
-    matrix1 = record1.matrix.mean(axis=0)
-    matrix2 = record2.matrix.mean(axis=0)
+for pairs, data_label, title_label in plots:
+    for record1, record2 in pairs:
+        matrix1 = getattr(record1, data_label).mean(axis=0)
+        matrix2 = getattr(record2, data_label).mean(axis=0)
 
-    rs = np.log10(matrix1 / matrix2)
-    vext = np.nanmax(np.abs(rs))
-    fig, ax = plt.subplots()
-    im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
-    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_title(f'log10 ratio of {record1.label} to {record2.label}')
-    fig.colorbar(im)
-    fig.savefig(f'out/heatmap_ratio_{record1.label}-{record2.label}.png')
+        rs = np.log10(matrix1 / matrix2)
+        vext = np.nanmax(np.abs(rs))
+        fig, ax = plt.subplots()
+        im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
+        ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_title(f'log10 ratio of {record1.label} to {record2.label}:\n{title_label} matrix')
+        fig.colorbar(im)
+        fig.savefig(f'out/heatmap_ratio_{record1.label}-{record2.label}_{data_label}.png')
+        plt.close()
+
+for pairs, data_label, title_label in plots:
+    vext = -np.inf
+    for record1, record2 in pairs:
+        matrix1 = getattr(record1, data_label).mean(axis=0)
+        matrix2 = getattr(record2, data_label).mean(axis=0)
+
+        rs = np.log10(matrix1 / matrix2)
+        v = np.nanmax(np.abs(rs))
+        if v > vext:
+            vext = v
+    fig, axs = plt.subplots(1, len(pairs), figsize=(9.6, 3.2), layout='constrained')
+    for ax, pair in zip(axs.ravel(), pairs):
+        record1, record2 = pair
+        matrix1 = getattr(record1, data_label).mean(axis=0)
+        matrix2 = getattr(record2, data_label).mean(axis=0)
+
+        rs = np.log10(matrix1 / matrix2)
+        im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
+        ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_title(f'{record1.label} to {record2.label}')
+    fig.suptitle(f'log10 ratios of {title_label} matrix pairs')
+    fig.colorbar(ScalarMappable(Normalize(-vext, vext), cmap='RdBu'), ax=axs[-1])
+    fig.savefig(f'out/heatmap_ratio_{data_label}.png')
     plt.close()
-
-vext = -np.inf
-for record1, record2 in plots:
-    matrix1 = record1.matrix.mean(axis=0)
-    matrix2 = record2.matrix.mean(axis=0)
-
-    rs = np.log10(matrix1 / matrix2)
-    v = np.nanmax(np.abs(rs))
-    if v > vext:
-        vext = v
-fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.2), layout='constrained')
-for ax, plot in zip(axs.ravel(), plots):
-    record1, record2 = plot
-    matrix1 = record1.matrix.mean(axis=0)
-    matrix2 = record2.matrix.mean(axis=0)
-
-    rs = np.log10(matrix1 / matrix2)
-    im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
-    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_title(f'{record1.label} to {record2.label}')
-fig.suptitle('log10 ratios of matrix pairs')
-fig.colorbar(ScalarMappable(Normalize(-vext, vext), cmap='RdBu'), ax=axs[-1])
-fig.savefig('out/heatmap_ratio.png')
-plt.close()
 
 # 5 DIFFERENCE HEATMAPS
-scale = 0.25
-plots = [(records['50R_disorder'], LG_record),
-         (records['50R_order'], LG_record),
-         (records['50R_disorder'], records['50R_order'])]
-for record1, record2 in plots:
-    matrix1 = record1.matrix.mean(axis=0)
-    matrix2 = record2.matrix.mean(axis=0)
+for pairs, data_label, title_label in plots:
+    for record1, record2 in pairs:
+        matrix1 = getattr(record1, data_label).mean(axis=0)
+        matrix2 = getattr(record2, data_label).mean(axis=0)
 
-    ds = matrix1 - matrix2
-    vext = np.nanmax(np.abs(ds))
-    fig, ax = plt.subplots()
-    im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
-    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_title(f'Difference of {record1.label} to {record2.label}')
-    fig.colorbar(im)
-    fig.savefig(f'out/heatmap_diff_{record1.label}-{record2.label}.png')
+        ds = matrix1 - matrix2
+        vext = np.nanmax(np.abs(ds))
+        fig, ax = plt.subplots()
+        im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
+        ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_title(f'Difference of {record1.label} to {record2.label}:\n{title_label} matrix')
+        fig.colorbar(im)
+        fig.savefig(f'out/heatmap_diff_{record1.label}-{record2.label}_{data_label}.png')
+        plt.close()
+
+for pairs, data_label, title_label in plots:
+    vext = -np.inf
+    for record1, record2 in pairs:
+        matrix1 = getattr(record1, data_label).mean(axis=0)
+        matrix2 = getattr(record2, data_label).mean(axis=0)
+
+        ds = matrix1 - matrix2
+        v = np.nanmax(np.abs(ds))
+        if v > vext:
+            vext = v
+    fig, axs = plt.subplots(1, len(pairs), figsize=(9.6, 3.2), layout='constrained')
+    for ax, pair in zip(axs.ravel(), pairs):
+        record1, record2 = pair
+        matrix1 = getattr(record1, data_label).mean(axis=0)
+        matrix2 = getattr(record2, data_label).mean(axis=0)
+
+        ds = matrix1 - matrix2
+        im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
+        ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
+        ax.set_title(f'{record1.label} to {record2.label}')
+    fig.suptitle(f'Differences of {title_label} matrix pairs')
+    fig.colorbar(ScalarMappable(Normalize(-vext, vext), cmap='RdBu'), ax=axs[-1])
+    fig.savefig(f'out/heatmap_diff_{data_label}.png')
     plt.close()
-
-vext = -np.inf
-for record1, record2 in plots:
-    matrix1 = record1.matrix.mean(axis=0)
-    matrix2 = record2.matrix.mean(axis=0)
-
-    ds = matrix1 - matrix2
-    v = np.nanmax(np.abs(ds))
-    if v > vext:
-        vext = v
-fig, axs = plt.subplots(1, 3, figsize=(9.6, 3.2), layout='constrained')
-for ax, plot in zip(axs.ravel(), plots):
-    record1, record2 = plot
-    matrix1 = record1.matrix.mean(axis=0)
-    matrix2 = record2.matrix.mean(axis=0)
-
-    ds = matrix1 - matrix2
-    im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
-    ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
-    ax.set_title(f'{record1.label} to {record2.label}')
-fig.suptitle('Differences of matrix pairs')
-fig.colorbar(ScalarMappable(Normalize(-vext, vext), cmap='RdBu'), ax=axs[-1])
-fig.savefig('out/heatmap_diff.png')
-plt.close()
 
 # 6 FREQUENCIES
 width = 0.2
@@ -250,5 +282,17 @@ ax.set_xticks(range(len(alphabet)), alphabet)
 ax.set_xlabel('Amino acid')
 ax.set_ylabel('Frequency')
 ax.legend()
-plt.savefig('out/bar_freqs.png')
+fig.savefig('out/bar_freqs.png')
+plt.close()
+
+freqs1, freqs2 = records['50R_disorder'].freqs.mean(axis=0), records['50R_order'].freqs.mean(axis=0)
+std1, std2 = records['50R_disorder'].freqs.std(axis=0), records['50R_order'].freqs.std(axis=0)
+rs = freqs1 / freqs2
+std = rs * ((std1 / freqs1) ** 2 + (std2 / freqs2) ** 2) ** 0.5  # Propagation of error formula for ratios
+fig, ax = plt.subplots(figsize=(8, 4), layout='constrained')
+ax.bar(range(len(alphabet)), rs, yerr=std, width=0.5)
+ax.set_xticks(range(len(alphabet)), alphabet)
+ax.set_xlabel('Amino acid')
+ax.set_ylabel('Frequency ratio')
+fig.savefig('out/bar_ratios.png')
 plt.close()
