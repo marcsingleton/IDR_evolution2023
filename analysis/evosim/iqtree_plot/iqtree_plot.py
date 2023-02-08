@@ -10,7 +10,7 @@ import skbio
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.patches import Circle
-from src.utils import read_paml
+from src.utils import read_iqtree, read_paml
 
 paml_order = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 labels = ['0R_disorder', '50R_disorder', '100R_disorder', '0R_order', '50R_order', '100R_order']
@@ -36,51 +36,16 @@ for label in labels:
     freqs_stack = []
     length_stack = []
     for file_label in sorted(file_labels):
-        with open(f'../iqtree_fit/out/{file_label}.iqtree') as file:
-            # Move to exchangeability matrix and load
-            line = file.readline()
-            while not line.startswith('Substitution parameters'):
-                line = file.readline()
-            for _ in range(2):
-                line = file.readline()
-
-            rows = []
-            while line != '\n':
-                rows.append([float(value) for value in line.split()])
-                line = file.readline()
-
-            # Move to equilibrium frequencies and load
-            for _ in range(3):
-                line = file.readline()
-
-            syms, freqs = [], []
-            while line != '\n':
-                match = re.search(r'pi\(([A-Z])\) = (0.[0-9]+)', line)
-                syms.append(match.group(1))
-                freqs.append(float(match.group(2)))
-                line = file.readline()
-            freqs = np.array(freqs)
-
-            if syms != paml_order:
-                raise RuntimeError('Symbols in matrix are not in expected order.')
-
-            # Make matrix and scale
-            ematrix = np.zeros((len(syms), len(syms)))
-            for i, row in enumerate(rows[:-1]):
-                for j, value in enumerate(row):
-                    ematrix[i+1, j] = value
-                    ematrix[j, i+1] = value
-
-            rate = (freqs * (freqs * ematrix).sum(axis=1)).sum()
-            ematrix = ematrix / rate
-            rmatrix = freqs * ematrix
-
-            ematrix_stack.append(ematrix)
-            rmatrix_stack.append(rmatrix)
-            freqs_stack.append(freqs)
+        record = read_iqtree(f'../iqtree_fit/out/{file_label}.iqtree', norm=True)
+        ematrix, freqs = record['ematrix'], record['freqs']
+        rmatrix = freqs * ematrix
 
         tree = skbio.read(f'../iqtree_fit/out/{file_label}.treefile', 'newick', skbio.TreeNode)
         length = tree.descending_branch_length()
+
+        ematrix_stack.append(ematrix)
+        rmatrix_stack.append(rmatrix)
+        freqs_stack.append(freqs)
         length_stack.append(length)
     records[label] = Record(label,
                             np.stack(ematrix_stack),

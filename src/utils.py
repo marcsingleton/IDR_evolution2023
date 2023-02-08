@@ -1,5 +1,7 @@
 """Functions for common operations in this project."""
 
+import re
+
 import numpy as np
 
 
@@ -30,6 +32,67 @@ def read_fasta(path):
                 line = file.readline()
             seq = ''.join(seqlines)
             yield header, seq
+
+
+def read_iqtree(path, norm=False):
+    """Read IQ-TREE file at path and return model parameters.
+
+    Parameters
+    ----------
+    path: str
+        Path to IQ-TREE file
+    norm: bool
+        If True, exchangeability matrix is normalized so average rate is 1.
+
+    Returns
+    -------
+    record: dict
+        Contains model parameters in the following keys:
+            ematrix: Matrix of exchangeabilities
+            freqs: Vector of frequencies
+    """
+    alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
+    with open(path) as file:
+        # Move to exchangeability matrix and load
+        line = file.readline()
+        while not line.startswith('Substitution parameters'):
+            line = file.readline()
+        for _ in range(2):
+            line = file.readline()
+
+        rows = []
+        while line != '\n':
+            rows.append([float(value) for value in line.split()])
+            line = file.readline()
+
+        # Move to equilibrium frequencies and load
+        for _ in range(3):
+            line = file.readline()
+
+        syms, freqs = [], []
+        while line != '\n':
+            match = re.search(r'pi\(([A-Z])\) = (0.[0-9]+)', line)
+            syms.append(match.group(1))
+            freqs.append(float(match.group(2)))
+            line = file.readline()
+        freqs = np.array(freqs)
+
+        if syms != alphabet:
+            raise RuntimeError('Symbols in matrix are not in expected order.')
+
+        # Make matrix and scale
+        ematrix = np.zeros((len(syms), len(syms)))
+        for i, row in enumerate(rows[:-1]):
+            for j, value in enumerate(row):
+                ematrix[i + 1, j] = value
+                ematrix[j, i + 1] = value
+
+        if norm:
+            rate = (freqs * (freqs * ematrix).sum(axis=1)).sum()
+            ematrix = ematrix / rate
+        record = {'ematrix': ematrix, 'freqs': freqs}
+
+        return record
 
 
 def read_paml(path, norm=False):
