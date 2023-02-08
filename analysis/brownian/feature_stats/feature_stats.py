@@ -28,7 +28,7 @@ arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295'
 
 # Get minimum lengths
 min_lengths = []
-for path in os.listdir('../../IDR_pred/regions_filter/out/'):
+for path in os.listdir('../../IDRpred/regions_filter/out/'):
     match = re.search(length_regex, path)
     if match:
         min_lengths.append(int(match.group(1)))
