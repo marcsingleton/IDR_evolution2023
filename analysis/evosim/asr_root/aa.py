@@ -14,7 +14,7 @@ from src.utils import read_fasta, read_paml
 
 def load_model(path):
     matrix, freqs = read_paml(path, norm=True)
-    matrix = freqs * matrix  # TODO: Check normalization
+    matrix = freqs * matrix
     np.fill_diagonal(matrix, -matrix.sum(axis=1))
     return matrix, freqs
 
@@ -22,7 +22,8 @@ def load_model(path):
 alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 sym2idx = {sym: idx for idx, sym in enumerate(alphabet)}
 
-models = {'LG': load_model('../config/LG.paml'), '../config/50R_disorder.paml': load_model('../config/50R_disorder.paml')}
+models = {'LG': load_model('../../../data/matrices/LG.paml'),
+          '../iqtree_merge/out/50R_disorder.paml': load_model('../iqtree_merge/out/50R_disorder.paml')}
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
@@ -107,7 +108,7 @@ for OGid in OGids:
         partition['rates'] = rates
 
     # Calculate likelihoods
-    msa = read_fasta(f'../asr_aa/out/{OGid}.afa')
+    msa = list(read_fasta(f'../asr_aa/out/{OGid}.afa'))
     for partition in partitions.values():
         # Unpack partition parameters and partition MSA
         matrix, freqs = models[partition['model']]
@@ -122,14 +123,14 @@ for OGid in OGids:
         for header, seq in partition_msa:
             spid = header.split()[0][1:]  # Split on white space, first field, trim >
             tip = tips[spid]
-            conditional = np.zeros((len(alphabet), len(seq)))
+            value = np.zeros((len(alphabet), len(seq)))
             for j, sym in enumerate(seq):
                 if sym in sym2idx:
                     i = sym2idx[sym]
-                    conditional[i, j] = 1
+                    value[i, j] = 1
                 else:  # Use uniform distribution for ambiguous symbols
-                    conditional[:, j] = 1 / len(alphabet)
-            tip.conditional = conditional
+                    value[:, j] = 1 / len(alphabet)
+            tip.value = value
 
         # Calculate likelihoods
         likelihoods = []
@@ -154,7 +155,7 @@ for OGid in OGids:
         likelihoods.append(likelihood * rates[0][1])  # Multiply by prior for category
 
         # Get likelihoods for rate categories
-        for rate, prior in rates:
+        for rate, prior in rates[1:]:  # Skip invariant
             s, conditional = get_conditional(tree, rate * matrix)
             l = np.expand_dims(freqs, -1) * conditional
             likelihoods.append(np.exp(s) * l * prior)

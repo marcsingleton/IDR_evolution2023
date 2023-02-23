@@ -76,10 +76,10 @@ for OGid in OGids:
     for header, seq in mca:
         spid = header.split()[0][1:]  # Split on white space, first field, trim >
         tip = tips[spid]
-        conditional = np.zeros((2, len(seq)))
+        value = np.zeros((2, len(seq)))
         for j, sym in enumerate(seq):
-            conditional[int(sym), j] = 1
-        tip.conditional = conditional
+            value[int(sym), j] = 1
+        tip.value = value
 
     # Get likelihoods for rate categories
     likelihoods = []
