@@ -9,14 +9,8 @@ from src.utils import read_fasta
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
+min_length = 30
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
-
-OGids = set()
-with open('../../IDRpred/regions_filter/out/regions_30.tsv') as file:
-    field_names = file.readline().rstrip('\n').split('\t')
-    for line in file:
-        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        OGids.add(fields['OGid'])
 
 OGid2regions = {}
 with open('../../IDRpred/get_regions/out/regions.tsv') as file:
@@ -32,39 +26,33 @@ with open('../../IDRpred/get_regions/out/regions.tsv') as file:
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-for OGid in OGids:
-    msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-    msa = [(re.search(ppid_regex, header).group(1), re.search(spid_regex, header).group(1), seq) for header, seq in msa]
+for OGid, regions in OGid2regions.items():
+    # Load MSA
+    msa = []
+    for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
+        ppid = re.search(ppid_regex, header).group(1)
+        spid = re.search(spid_regex, header).group(1)
+        msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
 
     # Check regions and merge if necessary
-    regions = OGid2regions[OGid]
     disorder_length = sum([stop-start for start, stop, disorder in regions if disorder])
     order_length = sum([stop-start for start, stop, disorder in regions if not disorder])
-    if disorder_length >= 30 and order_length >= 30:
+    if disorder_length >= min_length and order_length >= min_length:
         disorder_regions = [f'{start+1}-{stop}' for start, stop, disorder in regions if disorder]
         order_regions = [f'{start+1}-{stop}' for start, stop, disorder in regions if not disorder]
-    elif disorder_length >= 30:
-        disorder_regions = [f'1-{len(msa[0][2])}']
+    elif disorder_length >= min_length:
+        disorder_regions = [f'1-{len(msa[0]["seq"])}']
         order_regions = []
-    elif order_length >= 30:
+    elif order_length >= min_length:
         disorder_regions = []
-        order_regions = [f'1-{len(msa[0][2])}']
+        order_regions = [f'1-{len(msa[0]["seq"])}']
     else:
-        continue
-
-    # Skip MSA if is invariant
-    is_invariant = True
-    for j in range(len(msa[0][2])):
-        sym0 = msa[0][2][j]
-        if any([msa[i][2][j] != sym0 for i in range(1, len(msa))]):
-            is_invariant = False
-            break
-    if is_invariant:
         continue
 
     # Write region as MSA
     with open(f'out/{OGid}.afa', 'w') as file:
-        for ppid, spid, seq in msa:
+        for record in msa:
+            ppid, spid, seq = record['ppid'], record['spid'], record['seq']
             seqstring = '\n'.join([seq[i:i+80] for i in range(0, len(seq), 80)])
             file.write(f'>{spid} {ppid}\n{seqstring}\n')
 
@@ -74,7 +62,7 @@ for OGid in OGids:
         file.write('#nexus\nbegin sets;\n')
         if disorder_regions:
             disorder_string = ' '.join(disorder_regions)
-            partitions.append('../config/50R_disorder.paml+I+G:disorder')
+            partitions.append('../iqtree_merge/out/50R_disorder.paml+I+G:disorder')
             file.write(f'    charset disorder = {disorder_string};\n')
         if order_regions:
             order_string = ' '.join(order_regions)
@@ -84,7 +72,7 @@ for OGid in OGids:
         file.write(f'    charpartition mine = {partition_string};\nend;\n')
 
     # Prune missing species from tree
-    spids = {spid for _, spid, _ in msa}
+    spids = {record['spid'] for record in msa}
     tree = tree_template.shear(spids)
     skbio.io.write(tree, format='newick', into=f'out/{OGid}.nwk')
 

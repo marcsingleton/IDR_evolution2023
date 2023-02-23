@@ -20,14 +20,8 @@ def is_nested(character, characters):
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
+min_length = 30
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
-
-OGids = set()
-with open('../../IDRpred/regions_filter/out/regions_30.tsv') as file:
-    field_names = file.readline().rstrip('\n').split('\t')
-    for line in file:
-        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        OGids.add(fields['OGid'])
 
 OGid2regions = {}
 with open('../../IDRpred/get_regions/out/regions.tsv') as file:
@@ -43,20 +37,25 @@ with open('../../IDRpred/get_regions/out/regions.tsv') as file:
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-for OGid in OGids:
-    msa = read_fasta(f'../../../data/alignments/fastas/{OGid}.afa')
-    msa = [(re.search(ppid_regex, header).group(1), re.search(spid_regex, header).group(1), seq) for header, seq in msa]
+for OGid, regions in OGid2regions.items():
+    # Load MSA
+    msa = []
+    for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
+        ppid = re.search(ppid_regex, header).group(1)
+        spid = re.search(spid_regex, header).group(1)
+        msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
 
     # Check regions (continuing only if alignment is fit by asr_aa.py)
     regions = OGid2regions[OGid]
     disorder_length = sum([stop-start for start, stop, disorder in regions if disorder])
     order_length = sum([stop-start for start, stop, disorder in regions if not disorder])
-    if disorder_length <= 30 and order_length <= 30:
+    if disorder_length <= min_length and order_length <= min_length:
         continue
 
     # Make list of gaps for each sequence
     ids2characters = {}
-    for ppid, spid, seq in msa:
+    for record in msa:
+        ppid, spid, seq = record['ppid'], record['spid'], record['seq']
         binary = [1 if sym in ['-', '.'] else 0 for sym in seq]
         slices = [(s.start, s.stop) for s, in ndimage.find_objects(ndimage.label(binary)[0])]
         ids2characters[(ppid, spid)] = slices
@@ -76,15 +75,15 @@ for OGid in OGids:
                 charseq.append('1')
             else:
                 charseq.append('0')
-        mca.append((ppid, spid, charseq))
-    mca = sorted(mca, key=lambda x: x[1])
+        mca.append({'ppid': ppid, 'spid': spid, 'charseq': charseq})
+    mca = sorted(mca, key=lambda x: x['spid'])
 
     # Identify invariant characters
     is_invariants = []
-    for j in range(len(mca[0][2])):
+    for j in range(len(mca[0]['charseq'])):
         is_invariant = True
         for i in range(len(mca)):
-            if mca[i][2][j] == '0':
+            if mca[i]['charseq'][j] == '0':
                 is_invariant = False
                 break
         is_invariants.append(is_invariant)
@@ -100,19 +99,16 @@ for OGid in OGids:
                 file.write(f'{idx}\t{start}\t{stop}\n')
                 idx += 1
 
-    # Skip model fit if all characters are invariant
-    if all(is_invariants):
-        continue
-
     # Write alignment to file
     with open(f'out/{OGid}.afa', 'w') as file:
-        for ppid, spid, charseq in mca:
+        for record in mca:
+            ppid, spid, charseq = record['ppid'], record['spid'], record['charseq']
             charseq = [sym for is_invariant, sym in zip(is_invariants, charseq) if not is_invariant]  # Filter invariant characters
             seqstring = '\n'.join([''.join(charseq[i:i+80]) for i in range(0, len(charseq), 80)])
             file.write(f'>{spid} {OGid}_{start}-{stop}|{ppid}\n{seqstring}\n')
 
     # Prune missing species from tree
-    spids = {spid for _, spid, _ in msa}
+    spids = {record['spid'] for record in msa}
     tree = tree_template.shear(spids)
     skbio.io.write(tree, format='newick', into=f'out/{OGid}.nwk')
 
