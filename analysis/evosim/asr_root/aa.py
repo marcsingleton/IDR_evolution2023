@@ -2,7 +2,6 @@
 
 import os
 import re
-from io import StringIO
 
 import numpy as np
 import skbio
@@ -32,13 +31,7 @@ OGids = [path.removesuffix('.iqtree') for path in os.listdir('../asr_aa/out/') i
 for OGid in OGids:
     # Load trees
     tree1 = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
-    with open(f'../asr_aa/out/{OGid}.iqtree') as file:
-        line = file.readline()
-        while line != 'Tree in newick format:\n':
-            line = file.readline()
-        for _ in range(2):
-            line = file.readline()
-    tree2 = skbio.read(StringIO(line), 'newick', skbio.TreeNode)
+    tree2 = skbio.read(f'../asr_aa/out/{OGid}.treefile', 'newick', skbio.TreeNode)
     tree = get_tree(tree1, tree2)
 
     # Load partitions
