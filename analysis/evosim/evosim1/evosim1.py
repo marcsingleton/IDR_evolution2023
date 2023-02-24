@@ -1,14 +1,12 @@
 """Simulate sequence evolution."""
 
+import json
 import os
-import re
 from copy import deepcopy
 
 import numpy as np
 import scipy.stats as stats
 import skbio
-from scipy.special import gammainc
-from scipy.stats import gamma
 from src.evosim.asr import get_tree
 from src.utils import read_fasta, read_paml
 
@@ -227,65 +225,14 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
     tree.length = 0  # Set root branch length to 0
 
     # Load partitions
-    partitions = {}
+    with open(f'../asr_aa/out/{OGid}_aa_model.json') as file:
+        partitions = json.load(file)
 
-    # Load partition model parameters
-    with open(f'../asr_aa/out/{OGid}.iqtree') as file:
-        # Get partition ID and name
-        field_names = ['ID', 'Name', 'Type', 'Seq', 'Site', 'Unique', 'Infor', 'Invar', 'Const']
-        line = file.readline()
-        while line.split() != field_names:  # Spacing can differ so check for field names
-            line = file.readline()
-        line = file.readline()
-        while line != '\n':
-            fields = {key: value for key, value in zip(field_names, line.split())}
-            partition_id, name = int(fields['ID']), fields['Name']
-            partitions[partition_id] = {'name': name}
-            line = file.readline()
-
-        # Get partition model parameters
-        field_names = ['ID', 'Model', 'Speed', 'Parameters']
-        while line.split() != field_names:  # Spacing can differ so check for field names
-            line = file.readline()
-        line = file.readline()
-        while line != '\n':
-            fields = {key: value for key, value in zip(field_names, line.split())}
-            partition_id, speed, parameters = int(fields['ID']), float(fields['Speed']), fields['Parameters']
-            match = re.search(r'(?P<model>[^+]+)\+I{(?P<pinv>[0-9.e-]+)}\+G(?P<num_categories>[0-9]+){(?P<alpha>[0-9.e-]+)}', parameters)
-            partition = partitions[partition_id]
-            partition.update({'model': match['model'], 'speed': speed,
-                              'pinv': float(match['pinv']), 'alpha': float(match['alpha']), 'num_categories': int(match['num_categories'])})
-            line = file.readline()
-
-    # Load partition regions
+    # Extract partition regions
     partition_template = np.empty(length)
-    with open(f'../asr_aa/out/{OGid}.nex') as file:
-        partition_id = 1
-        for line in file:
-            if 'charset' in line:
-                match = re.search(r'charset (?P<name>[a-zA-Z0-9]+) = (?P<regions>[0-9 -]+);', line)
-                for region in match['regions'].split():
-                    start, stop = region.split('-')
-                    partition_template[int(start)-1:int(stop)] = partition_id
-                partition_id += 1
-
-    # Load rate categories
-    # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
-    # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
-    # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
-    # of that category since technically it is the rate given that category
-    # The order of arguments is also exchanged between the reference and scipy's implementation
-    for partition in partitions.values():
-        pinv, alpha, num_categories = partition['pinv'], partition['alpha'], partition['num_categories']
-        igfs = []  # Incomplete gamma function evaluations
-        for i in range(num_categories+1):
-            x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
-            igfs.append(gammainc(alpha+1, alpha*x))
-        rates = [(0, pinv)]
-        for i in range(num_categories):
-            rate = num_categories/(1-pinv) * (igfs[i+1] - igfs[i])
-            rates.append((partition['speed'] * rate, (1-pinv)/num_categories))
-        partition['rates'] = rates
+    for partition_id, partition in partitions.items():
+        for start, stop in partition['regions']:
+            partition_template[start:stop] = int(partition_id)
 
     # Evolve sequences along tree
     for sample_id, (header, seq) in enumerate(fasta):

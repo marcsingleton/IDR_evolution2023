@@ -1,5 +1,6 @@
 """Calculate ancestral sequence reconstruction at root for amino acid process."""
 
+import json
 import os
 import re
 
@@ -170,6 +171,12 @@ for OGid in OGids:
     concatenate = np.concatenate(concatenate, axis=2)
 
     np.save(f'out/{OGid}_aa.npy', concatenate)
+
+    # Save model information as JSON
+    for partition in partitions.values():
+        del partition['likelihoods'], partition['transform']
+    with open(f'out/{OGid}_aa_model.json', 'w') as file:
+        json.dump(partitions, file)
 
 """
 NOTES

@@ -1,5 +1,6 @@
 """Calculate ancestral sequence reconstruction at root for indel process."""
 
+import json
 import os
 
 import numpy as np
@@ -84,6 +85,11 @@ for OGid in OGids:
     likelihoods = np.stack(likelihoods)
     likelihoods = likelihoods / likelihoods.sum(axis=(0, 1))
     np.save(f'out/{OGid}_indel.npy', likelihoods)
+
+    # Save model information as JSON
+    partition = {'alpha': alpha, 'num_categories': num_categories, 'rates': rates}
+    with open(f'out/{OGid}_indel_model.json', 'w') as file:
+        json.dump(partition, file)
 
 """
 NOTES
