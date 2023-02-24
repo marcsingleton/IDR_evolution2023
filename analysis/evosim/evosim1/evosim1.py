@@ -3,7 +3,6 @@
 import os
 import re
 from copy import deepcopy
-from io import StringIO
 
 import numpy as np
 import scipy.stats as stats
@@ -187,7 +186,7 @@ def simulate_branch(node, evoseq, residue_index, rng, t=None):
 
 def load_model(path):
     matrix, freqs = read_paml(path, norm=True)
-    matrix = freqs * matrix  # TODO: Check normalization
+    matrix = freqs * matrix
     np.fill_diagonal(matrix, -matrix.sum(axis=1))
     return matrix, freqs
 
@@ -199,8 +198,8 @@ insertion_rate = 0.008  # Indel rates are relative to the substitution rate scal
 deletion_rate = 0.01
 
 # Load models
-LG_matrix, LG_freqs = load_model('../config/LG.paml')
-disorder_matrix, disorder_freqs = load_model('../config/50R_disorder.paml')
+LG_matrix, LG_freqs = load_model('../../../data/matrices/LG.paml')
+disorder_matrix, disorder_freqs = load_model('../iqtree_merge/out/50R_disorder.paml')
 rate_matrices = {1: LG_matrix,
                  2: disorder_matrix}
 sym_dists = {1: LG_freqs,
@@ -216,20 +215,14 @@ if not os.path.exists('out/'):
 for path in [path for path in os.listdir('../asr_generate/out/') if path.endswith('_sample.afa')]:
     # Load data and calculate "global" variables
     OGid = path.removesuffix('_sample.afa')
-    fasta = read_fasta(f'../asr_generate/out/{OGid}_sample.afa')
+    fasta = list(read_fasta(f'../asr_generate/out/{OGid}_sample.afa'))
     aa_dist = np.load(f'../asr_root/out/{OGid}_aa.npy')
     length = len(fasta[0][1])
     residue_ids = np.arange(-1, length)
 
     # Load trees
     tree1 = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
-    with open(f'../asr_indel/out/{OGid}.iqtree') as file:
-        line = file.readline()
-        while line != 'Tree in newick format:\n':
-            line = file.readline()
-        for _ in range(2):
-            line = file.readline()
-    tree2 = skbio.read(StringIO(line), 'newick', skbio.TreeNode)
+    tree2 = skbio.read(f'../asr_aa/out/{OGid}.treefile', 'newick', skbio.TreeNode)
     tree = get_tree(tree1, tree2)
     tree.length = 0  # Set root branch length to 0
 
@@ -295,7 +288,7 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
         partition['rates'] = rates
 
     # Evolve sequences along tree
-    for i, (header, seq) in fasta:
+    for sample_id, (header, seq) in enumerate(fasta):
         # Construct root-specific SeqEvolver arrays
         seq = np.array([sym2idx.get(sym, -1) for sym in seq])  # Use -1 for gap symbols
         activities = np.array([False if sym == -1 else True for sym in seq])
@@ -314,7 +307,7 @@ for path in [path for path in os.listdir('../asr_generate/out/') if path.endswit
         partition_ids = np.insert(partition_template, 0, partition_template[j])
 
         # Evolve! (and extract results)
-        rng = np.random.default_rng(i)
+        rng = np.random.default_rng(sample_id)
         evoseq = SeqEvolver(seq, rate_coefficients, activities, residue_ids, partition_ids,
                             rate_matrices, sym_dists, insertion_dists, deletion_dists, rng)
         _, evoseqs = simulate_branch(tree, evoseq, length, rng)
