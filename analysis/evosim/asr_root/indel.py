@@ -88,4 +88,8 @@ for OGid in OGids:
 """
 NOTES
 See notes in aa.py for reasoning for re-calculating rates from alpha.
+
+The script will likely raise some RuntimeWarnings caused by overflow during matrix exponentiation. In these cases, the
+matrix has large rates which cause overflow during matrix exponentiation. Fortunately, they can safely be ignored
+because the function still returns the correct limiting distribution.
 """
