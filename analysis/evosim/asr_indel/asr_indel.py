@@ -107,12 +107,7 @@ for OGid, regions in OGid2regions.items():
             seqstring = '\n'.join([''.join(charseq[i:i+80]) for i in range(0, len(charseq), 80)])
             file.write(f'>{spid} {OGid}_{start}-{stop}|{ppid}\n{seqstring}\n')
 
-    # Prune missing species from tree
-    spids = {record['spid'] for record in msa}
-    tree = tree_template.shear(spids)
-    skbio.io.write(tree, format='newick', into=f'out/{OGid}.nwk')
-
-    run(f'../../../bin/iqtree -s out/{OGid}.afa -m GTR2+FO+G+ASC -te out/{OGid}.nwk -keep-ident -pre out/{OGid}', shell=True, check=True)
+    run(f'../../../bin/iqtree -s out/{OGid}.afa -m GTR2+FO+G+ASC -t ../asr_aa/out/{OGid}.treefile -blscale -keep-ident -pre out/{OGid}', shell=True, check=True)
 
 """
 NOTES
@@ -121,4 +116,7 @@ believe the issue is if a region with consistent gaps has "ragged" ends, each ga
 is coded as a separate character. In the most extreme case, a gap common to every sequence but one may differ by at
 least one at each stop position, like a staircase. Thus, the nested structure of the gaps is not reflected in the
 character codings.
+
+The indel models use the tree fit to the amino acid alignments up to a scaling factor. This ensures the indel models can
+be simulated with the same tree if needed and also dramatically reduces the number of parameters.
 """
