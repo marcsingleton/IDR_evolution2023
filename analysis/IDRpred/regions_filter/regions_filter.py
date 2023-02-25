@@ -76,11 +76,7 @@ for OGid, regions in OGid2regions.items():
                     trims.append((int(start), int(stop)))
             ppid2trims[fields['ppid']] = trims
 
-    for region in regions:
-        # Get indices and length
-        region_start, region_stop = region[0], region[1]
-        disorder = region[2]
-
+    for region_start, region_stop, disorder in regions:
         # Extract and filter segments
         segment_sets = {min_length: [] for min_length in record_sets}
         for record in msa:
