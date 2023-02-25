@@ -134,7 +134,7 @@ for OGid in OGids:
         likelihood = np.zeros((len(alphabet), len(partition_msa[0][1])))
         for j in range(len(partition_msa[0][1])):
             is_invariant = True
-            sym0 = msa[0][1][j]
+            sym0 = partition_msa[0][1][j]
             if sym0 not in sym2idx:  # Gaps or ambiguous characters are not invariant
                 is_invariant = False
             else:
