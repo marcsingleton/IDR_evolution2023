@@ -16,35 +16,35 @@ OGids = sorted([path.removesuffix('_aa.npy') for path in os.listdir('../asr_root
 for OGid in OGids:
     # Generate amino acid sequence
     aa_dist = np.load(f'../asr_root/out/{OGid}_aa.npy')
-    aa_marginal = aa_dist.sum(axis=0)
+    aa_sym_dist = aa_dist.sum(axis=0)
 
     seqs = []
-    for i in range(aa_marginal.shape[1]):
-        col = rng.choice(20, size=num_samples, p=aa_marginal[:, i])
-        seqs.append(col)
+    for i in range(aa_sym_dist.shape[1]):
+        column = rng.choice(20, size=num_samples, p=aa_sym_dist[:, i])
+        seqs.append(column)
     seqs = np.stack(seqs, axis=1)
 
     # Generate indels (if applicable)
     if os.path.exists(f'../asr_root/out/{OGid}_indel.npy'):
         indel_dist = np.load(f'../asr_root/out/{OGid}_indel.npy')
-        indel_marginal = indel_dist.sum(axis=0)
+        indel_sym_dist = indel_dist.sum(axis=0)
 
-        idx2indel = {}
+        id2indel = {}
         with open(f'../asr_indel/out/{OGid}.tsv') as file:
             field_names = file.readline().rstrip('\n').split('\t')
             for line in file:
                 fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-                idx, start, stop = int(fields['index']), int(fields['start']), int(fields['stop'])
-                idx2indel[idx] = (start, stop)
+                character_id, start, stop = int(fields['character_id']), int(fields['start']), int(fields['stop'])
+                id2indel[character_id] = (start, stop)
 
-        for j in range(indel_marginal.shape[1]):
-            ps = rng.random(size=num_samples) > indel_marginal[0, j]
+        for j in range(indel_sym_dist.shape[1]):
+            ps = rng.random(size=num_samples) > indel_sym_dist[0, j]
             for i, p in enumerate(ps):
                 if p:
-                    start, stop = idx2indel[j]
+                    start, stop = id2indel[j]
                     seqs[i, start:stop] = len(alphabet) - 1  # The last symbol is gap
 
-    with open(f'out/{OGid}_sample.afa', 'w') as file:
+    with open(f'out/{OGid}.afa', 'w') as file:
         for i, seq in enumerate(seqs):
             seq = ''.join([idx2sym[idx] for idx in seq])
             seqstring = '\n'.join([seq[i:i+80] for i in range(0, len(seq), 80)])
