@@ -7,14 +7,23 @@ import numpy as np
 import skbio
 from scipy.special import gammainc
 from scipy.stats import gamma
-from src.evosim.asr import get_conditional, get_tree
+from src.evosim.asr import get_conditional
 from src.utils import read_fasta
+
+tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
 OGids = [path.removesuffix('.iqtree') for path in os.listdir('../asr_indel/out/') if path.endswith('.iqtree')]
 for OGid in OGids:
+    # Load tree
+    indel_tree = skbio.read(f'../asr_indel/out/{OGid}.treefile', 'newick', skbio.TreeNode)
+    tree = tree_template.shear([tip.name for tip in indel_tree.tips()])
+    indel_length = indel_tree.descending_branch_length()
+    length = tree.descending_branch_length()
+    speed = indel_length / length
+
     # Load substitution model
     with open(f'../asr_indel/out/{OGid}.iqtree') as file:
         line = file.readline()
@@ -38,11 +47,6 @@ for OGid in OGids:
             rates = line.split()
             matrix[i] = [float(rate) for rate in rates[1:]]
             line = file.readline()
-
-    # Load trees
-    tree1 = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
-    tree2 = skbio.read(f'../asr_indel/out/{OGid}.treefile', 'newick', skbio.TreeNode)
-    tree = get_tree(tree1, tree2)
 
     # Load rate categories
     # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
@@ -78,16 +82,16 @@ for OGid in OGids:
     # Get likelihoods for rate categories
     likelihoods = []
     for rate, prior in rates:
-        s, conditional = get_conditional(tree, rate * matrix)
-        l = np.expand_dims(freqs, -1) * conditional
-        likelihoods.append(np.exp(s) * l * prior)
+        s, conditional = get_conditional(tree, speed * rate * matrix)
+        likelihood = np.expand_dims(freqs, -1) * conditional
+        likelihoods.append(np.exp(s) * likelihood * prior)
 
     likelihoods = np.stack(likelihoods)
     likelihoods = likelihoods / likelihoods.sum(axis=(0, 1))
     np.save(f'out/{OGid}_indel.npy', likelihoods)
 
     # Save model information as JSON
-    partition = {'alpha': alpha, 'num_categories': num_categories, 'rates': rates}
+    partition = {'num_categories': num_categories, 'alpha': alpha, 'speed': speed, 'rates': rates}
     with open(f'out/{OGid}_indel_model.json', 'w') as file:
         json.dump(partition, file)
 

@@ -2,6 +2,7 @@
 
 import os
 import re
+from collections import Counter
 from subprocess import run
 
 import scipy.ndimage as ndimage
@@ -21,6 +22,7 @@ def is_nested(character, characters):
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 min_length = 30
+min_seqs = 20
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 OGid2regions = {}
@@ -46,10 +48,22 @@ for OGid, regions in OGid2regions.items():
         msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
 
     # Check regions (continuing only if alignment is fit by asr_aa.py)
-    regions = OGid2regions[OGid]
-    disorder_length = sum([stop-start for start, stop, disorder in regions if disorder])
-    order_length = sum([stop-start for start, stop, disorder in regions if not disorder])
-    if disorder_length <= min_length and order_length <= min_length:
+    disorder_lengths = []
+    order_lengths = []
+    for record in msa:
+        seq = record['seq']
+        disorder_seq = ''.join([seq[start:stop] for start, stop, disorder in regions if disorder])
+        disorder_counts = Counter(disorder_seq)
+        disorder_lengths.append(len(disorder_seq) - disorder_counts['-'] + disorder_counts['.'])
+
+        seq = record['seq']
+        order_seq = ''.join([seq[start:stop] for start, stop, disorder in regions if not disorder])
+        order_counts = Counter(order_seq)
+        order_lengths.append(len(order_seq) - order_counts['-'] + order_counts['.'])
+
+    disorder_condition = sum([disorder_length >= min_length for disorder_length in disorder_lengths]) >= min_seqs
+    order_condition = sum([order_length >= min_length for order_length in order_lengths]) >= min_seqs
+    if not (disorder_condition or order_condition):
         continue
 
     # Make list of gaps for each sequence
@@ -89,15 +103,15 @@ for OGid, regions in OGid2regions.items():
         is_invariants.append(is_invariant)
 
     # Write character table to file
-    idx = 0
+    character_id = 0
     with open(f'out/{OGid}.tsv', 'w') as file:
-        file.write('index\tstart\tstop\n')
+        file.write('character_id\tstart\tstop\n')
         for is_invariant, (start, stop) in zip(is_invariants, character_set):
             if is_invariant:
                 file.write(f'-1\t{start}\t{stop}\n')
             else:
-                file.write(f'{idx}\t{start}\t{stop}\n')
-                idx += 1
+                file.write(f'{character_id}\t{start}\t{stop}\n')
+                character_id += 1
 
     # Write alignment to file
     with open(f'out/{OGid}.afa', 'w') as file:
@@ -105,9 +119,18 @@ for OGid, regions in OGid2regions.items():
             ppid, spid, charseq = record['ppid'], record['spid'], record['charseq']
             charseq = [sym for is_invariant, sym in zip(is_invariants, charseq) if not is_invariant]  # Filter invariant characters
             seqstring = '\n'.join([''.join(charseq[i:i+80]) for i in range(0, len(charseq), 80)])
-            file.write(f'>{spid} {OGid}_{start}-{stop}|{ppid}\n{seqstring}\n')
+            file.write(f'>{spid} {ppid}\n{seqstring}\n')
 
-    run(f'../../../bin/iqtree -s out/{OGid}.afa -m GTR2+FO+G+ASC -t ../asr_aa/out/{OGid}.treefile -blscale -keep-ident -pre out/{OGid}', shell=True, check=True)
+    # Prune missing species from tree
+    spids = {record['spid'] for record in msa}
+    tree = tree_template.shear(spids)
+    skbio.io.write(tree, format='newick', into=f'out/{OGid}.nwk')
+
+    cmd = (f'../../../bin/iqtree -s out/{OGid}.afa '
+           f'-m GTR2+FO+G+ASC -keep-ident '
+           f'-t out/{OGid}.nwk -blscale '
+           f'-pre out/{OGid}')
+    run(cmd, shell=True, check=True)
 
 """
 NOTES
@@ -116,7 +139,4 @@ believe the issue is if a region with consistent gaps has "ragged" ends, each ga
 is coded as a separate character. In the most extreme case, a gap common to every sequence but one may differ by at
 least one at each stop position, like a staircase. Thus, the nested structure of the gaps is not reflected in the
 character codings.
-
-The indel models use the tree fit to the amino acid alignments up to a scaling factor. This ensures the indel models can
-be simulated with the same tree if needed and also dramatically reduces the number of parameters.
 """

@@ -2,13 +2,12 @@
 
 import json
 import os
-import re
 
 import numpy as np
 import skbio
 from scipy.special import gammainc
 from scipy.stats import gamma
-from src.evosim.asr import get_conditional, get_tree
+from src.evosim.asr import get_conditional
 from src.utils import read_fasta, read_paml
 
 
@@ -22,75 +21,51 @@ def load_model(path):
 alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
 sym2idx = {sym: idx for idx, sym in enumerate(alphabet)}
 
-models = {'LG': load_model('../../../data/matrices/LG.paml'),
-          '../iqtree_merge/out/50R_disorder.paml': load_model('../iqtree_merge/out/50R_disorder.paml')}
+tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+models = {'disorder': load_model('../iqtree_merge/out/50R_disorder.paml'),
+          'order': load_model('../../../data/matrices/LG.paml')}
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-OGids = [path.removesuffix('.iqtree') for path in os.listdir('../asr_aa/out/') if path.endswith('.iqtree')]
+OGids = [path.removesuffix('.tsv') for path in os.listdir('../asr_aa/out/') if path.endswith('.tsv')]
 for OGid in OGids:
-    # Load trees
-    tree1 = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
-    tree2 = skbio.read(f'../asr_aa/out/{OGid}.treefile', 'newick', skbio.TreeNode)
-    tree = get_tree(tree1, tree2)
-
-    # Load partitions
-    partitions = {}
-
-    # Load partition model parameters
-    with open(f'../asr_aa/out/{OGid}.iqtree') as file:
-        # Get partition ID and name
-        field_names = ['ID', 'Name', 'Type', 'Seq', 'Site', 'Unique', 'Infor', 'Invar', 'Const']
-        line = file.readline()
-        while line.split() != field_names:  # Spacing can differ so check for field names
-            line = file.readline()
-        line = file.readline()
-        while line != '\n':
-            fields = {key: value for key, value in zip(field_names, line.split())}
-            partition_id, name = int(fields['ID']), fields['Name']
-            partitions[partition_id] = {'name': name}
-            line = file.readline()
-
-        # Get partition model parameters
-        field_names = ['ID', 'Model', 'Speed', 'Parameters']
-        while line.split() != field_names:  # Spacing can differ so check for field names
-            line = file.readline()
-        line = file.readline()
-        while line != '\n':
-            fields = {key: value for key, value in zip(field_names, line.split())}
-            partition_id, speed, parameters = int(fields['ID']), float(fields['Speed']), fields['Parameters']
-            match = re.search(r'(?P<model>[^+]+)\+I{(?P<pinv>[0-9.e-]+)}\+G(?P<num_categories>[0-9]+){(?P<alpha>[0-9.e-]+)}', parameters)
-            partition = partitions[partition_id]
-            partition.update({'model': match['model'], 'speed': speed,
-                              'pinv': float(match['pinv']), 'alpha': float(match['alpha']), 'num_categories': int(match['num_categories'])})
-            line = file.readline()
-
     # Load partition regions
-    with open(f'../asr_aa/out/{OGid}.nex') as file:
-        partition_id = 1
+    partitions = {}
+    with open(f'../asr_aa/out/{OGid}.tsv') as file:
+        field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
-            if 'charset' in line:
-                match = re.search(r'charset (?P<name>[a-zA-Z0-9]+) = (?P<regions>[0-9 -]+);', line)
-                regions = []
-                for region in match['regions'].split():
-                    start, stop = region.split('-')
-                    regions.append((int(start)-1, int(stop)))
-                transform, start0 = {}, 0
-                for start, stop in regions:
-                    transform[(start, stop)] = (start0, stop - start + start0)
-                    start0 += stop - start
-                partition = partitions[partition_id]
-                partition.update({'regions': regions, 'transform': transform})
-                partition_id += 1
+            fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
+            regions = []
+            for region in fields['regions'].split(','):
+                start, stop = region.split('-')
+                regions.append((int(start), int(stop)))
+            transform, start0 = {}, 0
+            for start, stop in regions:
+                transform[(start, stop)] = (start0, stop - start + start0)
+                start0 += stop - start
+            partitions[fields['name']] = {'regions': regions, 'transform': transform}
 
-    # Load rate categories
-    # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
-    # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
-    # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
-    # of that category since technically it is the rate given that category
-    for partition in partitions.values():
-        pinv, alpha, num_categories = partition['pinv'], partition['alpha'], partition['num_categories']
+    for name, partition in partitions.items():
+        # Load tree
+        aa_tree = skbio.read(f'../asr_aa/out/{OGid}_{name}.treefile', 'newick', skbio.TreeNode)
+        tree = tree_template.shear([tip.name for tip in aa_tree.tips()])
+        aa_length = aa_tree.descending_branch_length()
+        length = tree.descending_branch_length()
+        speed = aa_length / length
+
+        # Load rate categories
+        # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
+        # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
+        # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
+        # of that category since technically it is the rate given that category
+        with open(f'../asr_aa/out/{OGid}_{name}.iqtree') as file:
+            line = file.readline()
+            while not line.startswith('Model of rate heterogeneity:'):
+                line = file.readline()
+            num_categories = int(line.rstrip('\n').split(' Invar+Gamma with ')[1][0])
+            pinv = float(file.readline().rstrip('\n').split(': ')[1])
+            alpha = float(file.readline().rstrip('\n').split(': ')[1])
         igfs = []  # Incomplete gamma function evaluations
         for i in range(num_categories+1):
             x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
@@ -98,23 +73,15 @@ for OGid in OGids:
         rates = [(0, pinv)]
         for i in range(num_categories):
             rate = num_categories/(1-pinv) * (igfs[i+1] - igfs[i])
-            rates.append((partition['speed'] * rate, (1-pinv)/num_categories))
-        partition['rates'] = rates
+            rates.append((rate, (1-pinv)/num_categories))
 
-    # Calculate likelihoods
-    msa = list(read_fasta(f'../asr_aa/out/{OGid}.afa'))
-    for partition in partitions.values():
-        # Unpack partition parameters and partition MSA
-        matrix, freqs = models[partition['model']]
-        rates = partition['rates']
-        partition_msa = []
-        for header, seq in msa:
-            partition_seq = ''.join([seq[start:stop] for start, stop in partition['regions']])
-            partition_msa.append((header, partition_seq))
+        # Get model and partition MSA
+        msa = list(read_fasta(f'../asr_aa/out/{OGid}_{name}.afa'))
+        matrix, freqs = models[name]
 
         # Convert to vectors at tips of tree
         tips = {tip.name: tip for tip in tree.tips()}
-        for header, seq in partition_msa:
+        for header, seq in msa:
             spid = header.split()[0][1:]  # Split on white space, first field, trim >
             tip = tips[spid]
             value = np.zeros((len(alphabet), len(seq)))
@@ -131,15 +98,15 @@ for OGid in OGids:
 
         # Get likelihood for invariant category
         # (Background probability for symbol if invariant; otherwise 0)
-        likelihood = np.zeros((len(alphabet), len(partition_msa[0][1])))
-        for j in range(len(partition_msa[0][1])):
+        likelihood = np.zeros((len(alphabet), len(msa[0][1])))
+        for j in range(len(msa[0][1])):
             is_invariant = True
-            sym0 = partition_msa[0][1][j]
+            sym0 = msa[0][1][j]
             if sym0 not in sym2idx:  # Gaps or ambiguous characters are not invariant
                 is_invariant = False
             else:
-                for i in range(1, len(partition_msa)):
-                    sym = partition_msa[i][1][j]
+                for i in range(1, len(msa)):
+                    sym = msa[i][1][j]
                     if sym != sym0:
                         is_invariant = False
                         break
@@ -150,12 +117,15 @@ for OGid in OGids:
 
         # Get likelihoods for rate categories
         for rate, prior in rates[1:]:  # Skip invariant
-            s, conditional = get_conditional(tree, rate * matrix)
-            l = np.expand_dims(freqs, -1) * conditional
-            likelihoods.append(np.exp(s) * l * prior)
+            s, conditional = get_conditional(tree, speed * rate * matrix)
+            likelihood = np.expand_dims(freqs, -1) * conditional
+            likelihoods.append(np.exp(s) * likelihood * prior)
 
         likelihoods = np.stack(likelihoods)
-        partition['likelihoods'] = likelihoods / likelihoods.sum(axis=(0, 1))
+        likelihoods = likelihoods / likelihoods.sum(axis=(0, 1))
+
+        partition.update({'num_categories': num_categories, 'pinv': pinv, 'alpha': alpha, 'speed': speed,
+                          'rates': rates, 'likelihoods': likelihoods})
 
     # Concatenate partition likelihoods
     regions = []
