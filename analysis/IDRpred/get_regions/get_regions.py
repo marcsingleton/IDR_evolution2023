@@ -116,17 +116,17 @@ for OGid in OGids:
     msa = sorted(msa, key=lambda x: tip_order[x['spid']])
 
     # Get missing segments
-    ppid2trims = {}
+    ppid2missing = {}
     with open(f'../../../data/alignments/missing/{OGid}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-            trims = []
-            for trim in fields['slices'].split(','):
-                if trim:
-                    start, stop = trim.split('-')
-                    trims.append((int(start), int(stop)))
-            ppid2trims[fields['ppid']] = trims
+            missing = []
+            for s in fields['slices'].split(','):
+                if s:
+                    start, stop = s.split('-')
+                    missing.append((int(start), int(stop)))
+            ppid2missing[fields['ppid']] = missing
 
     # Align scores and interpolate between gaps that are not missing segments
     aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
@@ -145,7 +145,7 @@ for OGid in OGids:
                                   left=np.nan, right=np.nan)
         aligned_scores[i, nan_idx] = interp_scores
 
-        for start, stop in ppid2trims[ppid]:
+        for start, stop in missing[ppid]:
             aligned_scores[i, start:stop] = np.nan
     aligned_scores = np.ma.masked_invalid(aligned_scores)
 

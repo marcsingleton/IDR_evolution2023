@@ -64,24 +64,23 @@ for OGid, regions in OGid2regions.items():
         msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
 
     # Get missing segments
-    ppid2trims = {}
+    ppid2missing = {}
     with open(f'../../../data/alignments/missing/{OGid}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-            trims = []
-            for trim in fields['slices'].split(','):
-                if trim:
-                    start, stop = trim.split('-')
-                    trims.append((int(start), int(stop)))
-            ppid2trims[fields['ppid']] = trims
+            missing = []
+            for s in fields['slices'].split(','):
+                if s:
+                    start, stop = s.split('-')
+                    missing.append((int(start), int(stop)))
+            ppid2missing[fields['ppid']] = missing
 
     for region_start, region_stop, disorder in regions:
         # Extract and filter segments
         segment_sets = {min_length: [] for min_length in record_sets}
         for record in msa:
             ppid, spid, segment = record['ppid'], record['spid'], record['seq'][region_start:region_stop]
-            trims = ppid2trims[ppid]
 
             # Filter by length, symbols, and overlap with missing trims
             length, is_standard = 0, True
@@ -90,9 +89,11 @@ for OGid, regions in OGid2regions.items():
                     length += 1
                 if sym not in alphabet:
                     is_standard = False
-            no_missing = all([not has_overlap(region_start, region_stop, trim_start, trim_stop) for trim_start, trim_stop in trims])
+            no_overlaps = []
+            for missing_start, missing_stop in ppid2missing[ppid]:
+                no_overlaps.append(not has_overlap(region_start, region_stop, missing_start, missing_stop))
             for min_length, segments in segment_sets.items():
-                if length >= min_length and is_standard and no_missing:
+                if length >= min_length and is_standard and all(no_overlaps):
                     segments.append((ppid, spid))
 
         # Filter by phylogenetic diversity
