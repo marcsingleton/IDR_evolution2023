@@ -186,7 +186,7 @@ def get_conditional(tree, matrix, inplace=False):
 
 
 def simulate_tree(tree, evoseq, rng):
-    tree = tree.copy()
+    tree = tree.copy()  # Make copy so computations do not change original tree
     tree.evoseq, tree.t = evoseq, 0
     residue_index = max(evoseq.residue_ids) + 1
 
