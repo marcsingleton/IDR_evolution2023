@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 import numpy as np
 import skbio
@@ -54,26 +55,34 @@ for OGid in OGids:
         length = tree.descending_branch_length()
         speed = aa_length / length
 
-        # Load rate categories
-        # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
-        # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
-        # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
-        # of that category since technically it is the rate given that category
         with open(f'../asr_aa/out/{OGid}_{name}.iqtree') as file:
             line = file.readline()
+
+            # Load data statistics
+            while not line.startswith('Input data:'):
+                line = file.readline()
+            match = re.search('([0-9]+) sequences with ([0-9]+) amino-acid sites', line)
+            num_seqs = int(match.group(1))
+            num_columns = int(match.group(2))
+
+            # Load rate categories
+            # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
+            # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
+            # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
+            # of that category since technically it is the rate given that category
             while not line.startswith('Model of rate heterogeneity:'):
                 line = file.readline()
-            num_categories = int(line.rstrip('\n').split(' Invar+Gamma with ')[1][0])
+            num_categories = int(line.rstrip('\n').split(' Invar+Gamma with ')[1].removesuffix(' categories'))
             pinv = float(file.readline().rstrip('\n').split(': ')[1])
             alpha = float(file.readline().rstrip('\n').split(': ')[1])
-        igfs = []  # Incomplete gamma function evaluations
-        for i in range(num_categories+1):
-            x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
-            igfs.append(gammainc(alpha+1, alpha*x))
-        rates = [(0, pinv)]
-        for i in range(num_categories):
-            rate = num_categories/(1-pinv) * (igfs[i+1] - igfs[i])
-            rates.append((rate, (1-pinv)/num_categories))
+            igfs = []  # Incomplete gamma function evaluations
+            for i in range(num_categories+1):
+                x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
+                igfs.append(gammainc(alpha+1, alpha*x))
+            rates = [(0, pinv)]
+            for i in range(num_categories):
+                rate = num_categories/(1-pinv) * (igfs[i+1] - igfs[i])
+                rates.append((rate, (1-pinv)/num_categories))
 
         # Get model and partition MSA
         msa = list(read_fasta(f'../asr_aa/out/{OGid}_{name}.afa'))
@@ -124,7 +133,8 @@ for OGid in OGids:
         likelihoods = np.stack(likelihoods)
         likelihoods = likelihoods / likelihoods.sum(axis=(0, 1))
 
-        partition.update({'num_categories': num_categories, 'pinv': pinv, 'alpha': alpha, 'speed': speed,
+        partition.update({'num_seqs': num_seqs, 'num_columns': num_columns,
+                          'num_categories': num_categories, 'pinv': pinv, 'alpha': alpha, 'speed': speed,
                           'rates': rates, 'likelihoods': likelihoods})
 
     # Concatenate partition likelihoods

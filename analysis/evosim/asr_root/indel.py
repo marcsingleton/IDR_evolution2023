@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 import numpy as np
 import skbio
@@ -24,9 +25,17 @@ for OGid in OGids:
     length = tree.descending_branch_length()
     speed = indel_length / length
 
-    # Load substitution model
     with open(f'../asr_indel/out/{OGid}.iqtree') as file:
         line = file.readline()
+
+        # Load data statistics
+        while not line.startswith('Input data:'):
+            line = file.readline()
+        match = re.search('([0-9]+) sequences with ([0-9]+) binary sites', line)
+        num_seqs = int(match.group(1))
+        num_columns = int(match.group(2))
+
+        # Load substitution model
         while line != 'State frequencies: (estimated with maximum likelihood)\n':
             line = file.readline()
 
@@ -48,25 +57,23 @@ for OGid in OGids:
             matrix[i] = [float(rate) for rate in rates[1:]]
             line = file.readline()
 
-    # Load rate categories
-    # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
-    # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
-    # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
-    # of that category since technically it is the rate given that category
-    with open(f'../asr_indel/out/{OGid}.iqtree') as file:
-        line = file.readline()
+        # Load rate categories
+        # In IQ-TREE, only the shape parameter is fit and the rate parameter beta is set to alpha so the mean of gamma distribution is 1
+        # The calculations here directly correspond to equation 10 in Yang. J Mol Evol (1994) 39:306-314.
+        # Note the equation has a small typo where the difference in gamma function evaluations should be divided by the probability
+        # of that category since technically it is the rate given that category
         while not line.startswith('Model of rate heterogeneity:'):
             line = file.readline()
-        num_categories = int(line.rstrip('\n').split(' Gamma with ')[1][0])
+        num_categories = int(line.rstrip('\n').split(' Gamma with ')[1].removesuffix(' categories'))
         alpha = float(file.readline().rstrip('\n').split(': ')[1])
-    igfs = []  # Incomplete gamma function evaluations
-    for i in range(num_categories+1):
-        x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
-        igfs.append(gammainc(alpha+1, alpha*x))
-    rates = []
-    for i in range(num_categories):
-        rate = num_categories * (igfs[i+1] - igfs[i])
-        rates.append((rate, 1/num_categories))
+        igfs = []  # Incomplete gamma function evaluations
+        for i in range(num_categories+1):
+            x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
+            igfs.append(gammainc(alpha+1, alpha*x))
+        rates = []
+        for i in range(num_categories):
+            rate = num_categories * (igfs[i+1] - igfs[i])
+            rates.append((rate, 1/num_categories))
 
     # Load sequence and convert to vectors at tips of tree
     mca = read_fasta(f'../asr_indel/out/{OGid}.afa')
@@ -91,7 +98,8 @@ for OGid in OGids:
     np.save(f'out/{OGid}_indel.npy', likelihoods)
 
     # Save model information as JSON
-    partition = {'num_categories': num_categories, 'alpha': alpha, 'speed': speed, 'rates': rates}
+    partition = {'num_seqs': num_seqs, 'num_columns': num_columns,
+                 'num_categories': num_categories, 'alpha': alpha, 'speed': speed, 'rates': rates}
     with open(f'out/{OGid}_indel_model.json', 'w') as file:
         json.dump(partition, file)
 
