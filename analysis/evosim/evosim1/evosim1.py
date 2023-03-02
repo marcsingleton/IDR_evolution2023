@@ -21,8 +21,8 @@ def load_model(path):
 spid_regex = r'spid=([a-z]+)'
 
 alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
-sym2idx = {sym: i for i, sym in enumerate(alphabet)}
-idx2sym = {i: sym for i, sym in enumerate(alphabet)}
+sym2idx = {sym: idx for idx, sym in enumerate(alphabet)}
+idx2sym = {idx: sym for idx, sym in enumerate(alphabet)}
 
 # Load models
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
@@ -56,11 +56,11 @@ for OGid in OGids:
     tree.length = 0
 
     # Amino acid rates
-    aa_dist = np.load(f'../asr_root/out/{OGid}_aa.npy')
-    aa_conditional = aa_dist / aa_dist.sum(axis=0)
-
     with open(f'../asr_root/out/{OGid}_aa_model.json') as file:
         partitions = json.load(file)
+    aa_dist = np.load(f'../asr_root/out/{OGid}_aa.npy')
+
+    aa_conditional = aa_dist / aa_dist.sum(axis=0)
     aa_rate_values = np.zeros_like(aa_conditional)
     for partition in partitions.values():
         partition_regions = partition['regions']
@@ -72,11 +72,11 @@ for OGid in OGids:
     # Indel rates
     indel_rates = np.zeros(aa_rates.shape[-1])
     if os.path.exists(f'../asr_root/out/{OGid}_indel.npy'):
-        character_dist = np.load(f'../asr_root/out/{OGid}_indel.npy')
-        character_rate_dist = character_dist.sum(axis=1)
-
         with open(f'../asr_root/out/{OGid}_indel_model.json') as file:
             partition = json.load(file)
+        character_dist = np.load(f'../asr_root/out/{OGid}_indel.npy')
+
+        character_rate_dist = character_dist.sum(axis=1)
         character_rate_values = partition['speed'] * np.array([[r] for r, _ in partition['rates']])
         character_rates = (character_rate_dist * character_rate_values).sum(axis=0)
 
@@ -91,7 +91,7 @@ for OGid in OGids:
         for character_id, indel in id2indel.items():
             start, stop = indel
             indel_rates[start] += character_rates[character_id] / 2
-            indel_rates[stop - 1] += character_rates[character_id] / 2
+            indel_rates[stop-1] += character_rates[character_id] / 2
 
     # Partition regions
     partition_template = np.empty(length, dtype=int)
