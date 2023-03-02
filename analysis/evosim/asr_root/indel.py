@@ -64,21 +64,28 @@ for OGid in OGids:
         # of that category since technically it is the rate given that category
         while not line.startswith('Model of rate heterogeneity:'):
             line = file.readline()
-        num_categories = int(line.rstrip('\n').split(' Gamma with ')[1].removesuffix(' categories'))
-        alpha = float(file.readline().rstrip('\n').split(': ')[1])
-        igfs = []  # Incomplete gamma function evaluations
-        for i in range(num_categories+1):
-            x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
-            igfs.append(gammainc(alpha+1, alpha*x))
-        rates = []
-        for i in range(num_categories):
-            rate = num_categories * (igfs[i+1] - igfs[i])
-            rates.append((rate, 1/num_categories))
+        if 'Uniform' in line:
+            num_categories = 1
+            alpha = 'NA'
+            rates = [(1, 1)]
+        elif 'Gamma' in line:
+            num_categories = int(line.rstrip('\n').split(' Gamma with ')[1].removesuffix(' categories'))
+            alpha = float(file.readline().rstrip('\n').split(': ')[1])
+            igfs = []  # Incomplete gamma function evaluations
+            for i in range(num_categories+1):
+                x = gamma.ppf(i/num_categories, a=alpha, scale=1/alpha)
+                igfs.append(gammainc(alpha+1, alpha*x))
+            rates = []
+            for i in range(num_categories):
+                rate = num_categories * (igfs[i+1] - igfs[i])
+                rates.append((rate, 1/num_categories))
+        else:
+            raise RuntimeError('Unknown rate model detected.')
 
     # Load sequence and convert to vectors at tips of tree
-    mca = read_fasta(f'../asr_indel/out/{OGid}.afa')
+    msa = read_fasta(f'../asr_indel/out/{OGid}.afa')
     tips = {tip.name: tip for tip in tree.tips()}
-    for header, seq in mca:
+    for header, seq in msa:
         spid = header.split()[0][1:]  # Split on white space, first field, trim >
         tip = tips[spid]
         value = np.zeros((2, len(seq)))
