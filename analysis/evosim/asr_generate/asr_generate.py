@@ -7,7 +7,8 @@ import numpy as np
 rng = np.random.default_rng(930715)
 num_samples = 1000
 alphabet = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', '-']
-idx2sym = {i: sym for i, sym in enumerate(alphabet)}
+sym2idx = {sym: idx for idx, sym in enumerate(alphabet)}
+idx2sym = {idx: sym for idx, sym in enumerate(alphabet)}
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
@@ -42,7 +43,7 @@ for OGid in OGids:
             for i, p in enumerate(ps):
                 if p:
                     start, stop = id2indel[j]
-                    seqs[i, start:stop] = len(alphabet) - 1  # The last symbol is gap
+                    seqs[i, start:stop] = sym2idx['-']
 
     with open(f'out/{OGid}.afa', 'w') as file:
         for i, seq in enumerate(seqs):
