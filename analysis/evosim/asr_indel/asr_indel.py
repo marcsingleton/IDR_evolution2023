@@ -10,6 +10,19 @@ import skbio
 from src.utils import read_fasta
 
 
+def has_overlap(start1, stop1, start2, stop2):
+    if stop1 < start1:
+        raise ValueError('stop1 < start1')
+    if stop2 < start2:
+        raise ValueError('stop2 < start2')
+    if start1 == stop1 or start2 == stop2:
+        return False
+    if stop2 < stop1:
+        start1, start2 = start2, start1
+        stop1, stop2 = stop2, stop1
+    return stop1 > start2
+
+
 def is_nested(character, characters):
     """Return if character is nested in one of intervals in characters."""
     start1, stop1 = character
@@ -21,8 +34,13 @@ def is_nested(character, characters):
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
+start_regex = r'start=([0-9]+)'
+stop_regex = r'stop=([0-9]+)'
+
 min_length = 30
 min_seqs = 20
+max_categories = 4
+columns_per_category = 5
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 OGid2regions = {}
@@ -47,6 +65,29 @@ for OGid, regions in OGid2regions.items():
         spid = re.search(spid_regex, header).group(1)
         msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
 
+    # Get missing segments
+    ppid2missing = {}
+    with open(f'../../../data/alignments/missing/{OGid}.tsv') as file:
+        field_names = file.readline().rstrip('\n').split('\t')
+        for line in file:
+            fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
+            missing = []
+            for s in fields['slices'].split(','):
+                if s:
+                    start, stop = s.split('-')
+                    missing.append((int(start), int(stop)))
+            ppid2missing[fields['ppid']] = missing
+
+    # Get inferred tip values
+    ppid2tips = {record['ppid']: [] for record in msa}
+    if os.path.exists(f'../../../data/alignments/tips/{OGid}.fa'):
+        fasta = read_fasta(f'../../../data/alignments/tips/{OGid}.fa')
+        for header, seq in fasta:
+            ppid = re.search(ppid_regex, header).group(1)
+            start = int(re.search(start_regex, header).group(1))
+            stop = int(re.search(stop_regex, header).group(1))
+            ppid2tips[ppid].append((start, stop, seq))
+
     # Check regions (continuing only if alignment is fit by asr_aa.py)
     disorder_lengths = []
     order_lengths = []
@@ -68,12 +109,22 @@ for OGid, regions in OGid2regions.items():
 
     # Make list of gaps for each sequence
     ids2characters = {}
+    character_set = set()
     for record in msa:
         ppid, spid, seq = record['ppid'], record['spid'], record['seq']
         binary = [1 if sym in ['-', '.'] else 0 for sym in seq]
-        slices = [(s.start, s.stop) for s, in ndimage.find_objects(ndimage.label(binary)[0])]
-        ids2characters[(ppid, spid)] = slices
-    character_set = set().union(*ids2characters.values())
+        for start, stop, seq in ppid2tips[ppid]:
+            binary[start:stop] = [int(sym) for sym in seq]
+
+        characters = []
+        for s, in ndimage.find_objects(ndimage.label(binary)[0]):
+            characters.append((s.start, s.stop))
+            no_overlaps = []
+            for missing_start, missing_stop in ppid2missing[ppid]:
+                no_overlaps.append(not has_overlap(s.start, s.stop, missing_start, missing_stop))
+            if all(no_overlaps):
+                character_set.add((s.start, s.stop))  # Only add indels which do not overlap with missing segments
+        ids2characters[(ppid, spid)] = characters
     character_set = sorted(character_set, key=lambda x: (x[0], -x[1]))  # Fix order of characters
 
     # Skip region if no indels
@@ -81,23 +132,23 @@ for OGid, regions in OGid2regions.items():
         continue
 
     # Make character alignment
-    mca = []
+    msa = []
     for (ppid, spid), characters in ids2characters.items():
-        charseq = []
+        seq = []
         for character in character_set:
             if is_nested(character, characters):
-                charseq.append('1')
+                seq.append('1')
             else:
-                charseq.append('0')
-        mca.append({'ppid': ppid, 'spid': spid, 'charseq': charseq})
-    mca = sorted(mca, key=lambda x: x['spid'])
+                seq.append('0')
+        msa.append({'ppid': ppid, 'spid': spid, 'seq': seq})
+    msa = sorted(msa, key=lambda x: x['spid'])
 
     # Identify invariant characters
     is_invariants = []
-    for j in range(len(mca[0]['charseq'])):
+    for j in range(len(msa[0]['seq'])):
         is_invariant = True
-        for i in range(len(mca)):
-            if mca[i]['charseq'][j] == '0':
+        for i in range(len(msa)):
+            if msa[i]['seq'][j] == '0':
                 is_invariant = False
                 break
         is_invariants.append(is_invariant)
@@ -115,10 +166,10 @@ for OGid, regions in OGid2regions.items():
 
     # Write alignment to file
     with open(f'out/{OGid}.afa', 'w') as file:
-        for record in mca:
-            ppid, spid, charseq = record['ppid'], record['spid'], record['charseq']
-            charseq = [sym for is_invariant, sym in zip(is_invariants, charseq) if not is_invariant]  # Filter invariant characters
-            seqstring = '\n'.join([''.join(charseq[i:i+80]) for i in range(0, len(charseq), 80)])
+        for record in msa:
+            ppid, spid, seq = record['ppid'], record['spid'], record['seq']
+            seq = [sym for is_invariant, sym in zip(is_invariants, seq) if not is_invariant]  # Filter invariant characters
+            seqstring = '\n'.join([''.join(seq[i:i+80]) for i in range(0, len(seq), 80)])
             file.write(f'>{spid} {ppid}\n{seqstring}\n')
 
     # Prune missing species from tree
@@ -126,8 +177,10 @@ for OGid, regions in OGid2regions.items():
     tree = tree_template.shear(spids)
     skbio.io.write(tree, format='newick', into=f'out/{OGid}.nwk')
 
+    num_categories = min(len(character_set) // columns_per_category, max_categories)
+    rate_model = f'+G{num_categories}' if num_categories > 1 else ''
     cmd = (f'../../../bin/iqtree -s out/{OGid}.afa '
-           f'-m GTR2+FO+G+ASC -keep-ident '
+           f'-m GTR2+FO{rate_model}+ASC -keep-ident '
            f'-t out/{OGid}.nwk -blscale '
            f'-pre out/{OGid}')
     run(cmd, shell=True, check=True)
