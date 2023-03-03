@@ -85,7 +85,7 @@ def plot_pca(transform, pcx, pcy,
     plt.close()
 
 
-def plot_pca_arrows(pca, transform, feature_labels, pcx, pcy,
+def plot_pca_arrows(pca, transform, arrow_labels, pcx, pcy,
                     cmap,
                     title_label, file_label,
                     hexbin_kwargs=None,
@@ -107,7 +107,7 @@ def plot_pca_arrows(pca, transform, feature_labels, pcx, pcy,
     ax.set_ylabel(f'PC{pcy+1}')
     ax.set_title(title_label)
 
-    add_pca_arrows(ax, pca, feature_labels, pcx, pcy,
+    add_pca_arrows(ax, pca, arrow_labels, pcx, pcy,
                    legend_linewidth=legend_linewidth, legend_kwargs=legend_kwargs,
                    arrow_colors=arrow_colors, arrow_scale=arrow_scale, arrowstyle_kwargs=arrowstyle_kwargs)
 
@@ -148,7 +148,7 @@ def plot_pca2(transform, pcx, pcy,
     plt.close()
 
 
-def plot_pca2_arrows(pca, transform, feature_labels, pcx, pcy,
+def plot_pca2_arrows(pca, transform, arrow_labels, pcx, pcy,
                      idx1, idx2, cmap1, cmap2,
                      title_label, file_label,
                      hexbin_kwargs=None,
@@ -171,7 +171,7 @@ def plot_pca2_arrows(pca, transform, feature_labels, pcx, pcy,
     ax.set_ylabel(f'PC{pcy+1}')
     ax.set_title(title_label)
 
-    add_pca_arrows(ax, pca, feature_labels, pcx, pcy,
+    add_pca_arrows(ax, pca, arrow_labels, pcx, pcy,
                    legend_linewidth=legend_linewidth, legend_kwargs=legend_kwargs,
                    arrow_colors=arrow_colors, arrow_scale=arrow_scale, arrowstyle_kwargs=arrowstyle_kwargs)
 
@@ -179,7 +179,7 @@ def plot_pca2_arrows(pca, transform, feature_labels, pcx, pcy,
     plt.close()
 
 
-def add_pca_arrows(ax, pca, feature_labels, pcx, pcy,
+def add_pca_arrows(ax, pca, arrow_labels, pcx, pcy,
                    legend_linewidth=2, legend_kwargs=None,
                    arrow_colors=None, arrow_scale=0.9, arrowstyle_kwargs=None):
     if legend_kwargs is None:
@@ -189,7 +189,7 @@ def add_pca_arrows(ax, pca, feature_labels, pcx, pcy,
     if arrow_colors is None:
         arrow_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-    projections = zip(feature_labels, pca.components_[pcx], pca.components_[pcy])  # Match features to components in PC space
+    projections = zip(arrow_labels, pca.components_[pcx], pca.components_[pcy])  # Match features to components in PC space
     projections = sorted(projections, key=lambda x: x[1] ** 2 + x[2] ** 2, reverse=True)[:len(arrow_colors)]  # Get features with largest magnitude
     projections = sorted(projections, key=lambda x: get_angle(x[2], x[1]))  # Re-order by angle from x-axis
 
