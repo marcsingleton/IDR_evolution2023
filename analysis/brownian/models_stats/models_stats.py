@@ -10,6 +10,10 @@ from sklearn.decomposition import PCA
 pdidx = pd.IndexSlice
 pca_components = 10
 
+min_indel_columns = 5  # Indel rates below this value are set to 0
+min_aa_rate = 1
+min_indel_rate = 1
+
 # Load regions
 rows = []
 with open('../../IDRpred/regions_filter/out/regions_30.tsv') as file:
@@ -21,63 +25,51 @@ with open('../../IDRpred/regions_filter/out/regions_30.tsv') as file:
 regions = pd.DataFrame(rows)
 
 models = pd.read_table('../get_models/out/models_30.tsv')
-models = models.merge(regions, how='right', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
+rates = pd.read_table('../../evosim/asr_stats/out/regions_30/rates.tsv')
+features = pd.read_table('../get_features/out/features.tsv').groupby(['OGid', 'start', 'stop']).mean()
+
+df = regions.merge(models, how='left', on=['OGid', 'start', 'stop'])
+df = df.merge(rates, how='left', on=['OGid', 'start', 'stop'])
+df = df.merge(features, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
+
+# Data filtering
+df.loc[(df['indel_num_columns'] < min_indel_columns) | df['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
+df = df[(df['aa_rate_mean'] > min_aa_rate) | (df['indel_rate_mean'] > min_indel_rate)]
 
 feature_labels = []
-for column_label in models.columns:
+for column_label in df.columns:
     if column_label.endswith('_loglikelihood_BM'):
         feature_labels.append(column_label.removesuffix('_loglikelihood_BM'))
 
 columns = {}
 for feature_label in feature_labels:
-    columns[f'{feature_label}_AIC_BM'] = 2*(2 - models[f'{feature_label}_loglikelihood_BM'])
-    columns[f'{feature_label}_AIC_OU'] = 2*(3 - models[f'{feature_label}_loglikelihood_OU'])
-models = pd.concat([models, pd.DataFrame(columns)], axis=1)
+    columns[f'{feature_label}_AIC_BM'] = 2*(2 - df[f'{feature_label}_loglikelihood_BM'])
+    columns[f'{feature_label}_AIC_OU'] = 2*(3 - df[f'{feature_label}_loglikelihood_OU'])
+    columns[f'{feature_label}_delta_AIC'] = columns[f'{feature_label}_AIC_BM'] - columns[f'{feature_label}_AIC_OU']
+    columns[f'{feature_label}_sigma2_ratio'] = df[f'{feature_label}_sigma2_BM'] / df[f'{feature_label}_sigma2_OU']
+df = pd.concat([df, pd.DataFrame(columns)], axis=1)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
 for feature_label in feature_labels:
-    for param in ['mu', 'sigma2', 'loglikelihood', 'AIC']:
-        xmin = min(models[f'{feature_label}_{param}_BM'].min(), models[f'{feature_label}_{param}_OU'].min())
-        xmax = max(models[f'{feature_label}_{param}_BM'].max(), models[f'{feature_label}_{param}_OU'].max())
-        bins = np.linspace(xmin, xmax, 50)
-        fig, axs = plt.subplots(2, 1, sharex=True)
-        axs[0].hist(models[f'{feature_label}_{param}_BM'], bins=bins, color='C2', label='BM')
-        axs[1].hist(models[f'{feature_label}_{param}_OU'], bins=bins, color='C3', label='OU')
-        axs[1].set_xlabel(f'{param} ({feature_label})')
-        for ax in axs:
-            ax.legend()
-            ax.set_ylabel('Number of regions')
-        fig.savefig(f'out/hist_regionnum-{param}_{feature_label}.png')
-        plt.close()
-
-        fig, ax = plt.subplots()
-        hb = ax.hexbin(models[f'{feature_label}_{param}_BM'], models[f'{feature_label}_{param}_OU'], gridsize=50, mincnt=1, linewidth=0)
-        ax.set_xlabel(f'BM {param}')
-        ax.set_ylabel(f'OU {param}')
-        ax.set_title(feature_label)
-        fig.colorbar(hb)
-        fig.savefig(f'out/hexbin_OU-BM_{param}_{feature_label}.png')
-        plt.close()
-
     fig, ax = plt.subplots()
-    ax.hist(models[f'{feature_label}_AIC_BM'] - models[f'{feature_label}_AIC_OU'], bins=50)
+    ax.hist(df[f'{feature_label}_delta_AIC'], bins=50)
     ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$' + f' ({feature_label})')
     ax.set_ylabel('Number of regions')
     fig.savefig(f'out/hist_regionnum-delta_AIC_{feature_label}.png')
     plt.close()
 
     fig, ax = plt.subplots()
-    ax.hist(models[f'{feature_label}_sigma2_BM'] / models[f'{feature_label}_sigma2_OU'], bins=50)
+    ax.hist(df[f'{feature_label}_sigma2_ratio'], bins=50)
     ax.set_xlabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$' + f' ({feature_label})')
     ax.set_ylabel('Number of regions')
     fig.savefig(f'out/hist_regionnum-sigma2_{feature_label}.png')
     plt.close()
 
     fig, ax = plt.subplots()
-    hb = ax.hexbin(models[f'{feature_label}_AIC_BM'] - models[f'{feature_label}_AIC_OU'],
-                   models[f'{feature_label}_sigma2_BM'] / models[f'{feature_label}_sigma2_OU'],
+    hb = ax.hexbin(df[f'{feature_label}_delta_AIC'],
+                   df[f'{feature_label}_sigma2_ratio'],
                    gridsize=75, mincnt=1, linewidth=0, bins='log')
     ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$')
     ax.set_ylabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$')
@@ -86,12 +78,9 @@ for feature_label in feature_labels:
     fig.savefig(f'out/hexbin_sigma2-delta_AIC_{feature_label}.png')
     plt.close()
 
-data = models.loc[pdidx[:, :, :, True], :]
-array = np.zeros((len(data), len(feature_labels)))
-for i, feature_label in enumerate(feature_labels):
-    x = data[f'{feature_label}_sigma2_BM'] / data[f'{feature_label}_sigma2_OU']
-    x[x.isna()] = 1
-    array[:, i] = x
+column_labels = [column_label for column_label in df.columns if column_label.endswith('sigma2_ratio')]
+data = df.loc[pdidx[:, :, :, True], column_labels]
+array = np.nan_to_num(data.to_numpy(), nan=1)
 pca = PCA(n_components=pca_components)
 transform = pca.fit_transform(array)
 
