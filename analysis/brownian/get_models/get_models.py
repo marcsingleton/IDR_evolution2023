@@ -37,7 +37,7 @@ def get_models(args):
             tip.value = group.loc[idx, feature_label]
         values = np.array([tip.value for tip in tips])
 
-        if np.all(values[0] == values):
+        if np.allclose(values, values.mean(), rtol=0, atol=1E-10):  # Use only absolute tolerance
             # If values are constant the model behaviors are technically undefined.
             # The Brownian case has a reasonable limit of a constant random variable with mean of the observed
             # value. The log-likelihood can be taken as 0 since the observed value occurs with certainty.
@@ -124,3 +124,15 @@ if __name__ == '__main__':
                 file.write('\t'.join(header) + '\n')
             for record in records:
                 file.write('\t'.join(str(record.get(field, 'nan')) for field in header) + '\n')
+
+"""
+NOTES
+get_models defines a "magic number" atol in its function body as part of checking if all tip values are effectively the
+same. This was not refactored into a global variable to keep the function body self-contained.
+
+This approximate equality checking was necessary because some regions have tip values of kappa and omega that are very
+nearly one to the 15th or 16th decimal place. It's unclear why this happens, and for time the root causes were not
+investigated at the level of individual sequences. However, it's likely these sequences are near the boundaries where
+the definitions of kappa and omega break down, i.e. there are few residues belonging to either of the classes whose
+separation is measured by these features.
+"""
