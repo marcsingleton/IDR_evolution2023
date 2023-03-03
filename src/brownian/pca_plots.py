@@ -1,4 +1,4 @@
-"""Functions to make specialize PCA plots."""
+"""Functions to make specialized PCA plots."""
 
 from math import atan2, pi
 
