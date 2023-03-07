@@ -10,13 +10,14 @@ from src.phylo import get_contrasts
 from src.utils import read_fasta
 
 
-def get_args(grouped, tree, feature_labels):
+def get_args(grouped, tree, feature_labels, group_labels):
     for name, group in grouped:
-        yield name, group, tree, feature_labels
+        yield name, group, tree, feature_labels, group_labels
 
 
 def apply_contrasts(args):
-    name, group, tree, feature_labels = args
+    name, group, tree, feature_labels, group_labels = args
+    OGid, start, stop, disorder = name
 
     # Map features to tips
     tree = tree.shear(group['spid'])
@@ -28,14 +29,25 @@ def apply_contrasts(args):
     # Get contrasts
     roots, contrasts = get_contrasts(tree)
 
-    return name, roots, contrasts
+    # Convert to dataframes
+    root_ids = pd.Series({'OGid': OGid, 'start': start, 'stop': stop})
+    roots = pd.concat([root_ids, roots])
+    roots.index = pd.MultiIndex.from_arrays([roots.index, 3*['ids_group'] + group_labels])
+
+    contrast_ids = []
+    for contrast_id in range(len(contrasts)):
+        contrast_ids.append({'OGid': OGid, 'start': start, 'stop': stop, 'contrast_id': contrast_id})
+    contrasts = pd.concat([pd.DataFrame(contrast_ids), pd.DataFrame(contrasts)], axis=1)
+    contrasts.columns = pd.MultiIndex.from_arrays([contrasts.columns, 4*['ids_group'] + group_labels])
+
+    return roots, contrasts
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 10))
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
-length_regex = r'regions_([0-9]+).tsv'
+min_lengths = [30, 60, 90]
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 if __name__ == '__main__':
@@ -48,22 +60,16 @@ if __name__ == '__main__':
             spid = re.search(spid_regex, header).group(1)
             ppid2spid[ppid] = spid
 
-    # Get minimum lengths
-    min_lengths = []
-    for path in os.listdir('../../IDRpred/regions_filter/out/'):
-        match = re.search(length_regex, path)
-        if match:
-            min_lengths.append(int(match.group(1)))
-    min_lengths = sorted(min_lengths)
-
     # Load features
-    all_features = pd.read_table('../get_features/out/features.tsv')
-    all_features.loc[all_features['kappa'] == -1, 'kappa'] = 1
-    all_features.loc[all_features['omega'] == -1, 'omega'] = 1
+    all_features = pd.read_table('../get_features/out/features.tsv', header=[0, 1])
+    all_features.loc[all_features[('kappa', 'charge_group')] == -1, 'kappa'] = 1  # Need to specify full column index to get slicing to work
+    all_features.loc[all_features[('omega', 'charge_group')] == -1, 'omega'] = 1
     all_features['length'] = all_features['length'] ** 0.6
     all_features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
-    feature_labels = list(all_features.columns.drop(['OGid', 'ppid', 'start', 'stop']))
+    feature_labels = [feature_label for feature_label, group_label in all_features.columns if group_label != 'ids_group']
+    group_labels = [group_label for _, group_label in all_features.columns if group_label != 'ids_group']
+    all_features = all_features.droplevel(1, axis=1)
 
     # Load regions as segments
     rows = []
@@ -87,24 +93,10 @@ if __name__ == '__main__':
         regions = features.groupby(['OGid', 'start', 'stop', 'disorder'])
 
         # Apply contrasts
-        args = get_args(regions, tree_template, feature_labels)
+        args = get_args(regions, tree_template, feature_labels, group_labels)
         with mp.Pool(processes=num_processes) as pool:
             records = pool.map(apply_contrasts, args, chunksize=50)
 
-        # Write contrasts and means to file
-        with open(f'out/contrasts_{min_length}.tsv', 'w') as file1, open(f'out/roots_{min_length}.tsv', 'w') as file2:
-            file1.write('\t'.join(['OGid', 'start', 'stop', 'contrast_id'] + feature_labels) + '\n')
-            file2.write('\t'.join(['OGid', 'start', 'stop'] + feature_labels) + '\n')
-            for name, roots, contrasts in records:
-                # Write contrasts
-                for idx, contrast in enumerate(contrasts):
-                    fields1 = [name[0], str(name[1]), str(name[2]), str(idx)]
-                    for feature_label in feature_labels:
-                        fields1.append(str(contrast[feature_label]))
-                    file1.write('\t'.join(fields1) + '\n')
-
-                # Write means
-                fields2 = [name[0], str(name[1]), str(name[2])]
-                for feature_label in feature_labels:
-                    fields2.append(str(roots[feature_label]))
-                file2.write('\t'.join(fields2) + '\n')
+        roots, contrasts = zip(*records)
+        pd.DataFrame(roots).to_csv(f'out/roots_{min_length}.tsv', sep='\t', index=False)
+        pd.concat(contrasts).to_csv(f'out/contrasts_{min_length}.tsv', sep='\t', index=False)
