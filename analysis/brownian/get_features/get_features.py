@@ -9,14 +9,17 @@ import src.brownian.features as features
 from src.utils import read_fasta
 
 
-Record = namedtuple('Record', ['OGid', 'start', 'stop', 'ppid', 'disorder', 'segment'])
+ArgsRecord = namedtuple('ArgsRecord', ['OGid', 'start', 'stop', 'ppid', 'disorder', 'segment'])
 
 
-def get_features(record):
-    d = {'OGid': record.OGid, 'start': record.start, 'stop': record.stop, 'ppid': record.ppid}
-    if not (len(record.segment) == 0 or 'X' in record.segment or 'U' in record.segment):
-        d.update(features.get_features(record.segment, features.repeat_groups, features.motif_regexes))
-    return d
+def get_features(args):
+    record = {('OGid', 'ids_group'): args.OGid,
+              ('start', 'ids_group'): args.start,
+              ('stop', 'ids_group'): args.stop,
+              ('ppid', 'ids_group'): args.ppid}
+    if not (len(args.segment) == 0 or 'X' in args.segment or 'U' in args.segment):
+        record.update(features.get_features(args.segment, features.repeat_groups, features.motif_regexes))
+    return record
 
 
 num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 1))
@@ -44,7 +47,7 @@ if __name__ == '__main__':
         for start, stop, disorder in regions:
             for ppid, seq in msa.items():
                 segment = seq[start:stop].translate({ord('-'): None, ord('.'): None})
-                args.append(Record(OGid, start, stop, ppid, disorder, segment))
+                args.append(ArgsRecord(OGid, start, stop, ppid, disorder, segment))
 
     # Calculate features
     with mp.Pool(processes=num_processes) as pool:
@@ -56,7 +59,8 @@ if __name__ == '__main__':
 
     with open('out/features.tsv', 'w') as file:
         if records:
-            header = records[0]
-            file.write('\t'.join(header) + '\n')
+            field_names = list(records[0])
+            file.write('\t'.join([feature_label for feature_label, _ in field_names]) + '\n')
+            file.write('\t'.join([group_label for _, group_label in field_names]) + '\n')
         for record in records:
-            file.write('\t'.join(str(record.get(field, 'nan')) for field in header) + '\n')
+            file.write('\t'.join(str(record.get(field_name, 'nan')) for field_name in field_names) + '\n')

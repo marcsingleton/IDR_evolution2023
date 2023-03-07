@@ -168,9 +168,16 @@ def get_features_motifs(seq, motif_regexes):
 
 # Summary
 def get_features(seq, repeat_groups, motif_regexes):
-    """Return dictionary of all features."""
-    return {**get_features_aa(seq), **get_features_charge(seq), **get_features_physchem(seq),
-            **get_features_complexity(seq, repeat_groups), **get_features_motifs(seq, motif_regexes)}
+    """Return dictionary of all features keyed by (feature_label, group_label)."""
+    feature_groups = [('aa_group', get_features_aa),
+                      ('charge_group', get_features_charge),
+                      ('physchem_group', get_features_physchem),
+                      ('complexity_group', lambda x: get_features_complexity(x, repeat_groups)),
+                      ('motifs_group', lambda x: get_features_motifs(x, motif_regexes))]
+    features = {}
+    for group_label, feature_function in feature_groups:
+        features.update({(feature_label, group_label): feature_value for feature_label, feature_value in feature_function(seq).items()})
+    return features
 
 
 repeat_groups = ['Q', 'N', 'S', 'G', 'E', 'D', 'K', 'R', 'P', 'QN', 'RG', 'FG', 'SG', 'SR', 'KAP', 'PTS']
