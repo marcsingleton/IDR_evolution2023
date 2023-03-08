@@ -9,7 +9,6 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from numpy import linspace
 from sklearn.decomposition import PCA
-from src.brownian.features import motif_regexes
 from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
 
 
@@ -20,7 +19,7 @@ def zscore(df):
 pdidx = pd.IndexSlice
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
-length_regex = r'regions_([0-9]+).tsv'
+min_lengths = [30, 60, 90]
 
 pca_components = 10
 cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
@@ -31,23 +30,16 @@ legend_kwargs = {'fontsize': 8, 'loc': 'center left', 'bbox_to_anchor': (1, 0.5)
 arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295', '#9d7660', '#bab0ac',
                 '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
-# Get minimum lengths
-min_lengths = []
-for path in os.listdir('../../IDRpred/regions_filter/out/'):
-    match = re.search(length_regex, path)
-    if match:
-        min_lengths.append(int(match.group(1)))
-min_lengths = sorted(min_lengths)
-
 # Load features
-all_features = pd.read_table('../get_features/out/features.tsv')
-all_features.loc[all_features['kappa'] == -1, 'kappa'] = 1
-all_features.loc[all_features['omega'] == -1, 'omega'] = 1
+all_features = pd.read_table('../get_features/out/features.tsv', header=[0, 1])
+all_features.loc[all_features[('kappa', 'charge_group')] == -1, 'kappa'] = 1  # Need to specify full column index to get slicing to work
+all_features.loc[all_features[('omega', 'charge_group')] == -1, 'omega'] = 1
 all_features['length'] = all_features['length'] ** 0.6
 all_features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
-feature_labels = list(all_features.columns.drop(['OGid', 'ppid', 'start', 'stop']))
-motif_labels = list(motif_regexes)
+feature_labels = [feature_label for feature_label, group_label in all_features.columns if group_label != 'ids_group']
+motifs_labels = [feature_label for feature_label, group_label in all_features.columns if group_label == 'motifs_group']
+all_features = all_features.droplevel(1, axis=1)
 
 # Load regions as segments
 rows = []
@@ -70,9 +62,9 @@ for min_length in min_lengths:
     segment_keys = all_segments[all_segments['min_length'] == min_length].drop('min_length', axis=1)
     region_keys = segment_keys.drop('ppid', axis=1).drop_duplicates()
     features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
-    roots = pd.read_table(f'../get_contrasts/out/roots_{min_length}.tsv')
+    roots = pd.read_table(f'../get_contrasts/out/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
     roots = region_keys.merge(roots, how='right', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
-    contrasts = pd.read_table(f'../get_contrasts/out/contrasts_{min_length}.tsv')
+    contrasts = pd.read_table(f'../get_contrasts/out/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
     contrasts = region_keys.merge(contrasts, how='right', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
     # 1 CONTRASTS
@@ -154,11 +146,11 @@ for min_length in min_lengths:
 
     # 3.1 Plot rate distributions
     rates = ((contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean())
-    rates_motifs = rates.drop(motif_labels, axis=1)
+    rates_motifs = rates.drop(motifs_labels, axis=1)
     disorder = rates.loc[pdidx[:, :, :, True, :], :]
     order = rates.loc[pdidx[:, :, :, False, :], :]
-    disorder_motifs = disorder.drop(motif_labels, axis=1)
-    order_motifs = order.drop(motif_labels, axis=1)
+    disorder_motifs = disorder.drop(motifs_labels, axis=1)
+    order_motifs = order.drop(motifs_labels, axis=1)
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = rates[feature_label].min(), rates[feature_label].max()
@@ -274,11 +266,11 @@ for min_length in min_lengths:
     prefix = f'out/regions_{min_length}/roots/'
 
     # 4.1 Plot root distributions
-    roots_motifs = roots.drop(motif_labels, axis=1)
+    roots_motifs = roots.drop(motifs_labels, axis=1)
     disorder = roots.loc[pdidx[:, :, :, True, :], :]
     order = roots.loc[pdidx[:, :, :, False, :], :]
-    disorder_motifs = disorder.drop(motif_labels, axis=1)
-    order_motifs = order.drop(motif_labels, axis=1)
+    disorder_motifs = disorder.drop(motifs_labels, axis=1)
+    order_motifs = order.drop(motifs_labels, axis=1)
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = roots[feature_label].min(), roots[feature_label].max()
@@ -397,13 +389,13 @@ for min_length in min_lengths:
         plt.close()
 
     # 5.2 Plot correlation of roots and rates
-    motif_labels_merge = [f'{motif_label}_root' for motif_label in motif_labels] + [f'{motif_label}_rate' for motif_label in motif_labels]
+    motifs_labels_merge = [f'{motif_label}_root' for motif_label in motifs_labels] + [f'{motif_label}_rate' for motif_label in motifs_labels]
     merge = roots.merge(rates, how='inner', on=['OGid', 'start', 'stop', 'disorder'], suffixes=('_root', '_rate'))
-    merge_motifs = merge.drop(motif_labels_merge, axis=1)
+    merge_motifs = merge.drop(motifs_labels_merge, axis=1)
     disorder = merge.loc[pdidx[:, :, :, True, :], :]
     order = merge.loc[pdidx[:, :, :, False, :], :]
-    disorder_motifs = disorder.drop(motif_labels_merge, axis=1)
-    order_motifs = order.drop(motif_labels_merge, axis=1)
+    disorder_motifs = disorder.drop(motifs_labels_merge, axis=1)
+    order_motifs = order.drop(motifs_labels_merge, axis=1)
     for feature_label in feature_labels:
         plt.hexbin(merge[feature_label + '_root'], merge[feature_label + '_rate'],
                    cmap=cmap3, gridsize=75, linewidth=0, mincnt=1)
