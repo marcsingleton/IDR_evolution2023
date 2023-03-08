@@ -11,14 +11,14 @@ import src.phylo as phylo
 import src.utils as utils
 
 
-def get_args(grouped, tree, feature_labels):
+def get_args(grouped, tree, feature_labels, group_labels):
     for name, group in grouped:
-        yield name, group, tree, feature_labels
+        yield name, group, tree, feature_labels, group_labels
 
 
 def get_models(args):
     # Unpack variables
-    name, group, tree, feature_labels = args
+    name, group, tree, feature_labels, group_labels = args
     OGid, start, stop, disorder = name
 
     # Calculate some common quantities for all features
@@ -27,8 +27,10 @@ def get_models(args):
     tips, cov = phylo.get_brownian_covariance(tree)
     inv = np.linalg.inv(cov)
 
-    record = {'OGid': OGid, 'start': start, 'stop': stop}
-    for feature_label in feature_labels:
+    record = {('OGid', 'ids_group'): OGid,
+              ('start', 'ids_group'): start,
+              ('stop', 'ids_group'): stop}
+    for feature_label, group_label in zip(feature_labels, group_labels):
         # Assign values to tips and extract vector
         # This is done in two ways because the MLE functions have different call signatures
         # as a result of some technical details relating to how they are implemented
@@ -58,11 +60,13 @@ def get_models(args):
             mu_OU, sigma2_OU, alpha_OU = phylo.get_OU_mles(tips=tips, ts=cov)
             loglikelihood_OU = phylo.get_OU_loglikelihood(mu_OU, sigma2_OU, alpha_OU, tips=tips, ts=cov)
 
-        record.update({f'{feature_label}_mu_BM': mu_BM, f'{feature_label}_sigma2_BM': sigma2_BM,
-                       f'{feature_label}_loglikelihood_BM': loglikelihood_BM,
-                       f'{feature_label}_mu_OU': mu_OU, f'{feature_label}_sigma2_OU': sigma2_OU,
-                       f'{feature_label}_alpha_OU': alpha_OU,
-                       f'{feature_label}_loglikelihood_OU': loglikelihood_OU})
+        record.update({(f'{feature_label}_mu_BM', group_label): mu_BM,
+                       (f'{feature_label}_sigma2_BM', group_label): sigma2_BM,
+                       (f'{feature_label}_loglikelihood_BM', group_label): loglikelihood_BM,
+                       (f'{feature_label}_mu_OU', group_label): mu_OU,
+                       (f'{feature_label}_sigma2_OU', group_label): sigma2_OU,
+                       (f'{feature_label}_alpha_OU', group_label): alpha_OU,
+                       (f'{feature_label}_loglikelihood_OU', group_label): loglikelihood_OU})
 
     return record
 
@@ -85,13 +89,15 @@ if __name__ == '__main__':
             ppid2spid[ppid] = spid
 
     # Load features
-    all_features = pd.read_table('../get_features/out/features.tsv')
-    all_features.loc[all_features['kappa'] == -1, 'kappa'] = 1
-    all_features.loc[all_features['omega'] == -1, 'omega'] = 1
+    all_features = pd.read_table('../get_features/out/features.tsv', header=[0, 1])
+    all_features.loc[all_features[('kappa', 'charge_group')] == -1, 'kappa'] = 1  # Need to specify full column index to get slicing to work
+    all_features.loc[all_features[('omega', 'charge_group')] == -1, 'omega'] = 1
     all_features['length'] = all_features['length'] ** 0.6
     all_features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
-    feature_labels = list(all_features.columns.drop(['OGid', 'ppid', 'start', 'stop']))
+    feature_labels = [feature_label for feature_label, group_label in all_features.columns if group_label != 'ids_group']
+    group_labels = [group_label for _, group_label in all_features.columns if group_label != 'ids_group']
+    all_features = all_features.droplevel(1, axis=1)
 
     # Load regions as segments
     rows = []
@@ -114,16 +120,17 @@ if __name__ == '__main__':
         features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
         regions = features.groupby(['OGid', 'start', 'stop', 'disorder'])
 
-        args = get_args(regions, tree_template, feature_labels)
+        args = get_args(regions, tree_template, feature_labels, group_labels)
         with mp.Pool(processes=num_processes) as pool:
             records = pool.map(get_models, args, chunksize=10)
 
         with open(f'out/models_{min_length}.tsv', 'w') as file:
             if records:
-                header = records[0]
-                file.write('\t'.join(header) + '\n')
+                field_names = list(records[0])
+                file.write('\t'.join([feature_label for feature_label, _ in field_names]) + '\n')
+                file.write('\t'.join([group_label for _, group_label in field_names]) + '\n')
             for record in records:
-                file.write('\t'.join(str(record.get(field, 'nan')) for field in header) + '\n')
+                file.write('\t'.join(str(record.get(field_name, 'nan')) for field_name in field_names) + '\n')
 
 """
 NOTES
