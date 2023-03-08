@@ -167,22 +167,27 @@ for data, data_label, title_label, file_label in plots:
                     width_ratios=width_ratios)
 
 # Hierarchical heatmap
-feature_group_records = [('aa_group', 'Amino acid content', 'grey', ''),
-                         ('charge_group', 'Charge properties', 'black', ''),
-                         ('motifs_group', 'Motifs', 'white', 4 * '\\'),
-                         ('physchem_group', 'Physiochemical properties', 'white', ''),
-                         ('complexity_group', 'Repeats and complexity', 'white', 4 * '.')]
+legend_args = {'aa_group': ('Amino acid content', 'grey', ''),
+               'charge_group': ('Charge properties', 'black', ''),
+               'physchem_group': ('Physiochemical properties', 'white', ''),
+               'complexity_group': ('Repeats and complexity', 'white', 4 * '.'),
+               'motifs_group': ('Motifs', 'white', 4 * '\\')}
+group_labels = ['aa_group', 'charge_group', 'motifs_group', 'physchem_group', 'complexity_group']
+group_labels_motifs = ['aa_group', 'charge_group', 'physchem_group', 'complexity_group']
 gridspec_kw = {'width_ratios': [0.1, 0.9], 'wspace': 0,
                'height_ratios': [0.975, 0.025], 'hspace': 0.01,
                'left': 0.05, 'right': 0.95, 'top': 0.95, 'bottom': 0.1}
 
-column_labels = []
-for feature_group_record in feature_group_records:
-    group_label = feature_group_record[0]
-    column_labels.extend([f'{feature_label}_sigma2_ratio' for feature_label in feature_groups[group_label]])
-array = np.nan_to_num(df.loc[pdidx[:, :, :, True], column_labels].to_numpy(), nan=1)  # Re-arrange and convert to array
+plots = [('euclidean', group_labels, 'all'),
+         ('euclidean', group_labels_motifs, 'motifs'),
+         ('correlation', group_labels, 'all'),
+         ('correlation', group_labels_motifs, 'motifs')]
+for metric, group_labels, file_label in plots:
+    column_labels = []
+    for group_label in group_labels:
+        column_labels.extend([f'{feature_label}_delta_AIC' for feature_label in feature_groups[group_label]])
+    array = np.nan_to_num(df.loc[pdidx[:, :, :, True], column_labels].to_numpy(), nan=1)  # Re-arrange and convert to array
 
-for metric in ['euclidean', 'correlation']:
     cdm = pdist(array, metric=metric)
     lm = linkage(cdm, method='average')
 
@@ -196,8 +201,7 @@ for metric in ['euclidean', 'correlation']:
         else:
             tips = sum([node2tips[child] for child in node.children])
         node2tips[node] = tips
-        alpha = min(1, (tips - 1) / 10)
-        node2color[node] = (0, 0, 0, alpha)
+        node2color[node] = str(max(0, (11 - tips) / 10))
 
     fig, axs = plt.subplots(2, 2, figsize=(6, 9), gridspec_kw=gridspec_kw)
 
@@ -213,8 +217,7 @@ for metric in ['euclidean', 'correlation']:
 
     # Heatmap
     ax = axs[0, 1]
-    im = ax.imshow(array[tip_order], aspect='auto',
-                   cmap=plt.colormaps['inferno_r'], vmin=0, vmax=1, interpolation='none')
+    im = ax.imshow(array[tip_order], aspect='auto', cmap=plt.colormaps['inferno'], interpolation='none')
     ax.xaxis.set_label_position('top')
     ax.set_xlabel('Features')
     ax.set_xticks([])
@@ -230,9 +233,10 @@ for metric in ['euclidean', 'correlation']:
     ax = axs[1, 1]
     x = 0
     handles = []
-    for group_label, legend_label, color, hatch in feature_group_records:
-        dx = len(feature_groups[group_label]) / len(feature_labels)
-        rectangle = mpatches.Rectangle((x, 0), dx, 1, label=legend_label, facecolor=color, hatch=hatch,
+    for group_label in group_labels:
+        label, color, hatch = legend_args[group_label]
+        dx = len(feature_groups[group_label]) / len(column_labels)
+        rectangle = mpatches.Rectangle((x, 0), dx, 1, label=label, facecolor=color, hatch=hatch,
                                        edgecolor='black', linewidth=0.75, clip_on=False)
         ax.add_patch(rectangle)
         handles.append(rectangle)
@@ -249,8 +253,8 @@ for metric in ['euclidean', 'correlation']:
     ycenter = gridspec_kw['bottom'] / 2
     height = 0.015
     cax = fig.add_axes((xcenter - width / 2, ycenter - height / 2, width, height))
-    cax.set_title('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$', fontdict={'fontsize': 10})
+    cax.set_title('$\mathregular{AIC_{BM} - AIC_{OU}}$', fontdict={'fontsize': 10})
     fig.colorbar(im, cax=cax, orientation='horizontal')
 
-    fig.savefig(f'out/cluster_{metric}.png', dpi=600)
+    fig.savefig(f'out/cluster_{file_label}_{metric}.png', dpi=600)
     plt.close()
