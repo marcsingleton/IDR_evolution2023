@@ -8,7 +8,7 @@ import numpy as np
 import skbio
 from scipy.special import gammainc
 from scipy.stats import gamma
-from src.evosim.asr import get_conditional
+from src.phylo import get_conditional
 from src.utils import read_fasta
 
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)

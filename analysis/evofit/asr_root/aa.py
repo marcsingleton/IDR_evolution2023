@@ -8,7 +8,7 @@ import numpy as np
 import skbio
 from scipy.special import gammainc
 from scipy.stats import gamma
-from src.evosim.asr import get_conditional
+from src.phylo import get_conditional
 from src.utils import read_fasta, read_paml
 
 
