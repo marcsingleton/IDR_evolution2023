@@ -1,4 +1,4 @@
-"""Fit models of evolution to data."""
+"""Fit models of evolution to features at tips."""
 
 import multiprocessing as mp
 import os
