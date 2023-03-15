@@ -4,6 +4,7 @@ import numpy as np
 from scipy import optimize as optimize
 
 
+# Brownian motion
 def get_brownian_weights(tree):
     """Get weights of tip characters using Brownian motion process.
 
@@ -159,6 +160,7 @@ def get_brownian_loglikelihood(mu, sigma2, tree=None, cov=None, inv=None, values
     return loglikelihood
 
 
+# Ornstein-Uhlenbeck
 def get_OU_covariance(alpha, tree=None, tips=None, ts=None):
     """Get covariance matrix corresponding to Ornstein-Uhlenbeck process on tree.
 
@@ -298,6 +300,7 @@ def get_OU_loglikelihood(mu, sigma2, alpha, tree=None, tips=None, ts=None):
     return loglikelihood
 
 
+# Other utilities
 def get_conditional(tree, matrix, inplace=False):
     """Return conditional probabilities of tree given tips and node state."""
     if not inplace:
