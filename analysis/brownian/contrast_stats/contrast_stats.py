@@ -91,60 +91,12 @@ for min_length in min_lengths:
         plt.savefig(f'{prefix}/hist_numcontrasts-{feature_label}_log.png')
         plt.close()
 
-    # 2 CONTRAST MEANS
-    if not os.path.exists(f'out/regions_{min_length}/means/'):
-        os.mkdir(f'out/regions_{min_length}/means/')
-    prefix = f'out/regions_{min_length}/means/'
-
-    # 2.1 Plot contrast means distributions
-    means = contrasts.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
-    disorder = means.loc[pdidx[:, :, :, True, :], :]
-    order = means.loc[pdidx[:, :, :, False, :], :]
-    for feature_label in feature_labels:
-        fig, axs = plt.subplots(2, 1, sharex=True)
-        xmin, xmax = means[feature_label].min(), means[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
-        axs[1].set_xlabel(f'Mean contrast value ({feature_label})')
-        axs[0].set_title(f'minimum length ≥ {min_length}')
-        for i in range(2):
-            axs[i].set_ylabel('Number of regions')
-            axs[i].legend()
-        plt.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
-        plt.close()
-
-    # 2.2 Plot standardized contrast means distributions
-    # These are sample means which have a mean of 0 and variance sigma^2/n
-    # Estimate sigma^2 from contrasts by mean of contrast squares (since theoretical contrast mean is 0)
-    # Standardize sample means by dividing by sigma/sqrt(n)
-    # Regions with constant contrasts will have 0 variance, so the normalization will result in a NaN
-    # While it is possible for a tree with unequal tip values to yield constant (non-zero) contrasts, it is unlikely
-    # Thus constant contrasts are assumed to equal zero
-    variances = ((contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean())
-    sizes = contrasts.groupby(['OGid', 'start', 'stop', 'disorder']).size()
-    stds = (means / (variances.div(sizes, axis=0))**0.5).fillna(0)
-    disorder = stds.loc[pdidx[:, :, :, True, :], :]
-    order = stds.loc[pdidx[:, :, :, False, :], :]
-    for feature_label in feature_labels:
-        fig, axs = plt.subplots(2, 1, sharex=True)
-        xmin, xmax = stds[feature_label].min(), stds[feature_label].max()
-        axs[0].hist(disorder[feature_label], density=True, bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
-        axs[1].hist(order[feature_label], density=True, bins=linspace(xmin, xmax, 150), color='C1', label='order')
-        axs[1].set_xlabel(f'Standardized mean contrast value ({feature_label})')
-        axs[0].set_title(f'minimum length ≥ {min_length}')
-        for i in range(2):
-            axs[i].plot(linspace(xmin, xmax), [1/(2*pi)**0.5 * exp(-x**2/2) for x in linspace(xmin, xmax)], color='black')
-            axs[i].set_ylabel('Density of regions')
-            axs[i].legend()
-        plt.savefig(f'{prefix}/hist_numregions-{feature_label}_std.png')
-        plt.close()
-
-    # 3 RATES
+    # 2 RATES
     if not os.path.exists(f'out/regions_{min_length}/rates/'):
         os.mkdir(f'out/regions_{min_length}/rates/')
     prefix = f'out/regions_{min_length}/rates/'
 
-    # 3.1 Plot rate distributions
+    # 2.1 Plot rate distributions
     rates = ((contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean())
     rates_motifs = rates.drop(motifs_labels, axis=1)
     disorder = rates.loc[pdidx[:, :, :, True, :], :]
@@ -167,7 +119,7 @@ for min_length in min_lengths:
         plt.savefig(f'{prefix}/hist_numregions-{feature_label}_log.png')
         plt.close()
 
-    # 3.2.1 Plot rate PCAs (combined)
+    # 2.2.1 Plot rate PCAs (combined)
     plots = [(rates, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(rates), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
              (rates_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
@@ -212,7 +164,7 @@ for min_length in min_lengths:
                          f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
                          hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
-    # 3.2.2 Plot rate PCAs (individual)
+    # 2.2.2 Plot rate PCAs (individual)
     plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
@@ -260,12 +212,12 @@ for min_length in min_lengths:
                         f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
                         hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
-    # 4 ROOTS
+    # 3 ROOTS
     if not os.path.exists(f'out/regions_{min_length}/roots/'):
         os.mkdir(f'out/regions_{min_length}/roots/')
     prefix = f'out/regions_{min_length}/roots/'
 
-    # 4.1 Plot root distributions
+    # 3.1 Plot root distributions
     roots_motifs = roots.drop(motifs_labels, axis=1)
     disorder = roots.loc[pdidx[:, :, :, True, :], :]
     order = roots.loc[pdidx[:, :, :, False, :], :]
@@ -284,7 +236,7 @@ for min_length in min_lengths:
         plt.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
         plt.close()
 
-    # 4.2.1 Plot root PCAs (combined)
+    # 3.2.1 Plot root PCAs (combined)
     plots = [(roots, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(roots), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
              (roots_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
@@ -322,7 +274,7 @@ for min_length in min_lengths:
                          f'{prefix}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
                          hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
-    # 4.2.2 Plot root PCAs (individual)
+    # 3.2.2 Plot root PCAs (individual)
     plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
@@ -363,12 +315,12 @@ for min_length in min_lengths:
                         f'{prefix}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
                         hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
-    # 5 MERGE
+    # 4 MERGE
     if not os.path.exists(f'out/regions_{min_length}/merge/'):
         os.mkdir(f'out/regions_{min_length}/merge/')
     prefix = f'out/regions_{min_length}/merge/'
 
-    # 5.1 Plot correlations of roots and feature means
+    # 4.1 Plot correlations of roots and feature means
     merge = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean().merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
     for feature_label in feature_labels:
         plt.hexbin(merge[feature_label + '_x'], merge[feature_label + '_y'], gridsize=75, linewidth=0, mincnt=1)
@@ -388,7 +340,7 @@ for min_length in min_lengths:
         plt.savefig(f'{prefix}/hexbin_root-mean_{feature_label}.png')
         plt.close()
 
-    # 5.2 Plot correlation of roots and rates
+    # 4.2 Plot correlation of roots and rates
     motifs_labels_merge = [f'{motif_label}_root' for motif_label in motifs_labels] + [f'{motif_label}_rate' for motif_label in motifs_labels]
     merge = roots.merge(rates, how='inner', on=['OGid', 'start', 'stop', 'disorder'], suffixes=('_root', '_rate'))
     merge_motifs = merge.drop(motifs_labels_merge, axis=1)
@@ -422,7 +374,7 @@ for min_length in min_lengths:
         plt.savefig(f'{prefix}/hexbin_rate-root_{feature_label}2.png')
         plt.close()
 
-    # 5.3.1 Plot root-rate PCAs (combined)
+    # 4.3.1 Plot root-rate PCAs (combined)
     plots = [(merge, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(merge), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
              (merge_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
@@ -472,7 +424,7 @@ for min_length in min_lengths:
                          hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
                          width_ratios=width_ratios)
 
-    # 5.3.2 Plot root-rate PCAs (individual)
+    # 4.3.2 Plot root-rate PCAs (individual)
     plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
