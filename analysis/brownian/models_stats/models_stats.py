@@ -58,7 +58,7 @@ with open('../../IDRpred/regions_filter/out/regions_30.tsv') as file:
 regions = pd.DataFrame(rows)
 
 models = pd.read_table('../get_models/out/models_30.tsv', header=[0, 1])
-rates = pd.read_table('../../evofim/asr_stats/out/regions_30/rates.tsv')
+rates = pd.read_table('../../evofit/asr_stats/out/regions_30/rates.tsv')
 
 df = regions.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
 df = df.merge(rates, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
