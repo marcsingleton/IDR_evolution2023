@@ -56,11 +56,12 @@ for min_length in min_lengths:
     all_regions = all_segments[['OGid', 'start', 'stop']].drop_duplicates()
 
     asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
+    asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
     asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
 
     row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
-    column_idx = ['OGid', 'start', 'stop']
-    region_keys = all_regions.merge(asr_rates.loc[row_idx, column_idx], how='right', on=['OGid', 'start', 'stop'])
+    column_idx = ['OGid', 'start', 'stop', 'disorder']
+    region_keys = asr_rates.loc[row_idx, column_idx]
 
     features = all_segments.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     means = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
