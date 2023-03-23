@@ -60,11 +60,12 @@ for min_length in min_lengths:
 
     # Load and format data
     asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
+    asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
     asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
 
     row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
-    column_idx = ['OGid', 'start', 'stop']
-    region_keys = all_regions.merge(asr_rates.loc[row_idx, column_idx], how='right', on=['OGid', 'start', 'stop'])
+    column_idx = ['OGid', 'start', 'stop', 'disorder']
+    region_keys = asr_rates.loc[row_idx, column_idx]
     segment_keys = all_segments.merge(region_keys, how='right', on=['OGid', 'start', 'stop', 'disorder'])
 
     features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
@@ -173,6 +174,31 @@ for min_length in min_lengths:
                          f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
                          hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
+        # PC1 against ASR rates
+        pca = PCA(n_components=pca_components)
+        df = data.merge(asr_rates, left_index=True, right_on=['OGid', 'start', 'stop', 'disorder'])
+        transform = pca.fit_transform(df[data.columns].to_numpy())
+
+        x = transform[:, 0]
+        y = df['aa_rate_mean'] + df['indel_rate_mean']
+        result = linregress(x, y)
+        m, b = result.slope, result.intercept
+        r2 = result.rvalue ** 2
+        xmin, xmax = x.min(), x.max()
+
+        fig, ax = plt.subplots()
+        hb = ax.hexbin(x, y, gridsize=75, mincnt=1, linewidth=0)
+        ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
+        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xmax, m * xmax + b),
+                    horizontalalignment='right', verticalalignment='bottom')
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('Sum of average amino acid and indel rates in region')
+        ax.set_title(title_label)
+        fig.colorbar(hb)
+
+        fig.savefig(f'{prefix}/hexbin_pc1-rate_{data_label}_{file_label}.png')
+        plt.close()
+
     # 2.2.2 Plot rate PCAs (individual)
     plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
@@ -220,6 +246,31 @@ for min_length in min_lengths:
         plot_pca_arrows(pca, transform, data.columns, 1, 2, cmap, title_label,
                         f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
                         hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+
+        # PC1 against ASR rates
+        pca = PCA(n_components=pca_components)
+        df = data.merge(asr_rates, left_index=True, right_on=['OGid', 'start', 'stop', 'disorder'])
+        transform = pca.fit_transform(df[data.columns].to_numpy())
+
+        x = transform[:, 0]
+        y = df['aa_rate_mean'] + df['indel_rate_mean']
+        result = linregress(x, y)
+        m, b = result.slope, result.intercept
+        r2 = result.rvalue ** 2
+        xmin, xmax = x.min(), x.max()
+
+        fig, ax = plt.subplots()
+        hb = ax.hexbin(x, y, gridsize=75, mincnt=1, linewidth=0)
+        ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
+        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xmax, m * xmax + b),
+                    horizontalalignment='right', verticalalignment='bottom')
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('Sum of average amino acid and indel rates in region')
+        ax.set_title(title_label)
+        fig.colorbar(hb)
+
+        fig.savefig(f'{prefix}/hexbin_pc1-rate_{data_label}_{file_label}.png')
+        plt.close()
 
     # 3 ROOTS
     if not os.path.exists(f'out/regions_{min_length}/roots/'):
@@ -342,8 +393,8 @@ for min_length in min_lengths:
         result = linregress(x, y)
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
+        xmin, xmax = x.min(), x.max()
 
-        xmin, xmax = plt.xlim()
         plt.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
         plt.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (0.85, 0.65), xycoords='axes fraction')
         plt.savefig(f'{prefix}/hexbin_root-mean_{feature_label}.png')
