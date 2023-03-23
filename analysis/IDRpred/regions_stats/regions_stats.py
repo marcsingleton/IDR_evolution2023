@@ -98,9 +98,9 @@ for min_length in min_lengths:
     axs[1].hist(order['length'], bins=linspace(xmin, xmax, 100), color='C1', label='order')
     axs[1].set_xlabel('Mean length of region')
     axs[0].set_title(f'minimum length ≥ {min_length}')
-    for i in range(2):
-        axs[i].set_ylabel('Number of regions')
-        axs[i].legend()
+    for ax in axs:
+        ax.set_ylabel('Number of regions')
+        ax.legend()
     plt.savefig(f'out/regions_{min_length}/hist_numregions-length.png')
     plt.close()
 
