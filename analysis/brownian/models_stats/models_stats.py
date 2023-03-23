@@ -10,7 +10,7 @@ import skbio
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
 from sklearn.decomposition import PCA
-from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
+from src.brownian.pca_plots import plot_pca, plot_pca_arrows
 from src.draw import plot_tree
 
 
@@ -58,19 +58,20 @@ for min_length in min_lengths:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-            rows.append({'OGid': fields['OGid'], 'start': int(fields['start']), 'stop': int(fields['stop']),
-                         'disorder': fields['disorder'] == 'True'})
-    regions = pd.DataFrame(rows)
+            OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
+            rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder})
+    all_regions = pd.DataFrame(rows)
+
+    asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
+    asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
+
+    row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
+    column_idx = ['OGid', 'start', 'stop']
+    region_keys = all_regions.merge(asr_rates.loc[row_idx, column_idx], how='right', on=['OGid', 'start', 'stop'])
 
     models = pd.read_table(f'../get_models/out/models_{min_length}.tsv', header=[0, 1])
-    rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
-
-    df = regions.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
-    df = df.merge(rates, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
-
-    # Data filtering
-    df.loc[(df['indel_num_columns'] < min_indel_columns) | df['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
-    df = df[(df['aa_rate_mean'] > min_aa_rate) | (df['indel_rate_mean'] > min_indel_rate)]
+    df = region_keys.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
+    df = df.merge(asr_rates, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
 
     feature_groups = {}
     for column_label, group_label in models.columns:

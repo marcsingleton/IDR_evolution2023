@@ -1,8 +1,6 @@
 """Plot statistics associated with contrasts."""
 
 import os
-import re
-from math import exp, pi
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,9 +15,11 @@ def zscore(df):
 
 
 pdidx = pd.IndexSlice
-ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
-spid_regex = r'spid=([a-z]+)'
 min_lengths = [30, 60, 90]
+
+min_indel_columns = 5  # Indel rates below this value are set to 0
+min_aa_rate = 1
+min_indel_rate = 1
 
 pca_components = 10
 cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
@@ -41,31 +41,39 @@ feature_labels = [feature_label for feature_label, group_label in all_features.c
 motifs_labels = [feature_label for feature_label, group_label in all_features.columns if group_label == 'motifs_group']
 all_features = all_features.droplevel(1, axis=1)
 
-# Load regions as segments
-rows = []
 for min_length in min_lengths:
+    if not os.path.exists(f'out/regions_{min_length}/'):
+        os.makedirs(f'out/regions_{min_length}/')
+
+    # Load regions as segments
+    rows = []
     with open(f'../../IDRpred/regions_filter/out/regions_{min_length}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
             OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
             for ppid in fields['ppids'].split(','):
-                rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
-                             'ppid': ppid, 'min_length': min_length})
-all_segments = pd.DataFrame(rows)
-
-for min_length in min_lengths:
-    if not os.path.exists(f'out/regions_{min_length}/'):
-        os.makedirs(f'out/regions_{min_length}/')
+                rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder, 'ppid': ppid})
+    all_segments = pd.DataFrame(rows)
+    all_regions = all_segments.drop('ppid', axis=1).drop_duplicates()
 
     # Load and format data
-    segment_keys = all_segments[all_segments['min_length'] == min_length].drop('min_length', axis=1)
-    region_keys = segment_keys.drop('ppid', axis=1).drop_duplicates()
+    asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
+    asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
+
+    row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
+    column_idx = ['OGid', 'start', 'stop']
+    region_keys = all_regions.merge(asr_rates.loc[row_idx, column_idx], how='right', on=['OGid', 'start', 'stop'])
+    segment_keys = all_segments.merge(region_keys, how='right', on=['OGid', 'start', 'stop', 'disorder'])
+
     features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+    features = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+
     roots = pd.read_table(f'../get_contrasts/out/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
-    roots = region_keys.merge(roots, how='right', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
+    roots = region_keys.merge(roots, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
+
     contrasts = pd.read_table(f'../get_contrasts/out/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
-    contrasts = region_keys.merge(contrasts, how='right', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
+    contrasts = region_keys.merge(contrasts, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
     # 1 CONTRASTS
     if not os.path.exists(f'out/regions_{min_length}/contrasts/'):
@@ -82,12 +90,12 @@ for min_length in min_lengths:
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
         axs[1].set_xlabel(f'Contrast value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
-        for i in range(2):
-            axs[i].set_ylabel('Number of contrasts')
-            axs[i].legend()
+        for ax in axs:
+            ax.set_ylabel('Number of contrasts')
+            ax.legend()
         plt.savefig(f'{prefix}/hist_numcontrasts-{feature_label}.png')
-        for i in range(2):
-            axs[i].set_yscale('log')
+        for ax in axs:
+            ax.set_yscale('log')
         plt.savefig(f'{prefix}/hist_numcontrasts-{feature_label}_log.png')
         plt.close()
 
@@ -110,12 +118,12 @@ for min_length in min_lengths:
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
         axs[1].set_xlabel(f'Rate ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
-        for i in range(2):
-            axs[i].set_ylabel('Number of regions')
-            axs[i].legend()
+        for ax in axs:
+            ax.set_ylabel('Number of regions')
+            ax.legend()
         plt.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
-        for i in range(2):
-            axs[i].set_yscale('log')
+        for ax in axs:
+            ax.set_yscale('log')
         plt.savefig(f'{prefix}/hist_numregions-{feature_label}_log.png')
         plt.close()
 
@@ -230,9 +238,9 @@ for min_length in min_lengths:
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color='C1', label='order')
         axs[1].set_xlabel(f'Inferred root value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
-        for i in range(2):
-            axs[i].set_ylabel('Number of regions')
-            axs[i].legend()
+        for ax in axs:
+            ax.set_ylabel('Number of regions')
+            ax.legend()
         plt.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
         plt.close()
 
@@ -321,7 +329,7 @@ for min_length in min_lengths:
     prefix = f'out/regions_{min_length}/merge/'
 
     # 4.1 Plot correlations of roots and feature means
-    merge = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean().merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
+    merge = features.merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
     for feature_label in feature_labels:
         plt.hexbin(merge[feature_label + '_x'], merge[feature_label + '_y'], gridsize=75, linewidth=0, mincnt=1)
         plt.xlabel('Tip mean')

@@ -1,7 +1,6 @@
 """Plot statistics associated with features."""
 
 import os
-import re
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -16,6 +15,10 @@ def zscore(df):
 
 pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
+
+min_indel_columns = 5  # Indel rates below this value are set to 0
+min_aa_rate = 1
+min_indel_rate = 1
 
 pca_components = 10
 cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
@@ -36,28 +39,31 @@ feature_labels = [feature_label for feature_label, group_label in all_features.c
 motifs_labels = [feature_label for feature_label, group_label in all_features.columns if group_label == 'motifs_group']
 all_features = all_features.droplevel(1, axis=1)
 
-# Load regions as segments
-rows = []
 for min_length in min_lengths:
+    if not os.path.exists(f'out/regions_{min_length}/'):
+        os.makedirs(f'out/regions_{min_length}/')
+
+    # Load regions as segments
+    rows = []
     with open(f'../../IDRpred/regions_filter/out/regions_{min_length}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
             OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
             for ppid in fields['ppids'].split(','):
-                rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder,
-                             'ppid': ppid, 'min_length': min_length})
-all_segments = pd.DataFrame(rows)
+                rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder, 'ppid': ppid})
+    all_segments = pd.DataFrame(rows)
+    all_regions = all_segments[['OGid', 'start', 'stop']].drop_duplicates()
 
-for min_length in min_lengths:
-    if not os.path.exists(f'out/regions_{min_length}/'):
-        os.makedirs(f'out/regions_{min_length}/')
+    asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
+    asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
 
-    segment_keys = all_segments[all_segments['min_length'] == min_length].drop('min_length', axis=1)
-    features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
-    regions = features.groupby(['OGid', 'start', 'stop', 'disorder'])
+    row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
+    column_idx = ['OGid', 'start', 'stop']
+    region_keys = all_regions.merge(asr_rates.loc[row_idx, column_idx], how='right', on=['OGid', 'start', 'stop'])
 
-    means = regions.mean()
+    features = all_segments.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+    means = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
     means_motifs = means.drop(motifs_labels, axis=1)
     disorder = means.loc[pdidx[:, :, :, True], :]
     order = means.loc[pdidx[:, :, :, False], :]
@@ -72,9 +78,9 @@ for min_length in min_lengths:
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color='C1', label='order')
         axs[1].set_xlabel(f'Mean {feature_label}')
         axs[0].set_title(f'minimum length ≥ {min_length}')
-        for i in range(2):
-            axs[i].set_ylabel('Number of regions')
-            axs[i].legend()
+        for ax in axs:
+            ax.set_ylabel('Number of regions')
+            ax.legend()
         plt.savefig(f'out/regions_{min_length}/hist_numregions-{feature_label}.png')
         plt.close()
 
