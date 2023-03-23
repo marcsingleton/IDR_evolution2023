@@ -5,7 +5,8 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.lines import Line2D
-from numpy import linspace
+from numpy import arange, linspace
+from scipy.stats import linregress
 from sklearn.decomposition import PCA
 from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
 
@@ -337,16 +338,33 @@ for min_length in min_lengths:
         plt.title(f'{feature_label}\nminimum length ≥ {min_length}')
         plt.colorbar()
 
-        x, y = merge[feature_label + '_x'], merge[feature_label + '_y']
-        m = ((x - x.mean())*(y - y.mean())).sum() / ((x - x.mean())**2).sum()
-        b = y.mean() - m * x.mean()
-        r2 = 1 - ((y - m * x - b)**2).sum() / ((y - y.mean())**2).sum()
+        x, y = merge[f'{feature_label}_x'], merge[f'{feature_label}_y']
+        result = linregress(x, y)
+        m, b = result.slope, result.intercept
+        r2 = result.rvalue ** 2
 
         xmin, xmax = plt.xlim()
-        plt.plot([xmin, xmax], [m*xmin+b, m*xmax+b], color='black', linewidth=1)
-        plt.annotate(r'$\mathregular{R^2}$' + f' = {round(r2, 2)}', (0.85, 0.65), xycoords='axes fraction')
+        plt.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
+        plt.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (0.85, 0.65), xycoords='axes fraction')
         plt.savefig(f'{prefix}/hexbin_root-mean_{feature_label}.png')
         plt.close()
+
+    rs = []
+    for feature_label in feature_labels:
+        x, y = merge[f'{feature_label}_x'], merge[f'{feature_label}_y']
+        result = linregress(x, y)
+        rs.append(result.rvalue)
+    ys = arange(len(rs))
+
+    fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
+    ax.invert_yaxis()
+    ax.set_ymargin(0.01)
+    ax.barh(ys, rs)
+    ax.set_yticks(ys, feature_labels, fontsize=6)
+    ax.set_xlabel('Correlation between root and tip mean')
+    ax.set_ylabel('Feature')
+    fig.savefig(f'{prefix}/bar_root-mean_corr.png')
+    plt.close()
 
     # 4.2 Plot correlation of roots and rates
     motifs_labels_merge = [f'{motif_label}_root' for motif_label in motifs_labels] + [f'{motif_label}_rate' for motif_label in motifs_labels]
