@@ -48,7 +48,7 @@ for OGid in OGids:
         gnid = re.search(gnid_regex, header).group(1)
         spid = re.search(spid_regex, header).group(1)
 
-        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
+        scores = load_scores(f'../../IDRpred/aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
         binary = (scores >= cutoff)
         scores_sum = scores.sum()
         binary_sum = binary.sum()
