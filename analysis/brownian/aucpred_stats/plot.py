@@ -39,49 +39,24 @@ plot_msa_kwargs = {'hspace': 0.2, 'left': 0.025, 'right': 0.925, 'top': 0.99, 'b
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
-df1 = pd.read_table('out/stats.tsv')
-
-df1['scores_fraction'] = df1['scores_sum'] / df1['length']
-df1['binary_fraction'] = df1['binary_sum'] / df1['length']
-groups = df1.groupby('OGid')
+roots = pd.read_table('out/roots.tsv')
+contrasts = pd.read_table('out/contrasts.tsv').set_index(['OGid', 'contrast_id'])
+rates = ((contrasts**2).groupby('OGid').mean())
+df = roots.merge(rates, on='OGid', suffixes=('_root', '_rate'))
 
 columns = ['scores_fraction', 'binary_fraction']
 labels = ['Average AUCpreD score', 'Fraction disorder']
 colors = ['C0', 'C1']
 
-rows = []
-for OGid, group in groups:
-    tree = tree_template.shear(group['spid'])
-    spid2tip = {tip.name: tip for tip in tree.tips()}
-    for row in group.itertuples():
-        tip = spid2tip[row.spid]
-        tip.value = np.array([getattr(row, column) for column in columns])
-
-    roots, contrasts = get_contrasts(tree)
-    contrasts = np.stack(contrasts)
-    rates = (contrasts ** 2).mean(axis=0)
-    rows.append({'OGid': OGid,
-                 **{f'{column}_root': root for column, root in zip(columns, roots)},
-                 **{f'{column}_rate': rate for column, rate in zip(columns, rates)}})
-df2 = pd.DataFrame(rows)
-
 fig, axs = plt.subplots(2, 1, sharex=True)
 for ax, column, label, color in zip(axs, columns, labels, colors):
-    ax.hist(df1[column], bins=np.linspace(0, 1, 100), color=color)
-    ax.set_xlabel(label)
-    ax.set_ylabel('Number of sequences')
-plt.savefig('out/hist_seqnum-root.png')
-plt.close()
-
-fig, axs = plt.subplots(2, 1, sharex=True)
-for ax, column, label, color in zip(axs, columns, labels, colors):
-    ax.hist(df2[f'{column}_root'], bins=np.linspace(0, 1, 100), color=color)
+    ax.hist(df[f'{column}_root'], bins=np.linspace(0, 1, 100), color=color)
     ax.set_xlabel(f'{label} at root')
     ax.set_ylabel('Number of alignments')
 plt.savefig('out/hist_alignmentnum-root.png')
 plt.close()
 
-xs = [get_quantile(df2[f'{column}_rate'].to_numpy(), 0.99) for column in columns]
+xs = [get_quantile(df[f'{column}_rate'].to_numpy(), 0.99) for column in columns]
 xmin = min([x.min() for x in xs])
 xmax = min([x.max() for x in xs])
 xrange = np.linspace(xmin, xmax, 100)
@@ -94,21 +69,21 @@ plt.savefig('out/hist_alignmentnum-rate.png')
 plt.close()
 
 for ax, column, label in zip(axs, columns, labels):
-    plt.hexbin(df2[f'{column}_root'], df2[f'{column}_rate'], gridsize=50, mincnt=1, linewidth=0)
+    plt.hexbin(df[f'{column}_root'], df[f'{column}_rate'], gridsize=50, mincnt=1, linewidth=0)
     plt.xlabel(f'{label} at root')
     plt.ylabel(f'{label} rate')
     plt.colorbar()
     plt.savefig(f'out/hexbin_rate-root_{column}.png')
     plt.close()
 
-plt.hexbin(df2[f'{columns[0]}_root'], df2[f'{columns[1]}_root'], gridsize=50, mincnt=1, linewidth=0)
+plt.hexbin(df[f'{columns[0]}_root'], df[f'{columns[1]}_root'], gridsize=50, mincnt=1, linewidth=0)
 plt.xlabel(f'{labels[0]} at root')
 plt.ylabel(f'{labels[1]} at root')
 plt.colorbar()
 plt.savefig(f'out/hexbin_{columns[1]}_root-{columns[0]}_root.png')
 plt.close()
 
-plt.hexbin(df2[f'{columns[0]}_rate'], df2[f'{columns[1]}_rate'], gridsize=50, mincnt=1, bins='log', linewidth=0)
+plt.hexbin(df[f'{columns[0]}_rate'], df[f'{columns[1]}_rate'], gridsize=50, mincnt=1, bins='log', linewidth=0)
 plt.xlabel(f'{labels[0]} rate')
 plt.ylabel(f'{labels[1]} rate')
 plt.colorbar()
@@ -118,7 +93,7 @@ plt.close()
 if not os.path.exists('out/traces/'):
     os.mkdir('out/traces/')
 
-sort = df2.sort_values(by='scores_fraction_rate', ascending=False, ignore_index=True)
+sort = df.sort_values(by='scores_fraction_rate', ascending=False, ignore_index=True)
 examples = pd.concat([sort.iloc[:100],  # Pull out samples around quartiles
                       sort.iloc[(int(0.25*len(sort))-50):(int(0.25*len(sort))+50)],
                       sort.iloc[(int(0.5*len(sort))-50):(int(0.5*len(sort))+50)],
@@ -134,7 +109,7 @@ for row in examples.itertuples():
 
     # Get missing segments
     ppid2missing = {}
-    with open(f'../../../data/alignments/missing/{OGid}.tsv') as file:
+    with open(f'../../../data/alignments/missing/{row.OGid}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -149,7 +124,7 @@ for row in examples.itertuples():
     aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
     for i, record in enumerate(msa):
         ppid, seq = record['ppid'], record['seq']
-        scores = load_scores(f'../aucpred_scores/out/{row.OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
+        scores = load_scores(f'../../IDRpred/aucpred_scores/out/{row.OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
         idx = 0
         for j, sym in enumerate(seq):
             if sym not in ['-', '.']:

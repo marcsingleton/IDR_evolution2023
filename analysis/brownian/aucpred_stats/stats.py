@@ -4,7 +4,9 @@ import os
 import re
 
 import numpy as np
-import scipy.ndimage as ndimage
+import pandas as pd
+import skbio
+from src.phylo import get_contrasts
 from src.utils import read_fasta
 
 
@@ -19,13 +21,15 @@ def load_scores(path):
 
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
-gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 cutoff = 0.5
 
+tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
+tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
+
 # Load error flags
 OGid2flags = {}
-with open('../aucpred_scores/out/errors.tsv') as file:
+with open('../../IDRPred/aucpred_scores/out/errors.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -41,30 +45,42 @@ for OGid, error_flags in sorted(OGid2flags.items()):
     if not any(error_flags):
         OGids.append(OGid)
 
-records = []
+roots_records = []
+contrasts_records = []
 for OGid in OGids:
+    spid2value = {}
     for header, _ in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
         ppid = re.search(ppid_regex, header).group(1)
-        gnid = re.search(gnid_regex, header).group(1)
         spid = re.search(spid_regex, header).group(1)
 
         scores = load_scores(f'../../IDRpred/aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
-        binary = (scores >= cutoff)
-        scores_sum = scores.sum()
-        binary_sum = binary.sum()
-        binary_regions = ndimage.label(binary)[1]  # Second element is number of objects
-        length = len(scores)
-        records.append({'OGid': OGid, 'ppid': ppid, 'gnid': gnid, 'spid': spid,
-                        'scores_sum': scores_sum, 'binary_sum': binary_sum,
-                        'binary_regions': binary_regions,
-                        'length': length})
+        scores_fraction = scores.mean()
+        binary_fraction = (scores >= cutoff).mean()
+        spid2value[spid] = pd.Series({'scores_fraction': scores_fraction, 'binary_fraction': binary_fraction})
 
-# Write segments to file
+    # Map features to tips
+    tree = tree_template.shear(spid2value)
+    for tip in tree.tips():
+        tip.value = spid2value[tip.name]
+
+    # Get contrasts
+    roots, contrasts = get_contrasts(tree)
+
+    # Convert to dataframes
+    root_ids = pd.Series({'OGid': OGid})
+    roots = pd.concat([root_ids, roots])
+
+    contrast_ids = []
+    for contrast_id in range(len(contrasts)):
+        contrast_ids.append({'OGid': OGid, 'contrast_id': contrast_id})
+    contrasts = pd.concat([pd.DataFrame(contrast_ids), pd.DataFrame(contrasts)], axis=1)
+
+    roots_records.append(roots)
+    contrasts_records.append(contrasts)
+
+# Write to file
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-columns = ['OGid', 'ppid', 'gnid', 'spid', 'scores_sum', 'binary_sum', 'binary_regions', 'length']
-with open('out/stats.tsv', 'w') as file:
-    file.write('\t'.join(columns) + '\n')
-    for record in records:
-        file.write('\t'.join([str(record[column]) for column in columns]) + '\n')
+pd.DataFrame(roots_records).to_csv(f'out/roots.tsv', sep='\t', index=False)
+pd.concat(contrasts_records).to_csv(f'out/contrasts.tsv', sep='\t', index=False)
