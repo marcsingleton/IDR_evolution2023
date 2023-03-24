@@ -14,6 +14,7 @@ min_length = 30
 min_seqs = 20
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
+# Load regions
 OGid2regions = {}
 with open('../../IDRpred/get_regions/out/regions.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')

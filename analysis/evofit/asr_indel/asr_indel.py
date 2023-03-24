@@ -43,6 +43,7 @@ max_categories = 4
 columns_per_category = 5
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
+# Load regions
 OGid2regions = {}
 with open('../../IDRpred/get_regions/out/regions.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
