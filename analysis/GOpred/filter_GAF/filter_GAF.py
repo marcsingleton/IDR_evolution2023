@@ -23,6 +23,7 @@ def write_table(counts, title):
         mode = 'a'
         padding = '\n'
     else:
+        mode = 'w'
         padding = ''
 
     table_string = counts.head(10).to_string()
