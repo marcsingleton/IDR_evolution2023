@@ -48,6 +48,7 @@ num_processes = int(os.environ.get('SLURM_CPUS_ON_NODE', 10))
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 min_lengths = [30, 60, 90]
+
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 if __name__ == '__main__':

@@ -17,6 +17,7 @@ def is_redundant(column, cutoff):
 
 
 spid_regex = r'spid=([a-z]+)'
+
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 rng = np.random.default_rng(seed=930715)

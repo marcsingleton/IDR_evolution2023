@@ -41,6 +41,7 @@ min_length = 30
 min_seqs = 20
 max_categories = 4
 columns_per_category = 5
+
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 
 # Load regions
