@@ -6,7 +6,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import skbio
 
 min_lengths = [30, 60, 90]
 
