@@ -1,6 +1,10 @@
+"""Common functions for fitting phylogenetic models."""
+
 from itertools import product
 
 import numpy as np
+import scipy.linalg as linalg
+from numpy import log
 from scipy import optimize as optimize
 
 

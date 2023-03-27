@@ -3,10 +3,7 @@
 from copy import deepcopy
 
 import numpy as np
-import scipy.linalg as linalg
 import scipy.stats as stats
-import skbio
-from numpy import log
 
 
 class SeqEvolver:
