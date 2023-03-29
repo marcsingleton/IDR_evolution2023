@@ -1,4 +1,4 @@
-"""Plot statistics from fit evolutionary models."""
+"""Plot statistics from fitted evolutionary models."""
 
 import os
 
@@ -64,7 +64,8 @@ for min_length in min_lengths:
 
     asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
     asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
-    asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
+    row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
+    asr_rates.loc[row_idx, 'indel_rate_mean'] = 0
 
     row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
     column_idx = ['OGid', 'start', 'stop', 'disorder']
@@ -72,9 +73,11 @@ for min_length in min_lengths:
 
     models = pd.read_table(f'../get_models/out/models_{min_length}.tsv', header=[0, 1])
     df = region_keys.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
-    df = df.merge(asr_rates, how='left', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder'])
+    df = df.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     feature_groups = {}
+    feature_labels = []
+    nonmotif_labels = []
     for column_label, group_label in models.columns:
         if not column_label.endswith('_loglikelihood_BM') or group_label == 'ids_group':
             continue
@@ -83,7 +86,9 @@ for min_length in min_lengths:
             feature_groups[group_label].append(feature_label)
         except KeyError:
             feature_groups[group_label] = [feature_label]
-    feature_labels = sum(feature_groups.values(), start=[])
+        feature_labels.append(feature_label)
+        if group_label != 'motifs_group':
+            nonmotif_labels.append(feature_label)
 
     columns = {}
     for feature_label in feature_labels:
@@ -120,10 +125,9 @@ for min_length in min_lengths:
         plt.close()
 
     column_labels = [f'{feature_label}_sigma2_ratio' for feature_label in feature_labels]
-    column_labels_motifs = [f'{feature_label}_sigma2_ratio' for feature_label in feature_labels
-                            if feature_label not in set(feature_groups['motifs_group'])]
+    column_labels_nonmotif = [f'{feature_label}_sigma2_ratio' for feature_label in nonmotif_labels]
     plots = [(df.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
-             (df.loc[pdidx[:, :, :, True], column_labels_motifs], 'disorder', 'no motifs', 'motifs'),]
+             (df.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(np.nan_to_num(data.to_numpy(), nan=1))
@@ -177,15 +181,15 @@ for min_length in min_lengths:
                    'complexity_group': ('Repeats and complexity', 'white', 4 * '.'),
                    'motifs_group': ('Motifs', 'white', 4 * '\\')}
     group_labels = ['aa_group', 'charge_group', 'motifs_group', 'physchem_group', 'complexity_group']
-    group_labels_motifs = ['aa_group', 'charge_group', 'physchem_group', 'complexity_group']
+    group_labels_nonmotif = ['aa_group', 'charge_group', 'physchem_group', 'complexity_group']
     gridspec_kw = {'width_ratios': [0.1, 0.9], 'wspace': 0,
                    'height_ratios': [0.975, 0.025], 'hspace': 0.01,
                    'left': 0.05, 'right': 0.95, 'top': 0.95, 'bottom': 0.1}
 
     plots = [('euclidean', group_labels, 'all'),
-             ('euclidean', group_labels_motifs, 'motifs'),
+             ('euclidean', group_labels_nonmotif, 'nonmotif'),
              ('correlation', group_labels, 'all'),
-             ('correlation', group_labels_motifs, 'motifs')]
+             ('correlation', group_labels_nonmotif, 'nonmotif')]
     for metric, group_labels, file_label in plots:
         column_labels = []
         for group_label in group_labels:

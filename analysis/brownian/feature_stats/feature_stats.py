@@ -35,8 +35,10 @@ all_features.loc[all_features[('omega', 'charge_group')] == -1, 'omega'] = 1
 all_features['length'] = all_features['length'] ** 0.6
 all_features.rename(columns={'length': 'radius_gyration'}, inplace=True)
 
-feature_labels = [feature_label for feature_label, group_label in all_features.columns if group_label != 'ids_group']
-motifs_labels = [feature_label for feature_label, group_label in all_features.columns if group_label == 'motifs_group']
+feature_labels = [feature_label for feature_label, group_label in all_features.columns
+                  if group_label != 'ids_group']
+nonmotif_labels = [feature_label for feature_label, group_label in all_features.columns
+                   if group_label not in ['ids_group', 'motifs_group']]
 all_features = all_features.droplevel(1, axis=1)
 
 for min_length in min_lengths:
@@ -53,11 +55,12 @@ for min_length in min_lengths:
             for ppid in fields['ppids'].split(','):
                 rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder, 'ppid': ppid})
     all_segments = pd.DataFrame(rows)
-    all_regions = all_segments[['OGid', 'start', 'stop']].drop_duplicates()
+    all_regions = all_segments.drop('ppid', axis=1).drop_duplicates()
 
     asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
     asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
-    asr_rates.loc[(asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna(), 'indel_rate_mean'] = 0
+    row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
+    asr_rates.loc[row_idx, 'indel_rate_mean'] = 0
 
     row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
     column_idx = ['OGid', 'start', 'stop', 'disorder']
@@ -65,11 +68,11 @@ for min_length in min_lengths:
 
     features = all_segments.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     means = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
-    means_motifs = means.drop(motifs_labels, axis=1)
+    means_nonmotif = means[nonmotif_labels]
     disorder = means.loc[pdidx[:, :, :, True], :]
     order = means.loc[pdidx[:, :, :, False], :]
-    disorder_motifs = disorder.drop(motifs_labels, axis=1)
-    order_motifs = order.drop(motifs_labels, axis=1)
+    disorder_nonmotif = disorder[nonmotif_labels]
+    order_nonmotif = order[nonmotif_labels]
 
     # Feature histograms
     for feature_label in feature_labels:
@@ -88,8 +91,8 @@ for min_length in min_lengths:
     # Combined PCAs
     plots = [(means, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(means), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (means_motifs, 'merge', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
-             (zscore(means_motifs), 'merge', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
+             (means_nonmotif, 'merge', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(means_nonmotif), 'merge', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -128,10 +131,10 @@ for min_length in min_lengths:
              (order, 'order', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
              (zscore(disorder), 'disorder', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
              (zscore(order), 'order', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (disorder_motifs, 'disorder', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
-             (order_motifs, 'order', f'minimum length ≥ {min_length}, no norm, no motifs', 'nonorm_motifs'),
-             (zscore(disorder_motifs), 'disorder', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs'),
-             (zscore(order_motifs), 'order', f'minimum length ≥ {min_length}, z-score, no motifs', 'zscore_motifs')]
+             (disorder_nonmotif, 'disorder', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (order_nonmotif, 'order', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(disorder_nonmotif), 'disorder', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif'),
+             (zscore(order_nonmotif), 'order', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
