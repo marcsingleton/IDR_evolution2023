@@ -14,7 +14,7 @@ length_regex = r'regions_([0-9]+).tsv'
 
 # Get minimum lengths
 min_lengths = []
-for path in os.listdir('../regions_filter/out/'):
+for path in os.listdir('../region_filter/out/'):
     match = re.search(length_regex, path)
     if match:
         min_lengths.append(int(match.group(1)))
@@ -23,7 +23,7 @@ min_lengths = sorted(min_lengths)
 # Load regions as segments
 rows = []
 for min_length in min_lengths:
-    with open(f'../regions_filter/out/regions_{min_length}.tsv') as file:
+    with open(f'../region_filter/out/regions_{min_length}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}

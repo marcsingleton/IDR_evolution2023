@@ -47,7 +47,7 @@ for min_length in min_lengths:
 
     # Load regions as segments
     rows = []
-    with open(f'../../IDRpred/regions_filter/out/regions_{min_length}.tsv') as file:
+    with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}

@@ -49,7 +49,7 @@ with open('../../ortho_search/sequence_data/out/sequence_data.tsv') as file:
 
 # Load regions as segments
 rows = []
-with open('../../IDRpred/regions_filter/out/regions_30.tsv') as file:
+with open('../../IDRpred/region_filter/out/regions_30.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
