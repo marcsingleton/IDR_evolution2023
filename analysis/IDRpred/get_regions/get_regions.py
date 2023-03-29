@@ -89,7 +89,7 @@ tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
 # Load error flags
 OGid2flags = {}
-with open('../aucpred_scores/out/errors.tsv') as file:
+with open('../get_scores/out/errors.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -132,7 +132,7 @@ for OGid in OGids:
     aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
     for i, record in enumerate(msa):
         ppid, seq = record['ppid'], record['seq']
-        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
+        scores = load_scores(f'../get_scores/out/{OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
         idx = 0
         for j, sym in enumerate(seq):
             if sym not in ['-', '.']:

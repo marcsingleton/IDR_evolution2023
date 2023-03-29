@@ -29,7 +29,7 @@ tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
 # Load error flags
 OGid2flags = {}
-with open('../aucpred_scores/out/errors.tsv') as file:
+with open('../get_scores/out/errors.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -53,7 +53,7 @@ for OGid in OGids:
         ppid = re.search(ppid_regex, header).group(1)
         spid = re.search(spid_regex, header).group(1)
 
-        scores = load_scores(f'../aucpred_scores/out/{OGid}/{ppid}.diso_noprof')
+        scores = load_scores(f'../get_scores/out/{OGid}/{ppid}.diso_noprof')
         scores_fraction = scores.mean()
         binary_fraction = (scores >= cutoff).mean()
         spid2value[spid] = pd.Series({'scores_fraction': scores_fraction, 'binary_fraction': binary_fraction})

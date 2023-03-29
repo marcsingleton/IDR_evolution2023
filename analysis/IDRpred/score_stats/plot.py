@@ -124,7 +124,7 @@ for row in examples.itertuples():
     aligned_scores = np.full((len(msa), len(msa[0]['seq'])), np.nan)
     for i, record in enumerate(msa):
         ppid, seq = record['ppid'], record['seq']
-        scores = load_scores(f'../aucpred_scores/out/{row.OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
+        scores = load_scores(f'../get_scores/out/{row.OGid}/{ppid}.diso_noprof')  # Remove anything after trailing .
         idx = 0
         for j, sym in enumerate(seq):
             if sym not in ['-', '.']:
