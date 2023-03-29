@@ -66,26 +66,26 @@ for min_length in min_lengths:
     # Hexbin of scores with features contrasts
     for feature_label in feature_labels:
         fig, ax = plt.subplots()
-        hb = ax.hexbin(score_contrasts['scores_fraction'], feature_contrasts[feature_label],
+        hb = ax.hexbin(score_contrasts['score_fraction'], feature_contrasts[feature_label],
                        gridsize=75, mincnt=1, linewidth=0, bins='log')
         ax.set_xlabel('Average disorder score contrasts')
         ax.set_ylabel(f'{feature_label} contrasts')
         fig.colorbar(hb)
-        fig.savefig(f'{prefix}/hexbin_{feature_label}-scores_fraction.png')
+        fig.savefig(f'{prefix}/hexbin_{feature_label}-score_fraction.png')
         plt.close()
 
     # Correlation of score contrasts with feature contrasts
     corr_stack = []
     rng = np.random.default_rng(1)
     for _ in range(1000):
-        x = rng.permutation(score_contrasts['scores_fraction'].to_numpy())
+        x = rng.permutation(score_contrasts['score_fraction'].to_numpy())
         y = feature_contrasts.to_numpy()
         corr = np.corrcoef(x, y, rowvar=False)
-        corr_stack.append(corr[1:, 0])  # Remove scores_fraction self correlation
+        corr_stack.append(corr[1:, 0])  # Remove score_fraction self correlation
     corr_stack = np.stack(corr_stack)
 
     ys = np.arange(len(feature_labels))
-    ws = np.corrcoef(score_contrasts['scores_fraction'], feature_contrasts, rowvar=False)[1:, 0]  # Remove scores_fraction self correlation
+    ws = np.corrcoef(score_contrasts['score_fraction'], feature_contrasts, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
 
     # Calculate two-sided permutation p-values using conventions from SciPy permutation_test
     right = ws <= corr_stack
@@ -117,7 +117,7 @@ for min_length in min_lengths:
     feature_rates = (feature_contrasts ** 2).groupby(['OGid', 'start', 'stop']).mean()
 
     ys = np.arange(len(feature_labels))
-    ws = np.corrcoef(scores_rates['scores_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove scores_fraction self correlation
+    ws = np.corrcoef(scores_rates['score_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
 
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()

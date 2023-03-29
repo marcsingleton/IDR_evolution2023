@@ -68,9 +68,9 @@ for min_length in min_lengths:
             for tip in tree.tips():
                 scores = spid2scores[tip.name][start:stop]
                 scores = scores[~np.isnan(scores)]
-                scores_fraction = scores.mean()
+                score_fraction = scores.mean()
                 binary_fraction = (scores >= cutoff).mean()
-                tip.value = pd.Series({'scores_fraction': scores_fraction, 'binary_fraction': binary_fraction})
+                tip.value = pd.Series({'score_fraction': score_fraction, 'binary_fraction': binary_fraction})
 
             # Get contrasts
             roots, contrasts = get_contrasts(tree)
