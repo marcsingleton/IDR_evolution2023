@@ -78,8 +78,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = means[feature_label].min(), means[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color='C0', label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color='C1', label='order')
+        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color=cmap2(0.6), label='order')
         axs[1].set_xlabel(f'Mean {feature_label}')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
