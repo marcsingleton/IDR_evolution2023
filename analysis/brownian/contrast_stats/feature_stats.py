@@ -1,4 +1,4 @@
-"""Plot statistics associated with contrasts."""
+"""Plot statistics associated with feature contrasts."""
 
 import os
 
@@ -84,9 +84,9 @@ for min_length in min_lengths:
     contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
     # 1 CONTRASTS
-    if not os.path.exists(f'out/regions_{min_length}/contrasts/'):
-        os.mkdir(f'out/regions_{min_length}/contrasts/')
     prefix = f'out/regions_{min_length}/contrasts/'
+    if not os.path.exists(prefix):
+        os.mkdir(prefix)
 
     # 1.1 Plot contrast distributions
     disorder = contrasts.loc[pdidx[:, :, :, True, :], :]
@@ -140,9 +140,9 @@ for min_length in min_lengths:
     plt.close()
 
     # 2 RATES
-    if not os.path.exists(f'out/regions_{min_length}/rates/'):
-        os.mkdir(f'out/regions_{min_length}/rates/')
     prefix = f'out/regions_{min_length}/rates/'
+    if not os.path.exists(prefix):
+        os.mkdir(prefix)
 
     # 2.1 Plot rate distributions
     rates = ((contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean())
@@ -353,9 +353,9 @@ for min_length in min_lengths:
         plt.close()
 
     # 3 ROOTS
-    if not os.path.exists(f'out/regions_{min_length}/roots/'):
-        os.mkdir(f'out/regions_{min_length}/roots/')
     prefix = f'out/regions_{min_length}/roots/'
+    if not os.path.exists(prefix):
+        os.mkdir(prefix)
 
     # 3.1 Plot root distributions
     roots_nonmotif = roots[nonmotif_labels]
@@ -488,9 +488,9 @@ for min_length in min_lengths:
                         hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
 
     # 4 MERGE
-    if not os.path.exists(f'out/regions_{min_length}/merge/'):
-        os.mkdir(f'out/regions_{min_length}/merge/')
     prefix = f'out/regions_{min_length}/merge/'
+    if not os.path.exists(prefix):
+        os.mkdir(prefix)
 
     # 4.1 Plot correlations of roots and feature means
     merge = features.merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'], suffixes=('_mean', '_root'))
