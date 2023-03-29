@@ -83,7 +83,7 @@ plt.colorbar()
 plt.savefig(f'out/hexbin_{columns[1]}_root-{columns[0]}_root.png')
 plt.close()
 
-plt.hexbin(df[f'{columns[0]}_rate'], df[f'{columns[1]}_rate'], gridsize=50, mincnt=1, bins='log', linewidth=0)
+plt.hexbin(df[f'{columns[0]}_rate'], df[f'{columns[1]}_rate'], gridsize=50, mincnt=1, linewidth=0, bins='log')
 plt.xlabel(f'{labels[0]} rate')
 plt.ylabel(f'{labels[1]} rate')
 plt.colorbar()
