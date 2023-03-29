@@ -26,4 +26,4 @@ fi
 
 source /global/home/users/singleton/.bashrc
 conda activate IDR_evolution
-python get_contrasts.py
+python feature_contrasts.py

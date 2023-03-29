@@ -1,4 +1,4 @@
-"""Calculate contrasts using segments which pass quality filters."""
+"""Calculate feature contrasts using segments which pass quality filters."""
 
 import multiprocessing as mp
 import os
@@ -85,8 +85,8 @@ if __name__ == '__main__':
                                  'ppid': ppid, 'spid': ppid2spid[ppid], 'min_length': min_length})
     all_segments = pd.DataFrame(rows)
 
-    if not os.path.exists('out/'):
-        os.mkdir('out/')
+    if not os.path.exists('out/features/'):
+        os.makedirs('out/features/')
 
     for min_length in min_lengths:
         segment_keys = all_segments[all_segments['min_length'] == min_length].drop('min_length', axis=1)
@@ -99,5 +99,5 @@ if __name__ == '__main__':
             records = pool.map(apply_contrasts, args, chunksize=50)
 
         roots, contrasts = zip(*records)
-        pd.DataFrame(roots).to_csv(f'out/roots_{min_length}.tsv', sep='\t', index=False)
-        pd.concat(contrasts).to_csv(f'out/contrasts_{min_length}.tsv', sep='\t', index=False)
+        pd.DataFrame(roots).to_csv(f'out/features/roots_{min_length}.tsv', sep='\t', index=False)
+        pd.concat(contrasts).to_csv(f'out/features/contrasts_{min_length}.tsv', sep='\t', index=False)

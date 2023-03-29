@@ -42,7 +42,7 @@ with open('../filter_GAF/out/GAF_drop.tsv') as file:
         except KeyError:
             gnid2GOids[gnid] = {GOid}
 
-contrasts = pd.read_table('../../brownian/get_contrasts/out/contrasts.tsv')
+contrasts = pd.read_table('../../brownian/get_contrasts/out/features/contrasts.tsv')
 df1 = regions.merge(contrasts, how='right', on=['OGid', 'start', 'stop']).set_index(['OGid', 'start', 'stop', 'disorder', 'gnid', 'contrast_id'])
 
 rates = ((df1**2).groupby(['OGid', 'start', 'stop', 'disorder', 'gnid']).mean())
