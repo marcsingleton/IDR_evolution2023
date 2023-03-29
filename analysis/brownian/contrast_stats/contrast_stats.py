@@ -94,17 +94,17 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = contrasts[feature_label].min(), contrasts[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
+        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
         axs[1].set_xlabel(f'Contrast value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
             ax.set_ylabel('Number of contrasts')
             ax.legend()
-        plt.savefig(f'{prefix}/hist_numcontrasts-{feature_label}.png')
+        fig.savefig(f'{prefix}/hist_numcontrasts-{feature_label}.png')
         for ax in axs:
             ax.set_yscale('log')
-        plt.savefig(f'{prefix}/hist_numcontrasts-{feature_label}_log.png')
+        fig.savefig(f'{prefix}/hist_numcontrasts-{feature_label}_log.png')
         plt.close()
 
     # 1.2 Plot correlation heatmaps
@@ -117,7 +117,7 @@ for min_length in min_lengths:
         fig, ax = plt.subplots(figsize=(7.5, 6), gridspec_kw={'left': 0.075, 'right': 0.99, 'top': 0.95, 'bottom': 0.125})
         im = ax.imshow(corr, vmin=-1, vmax=1, cmap='RdBu')
         ax.set_xticks(range(len(corr)), nonmotif_labels, fontsize=6,
-                      rotation=60, rotation_mode='anchor', va='center', ha='right')
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
         ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
         ax.set_title(title_label)
         fig.colorbar(im)
@@ -132,7 +132,7 @@ for min_length in min_lengths:
     fig, ax = plt.subplots(figsize=(7.5, 6), gridspec_kw={'left': 0.075, 'right': 0.99, 'top': 0.95, 'bottom': 0.125})
     im = ax.imshow(corr, vmin=-vext, vmax=vext, cmap='RdBu')
     ax.set_xticks(range(len(corr)), nonmotif_labels, fontsize=6,
-                  rotation=60, rotation_mode='anchor', va='center', ha='right')
+                  rotation=60, rotation_mode='anchor', ha='right', va='center')
     ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
     ax.set_title('Difference between disorder and order regions')
     fig.colorbar(im)
@@ -154,17 +154,17 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = rates[feature_label].min(), rates[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color='C0', label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color='C1', label='order')
+        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
         axs[1].set_xlabel(f'Rate ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
             ax.set_ylabel('Number of regions')
             ax.legend()
-        plt.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
+        fig.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
         for ax in axs:
             ax.set_yscale('log')
-        plt.savefig(f'{prefix}/hist_numregions-{feature_label}_log.png')
+        fig.savefig(f'{prefix}/hist_numregions-{feature_label}_log.png')
         plt.close()
 
     # 2.2 Plot correlation heatmaps
@@ -177,7 +177,7 @@ for min_length in min_lengths:
         fig, ax = plt.subplots(figsize=(7.5, 6), gridspec_kw={'left': 0.075, 'right': 0.99, 'top': 0.95, 'bottom': 0.125})
         im = ax.imshow(corr, vmin=-1, vmax=1, cmap='RdBu')
         ax.set_xticks(range(len(corr)), nonmotif_labels, fontsize=6,
-                      rotation=60, rotation_mode='anchor', va='center', ha='right')
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
         ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
         ax.set_title(title_label)
         fig.colorbar(im)
@@ -192,7 +192,7 @@ for min_length in min_lengths:
     fig, ax = plt.subplots(figsize=(7.5, 6), gridspec_kw={'left': 0.075, 'right': 0.99, 'top': 0.95, 'bottom': 0.125})
     im = ax.imshow(corr, vmin=-vext, vmax=vext, cmap='RdBu')
     ax.set_xticks(range(len(corr)), nonmotif_labels, fontsize=6,
-                  rotation=60, rotation_mode='anchor', va='center', ha='right')
+                  rotation=60, rotation_mode='anchor', ha='right', va='center')
     ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
     ax.set_title('Difference between disorder and order regions')
     fig.colorbar(im)
@@ -356,14 +356,14 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = roots[feature_label].min(), roots[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color='C0', label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color='C1', label='order')
-        axs[1].set_xlabel(f'Inferred root value ({feature_label})')
+        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color=cmap2(0.6), label='order')
+        axs[1].set_xlabel(f'Root value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
             ax.set_ylabel('Number of regions')
             ax.legend()
-        plt.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
+        fig.savefig(f'{prefix}/hist_numregions-{feature_label}.png')
         plt.close()
 
     # 3.2 Plot correlation heatmaps
@@ -376,7 +376,7 @@ for min_length in min_lengths:
         fig, ax = plt.subplots(figsize=(7.5, 6), gridspec_kw={'left': 0.075, 'right': 0.99, 'top': 0.95, 'bottom': 0.125})
         im = ax.imshow(corr, vmin=-1, vmax=1, cmap='RdBu')
         ax.set_xticks(range(len(corr)), nonmotif_labels, fontsize=6,
-                      rotation=60, rotation_mode='anchor', va='center', ha='right')
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
         ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
         ax.set_title(title_label)
         fig.colorbar(im)
@@ -391,7 +391,7 @@ for min_length in min_lengths:
     fig, ax = plt.subplots(figsize=(7.5, 6), gridspec_kw={'left': 0.075, 'right': 0.99, 'top': 0.95, 'bottom': 0.125})
     im = ax.imshow(corr, vmin=-vext, vmax=vext, cmap='RdBu')
     ax.set_xticks(range(len(corr)), nonmotif_labels, fontsize=6,
-                  rotation=60, rotation_mode='anchor', va='center', ha='right')
+                  rotation=60, rotation_mode='anchor', ha='right', va='center')
     ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
     ax.set_title('Difference between disorder and order regions')
     fig.colorbar(im)
