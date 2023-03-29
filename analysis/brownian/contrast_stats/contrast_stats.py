@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
-from numpy import arange, linspace
+from numpy import linspace
 from scipy.stats import linregress
 from sklearn.decomposition import PCA
 from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
@@ -249,18 +249,23 @@ for min_length in min_lengths:
         df = data.merge(asr_rates, left_index=True, right_on=['OGid', 'start', 'stop', 'disorder'])
         transform = pca.fit_transform(df[data.columns].to_numpy())
 
-        x = transform[:, 0]
-        y = df['aa_rate_mean'] + df['indel_rate_mean']
-        result = linregress(x, y)
+        xs = transform[:, 0]
+        ys = df['aa_rate_mean'] + df['indel_rate_mean']
+        result = linregress(xs, ys)
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
-        xmin, xmax = x.min(), x.max()
+        xmin, xmax = xs.min(), xs.max()
+        if m >= 0:
+            xpos = xmax
+            ha = 'right'
+        else:
+            xpos = xmin
+            ha = 'left'
 
         fig, ax = plt.subplots()
-        hb = ax.hexbin(x, y, gridsize=75, mincnt=1, linewidth=0)
+        hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0)
         ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
-        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xmax, m * xmax + b),
-                    horizontalalignment='right', verticalalignment='bottom')
+        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xpos, m * xpos + b), ha=ha, va='bottom')
         ax.set_xlabel('PC1')
         ax.set_ylabel('Sum of average amino acid and indel rates in region')
         ax.set_title(title_label)
@@ -322,18 +327,23 @@ for min_length in min_lengths:
         df = data.merge(asr_rates, left_index=True, right_on=['OGid', 'start', 'stop', 'disorder'])
         transform = pca.fit_transform(df[data.columns].to_numpy())
 
-        x = transform[:, 0]
-        y = df['aa_rate_mean'] + df['indel_rate_mean']
-        result = linregress(x, y)
+        xs = transform[:, 0]
+        ys = df['aa_rate_mean'] + df['indel_rate_mean']
+        result = linregress(xs, ys)
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
-        xmin, xmax = x.min(), x.max()
+        xmin, xmax = xs.min(), xs.max()
+        if m >= 0:
+            xpos = xmax
+            ha = 'right'
+        else:
+            xpos = xmin
+            ha = 'left'
 
         fig, ax = plt.subplots()
-        hb = ax.hexbin(x, y, gridsize=75, mincnt=1, linewidth=0)
+        hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0)
         ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
-        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xmax, m * xmax + b),
-                    horizontalalignment='right', verticalalignment='bottom')
+        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xpos, m * xpos + b), ha=ha, va='bottom')
         ax.set_xlabel('PC1')
         ax.set_ylabel('Sum of average amino acid and indel rates in region')
         ax.set_title(title_label)
@@ -483,40 +493,40 @@ for min_length in min_lengths:
     prefix = f'out/regions_{min_length}/merge/'
 
     # 4.1 Plot correlations of roots and feature means
-    merge = features.merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
+    merge = features.merge(roots, how='inner', on=['OGid', 'start', 'stop', 'disorder'], suffixes=('_mean', '_root'))
     for feature_label in feature_labels:
-        plt.hexbin(merge[feature_label + '_x'], merge[feature_label + '_y'], gridsize=75, linewidth=0, mincnt=1)
-        plt.xlabel('Tip mean')
-        plt.ylabel('Inferred root value')
-        plt.title(f'{feature_label}\nminimum length ≥ {min_length}')
-        plt.colorbar()
-
-        x, y = merge[f'{feature_label}_x'], merge[f'{feature_label}_y']
-        result = linregress(x, y)
+        xs, ys = merge[f'{feature_label}_root'], merge[f'{feature_label}_mean']
+        result = linregress(xs, ys)
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
-        xmin, xmax = x.min(), x.max()
+        xmin, xmax = xs.min(), xs.max()
 
-        plt.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
-        plt.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (0.85, 0.65), xycoords='axes fraction')
-        plt.savefig(f'{prefix}/hexbin_root-mean_{feature_label}.png')
+        fig, ax = plt.subplots()
+        hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0)
+        ax.set_xlabel('Root value')
+        ax.set_ylabel('Tip mean')
+        ax.set_title(f'{feature_label}\nminimum length ≥ {min_length}')
+        fig.colorbar(hb)
+        ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
+        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (0.85, 0.65), xycoords='axes fraction')
+        fig.savefig(f'{prefix}/hexbin_mean-root_{feature_label}.png')
         plt.close()
 
-    rs = []
+    ys = np.arange(len(feature_labels))
+    ws = []
     for feature_label in feature_labels:
-        x, y = merge[f'{feature_label}_x'], merge[f'{feature_label}_y']
-        result = linregress(x, y)
-        rs.append(result.rvalue)
-    ys = arange(len(rs))
+        w = np.corrcoef(merge[f'{feature_label}_root'], merge[f'{feature_label}_mean'])[0, 1]
+        ws.append(w)
 
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
     ax.set_ymargin(0.01)
-    ax.barh(ys, rs)
+    ax.barh(ys, ws, color=cmap3(0.6))
     ax.set_yticks(ys, feature_labels, fontsize=6)
     ax.set_xlabel('Correlation between root and tip mean')
     ax.set_ylabel('Feature')
-    fig.savefig(f'{prefix}/bar_root-mean_corr.png')
+    ax.set_title('All regions')
+    fig.savefig(f'{prefix}/bar_mean-root_corr.png')
     plt.close()
 
     # 4.2 Plot correlation of roots and rates
@@ -529,29 +539,83 @@ for min_length in min_lengths:
     disorder_nonmotif = disorder[nonmotif_labels_merge]
     order_nonmotif = order[nonmotif_labels_merge]
     for feature_label in feature_labels:
-        plt.hexbin(merge[feature_label + '_root'], merge[feature_label + '_rate'],
-                   cmap=cmap3, gridsize=75, linewidth=0, mincnt=1)
-        plt.xlabel('Inferred root value')
-        plt.ylabel('Rate')
-        plt.title(f'{feature_label}\nminimum length ≥ {min_length}')
-        plt.colorbar()
-        plt.savefig(f'{prefix}/hexbin_rate-root_{feature_label}1.png')
+        xs, ys = merge[f'{feature_label}_root'], merge[f'{feature_label}_rate']
+        result = linregress(xs, ys)
+        m, b = result.slope, result.intercept
+        r2 = result.rvalue ** 2
+        xmin, xmax = xs.min(), xs.max()
+        if m >= 0:
+            xpos = xmax
+            ha = 'right'
+        else:
+            xpos = xmin
+            ha = 'left'
+
+        fig, ax = plt.subplots()
+        hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0, cmap=cmap3)
+        ax.set_xlabel('Root value')
+        ax.set_ylabel('Rate')
+        ax.set_title(f'{feature_label}\nminimum length ≥ {min_length}')
+        fig.colorbar(hb)
+        ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
+        ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xpos, m * xpos + b), ha=ha, va='bottom')
+        fig.savefig(f'{prefix}/hexbin_rate-root_{feature_label}1.png')
         plt.close()
 
         xmin, xmax = merge[feature_label + '_root'].min(), merge[feature_label + '_root'].max()
         ymin, ymax = merge[feature_label + '_rate'].min(), merge[feature_label + '_rate'].max()
         fig, axs = plt.subplots(2, 1, figsize=(6.4, 7.2), sharex=True)
         for ax, data, label, cmap in zip(axs, [disorder, order], ['disorder', 'order'], [cmap1, cmap2]):
-            hb = ax.hexbin(data[feature_label + '_root'], data[feature_label + '_rate'],
-                           cmap=cmap, gridsize=50, linewidth=0, mincnt=1, extent=(xmin, xmax, ymin, ymax))
+            xs, ys = data[f'{feature_label}_root'], data[f'{feature_label}_rate']
+            result = linregress(xs, ys)
+            m, b = result.slope, result.intercept
+            r2 = result.rvalue ** 2
+            if m >= 0:
+                xpos = xmax
+                ha = 'right'
+            else:
+                xpos = xmin
+                ha = 'left'
+
+            hb = ax.hexbin(xs, ys, gridsize=50, mincnt=1, linewidth=0, cmap=cmap, extent=(xmin, xmax, ymin, ymax))
             ax.set_ylabel('Rate')
             handles = [Line2D([], [], label=label, marker='h', markerfacecolor=cmap(0.6),
                               markeredgecolor='None', markersize=8, linestyle='None')]
             ax.legend(handles=handles)
             fig.colorbar(hb, ax=ax)
-        axs[1].set_xlabel('Inferred root value')
+            ax.plot([xmin, xmax], [m * xmin + b, m * xmax + b], color='black', linewidth=1)
+            ax.annotate(r'$\mathregular{R^2}$' + f' = {r2:.2f}', (xpos, m * xpos + b), ha=ha, va='bottom')
+        axs[1].set_xlabel('Root value')
         fig.suptitle(f'{feature_label}\nminimum length ≥ {min_length}')
-        plt.savefig(f'{prefix}/hexbin_rate-root_{feature_label}2.png')
+        fig.savefig(f'{prefix}/hexbin_rate-root_{feature_label}2.png')
+        plt.close()
+
+    ys = np.arange(len(feature_labels))
+    ws, ws_disorder, ws_order, ws_delta = [], [], [], []
+    for feature_label in feature_labels:
+        w = np.corrcoef(merge[f'{feature_label}_root'], merge[f'{feature_label}_rate'])[0, 1]
+        w_disorder = np.corrcoef(disorder[f'{feature_label}_root'], disorder[f'{feature_label}_rate'])[0, 1]
+        w_order = np.corrcoef(order[f'{feature_label}_root'], order[f'{feature_label}_rate'])[0, 1]
+        w_delta = w_disorder - w_order
+        ws.append(w)
+        ws_disorder.append(w_disorder)
+        ws_order.append(w_order)
+        ws_delta.append(w_delta)
+
+    plots = [(ws, 'merge', 'All regions', cmap3(0.6)),
+             (ws_disorder, 'disorder', 'Disorder regions', cmap1(0.6)),
+             (ws_order, 'order', 'Order regions', cmap2(0.6)),
+             (ws_delta, 'delta', 'Difference of disorder and order regions', cmap3(0.6))]
+    for data, data_label, title_label, color in plots:
+        fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
+        ax.invert_yaxis()
+        ax.set_ymargin(0.01)
+        ax.barh(ys, data, color=color)
+        ax.set_yticks(ys, feature_labels, fontsize=6)
+        ax.set_xlabel('Correlation between root and rate')
+        ax.set_ylabel('Feature')
+        ax.set_title(title_label)
+        fig.savefig(f'{prefix}/bar_rate-root_corr_{data_label}.png')
         plt.close()
 
     # 4.3.1 Plot root-rate PCAs (combined)
