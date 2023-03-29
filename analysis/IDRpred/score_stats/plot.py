@@ -44,7 +44,7 @@ contrasts = pd.read_table('out/contrasts.tsv').set_index(['OGid', 'contrast_id']
 rates = ((contrasts**2).groupby('OGid').mean())
 df = roots.merge(rates, on='OGid', suffixes=('_root', '_rate'))
 
-columns = ['scores_fraction', 'binary_fraction']
+columns = ['score_fraction', 'binary_fraction']
 labels = ['Average AUCpreD score', 'Fraction disorder']
 colors = ['C0', 'C1']
 
@@ -93,7 +93,7 @@ plt.close()
 if not os.path.exists('out/traces/'):
     os.mkdir('out/traces/')
 
-sort = df.sort_values(by='scores_fraction_rate', ascending=False, ignore_index=True)
+sort = df.sort_values(by='score_fraction_rate', ascending=False, ignore_index=True)
 examples = pd.concat([sort.iloc[:100],  # Pull out samples around quartiles
                       sort.iloc[(int(0.25*len(sort))-50):(int(0.25*len(sort))+50)],
                       sort.iloc[(int(0.5*len(sort))-50):(int(0.5*len(sort))+50)],

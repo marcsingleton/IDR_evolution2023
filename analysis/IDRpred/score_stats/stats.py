@@ -54,9 +54,9 @@ for OGid in OGids:
         spid = re.search(spid_regex, header).group(1)
 
         scores = load_scores(f'../get_scores/out/{OGid}/{ppid}.diso_noprof')
-        scores_fraction = scores.mean()
+        score_fraction = scores.mean()
         binary_fraction = (scores >= cutoff).mean()
-        spid2value[spid] = pd.Series({'scores_fraction': scores_fraction, 'binary_fraction': binary_fraction})
+        spid2value[spid] = pd.Series({'score_fraction': score_fraction, 'binary_fraction': binary_fraction})
 
     # Map features to tips
     tree = tree_template.shear(spid2value)
