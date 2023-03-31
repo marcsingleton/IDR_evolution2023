@@ -1,4 +1,4 @@
-"""Extract Brownian motion parameters from AUCpreD scores at the level of proteins."""
+"""Calculate score contrasts at the level of proteins."""
 
 import os
 import re
