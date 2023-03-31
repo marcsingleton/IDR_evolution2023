@@ -1,18 +1,22 @@
 """Filter gene association file."""
 
 import os
+import re
 from functools import reduce
 from operator import add
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from src.utils import read_fasta
 
 
 def get_ancestors(GO, GOid):
     ancestors = set()
-    for parent in GO[GOid]['parents']:
+    parent_stack = GO[GOid]['parents'].copy()
+    while parent_stack:
+        parent = parent_stack.pop()
         ancestors.add(parent)
-        ancestors.update(get_ancestors(GO, parent))
+        parent_stack.extend(GO[parent]['parents'])
     return ancestors
 
 
@@ -39,24 +43,18 @@ def write_table(counts, title):
         file.write(padding + output)
 
 
+ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
+gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
+min_length = 30
+
 # Load sequence data
 ppid2gnid = {}
-with open('../../ortho_search/sequence_data/out/sequence_data.tsv') as file:
-    field_names = file.readline().rstrip('\n').split('\t')
-    for line in file:
-        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        ppid2gnid[fields['ppid']] = fields['gnid']
-
-# Load regions as segments
-rows = []
-with open('../../IDRpred/region_filter/out/regions_30.tsv') as file:
-    field_names = file.readline().rstrip('\n').split('\t')
-    for line in file:
-        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        for ppid in fields['ppids'].split(','):
-            rows.append({'OGid': fields['OGid'], 'start': int(fields['start']), 'stop': int(fields['stop']),
-                         'disorder': fields['disorder'] == 'True', 'gnid': ppid2gnid[ppid]})
-segments = pd.DataFrame(rows)
+OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
+for OGid in OGids:
+    for header, _ in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
+        ppid = re.search(ppid_regex, header).group(1)
+        gnid = re.search(gnid_regex, header).group(1)
+        ppid2gnid[ppid] = gnid
 
 # Load ontology
 GO = {}
@@ -94,8 +92,19 @@ for GOid in GO:
         rows.append({'GOid': GOid, 'ancestor_id': ancestor_id, 'ancestor_name': GO[ancestor_id]['name']})
 ancestors = pd.DataFrame(rows)
 
+# Load regions as segments
+rows = []
+with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
+    field_names = file.readline().rstrip('\n').split('\t')
+    for line in file:
+        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
+        OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
+        for ppid in fields['ppids'].split(','):
+            rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder, 'gnid': ppid2gnid[ppid]})
+segments = pd.DataFrame(rows)
+
 # Load raw table and add term names
-df1 = pd.read_table('../../../data/flybase_genomes/Drosophila_melanogaster/dmel_r6.45_FB2022_02/precomputed_files/gene_association.fb',
+df1 = pd.read_table('../../../data/GO/dmel_r6.45_FB2022_02_gene_association.fb',
                     skiprows=5,
                     usecols=list(range(15)),  # File contains two spare tabs at end
                     names=['DB', 'DB_Object_ID', 'DB_Object_Symbol', 'Qualifier', 'GO ID',  # Official column labels
