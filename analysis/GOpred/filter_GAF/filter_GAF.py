@@ -115,7 +115,9 @@ df1['name'] = df1['GO ID'].apply(lambda x: GO[x]['name'])
 # Drop unneeded columns and filter
 mapper = {'DB_Object_ID': 'gnid', 'DB_Object_Symbol': 'symbol', 'Qualifier': 'qualifier', 'GO ID': 'GOid',
           'Evidence': 'evidence', 'Aspect': 'aspect', 'Date': 'date', 'Assigned_by': 'origin'}
-df2 = df1[['DB_Object_ID', 'DB_Object_Symbol', 'Qualifier', 'GO ID', 'Evidence', 'Aspect', 'taxon', 'Date', 'Assigned_by', 'name']].rename(columns=mapper)
+columns = ['DB_Object_ID', 'DB_Object_Symbol', 'Qualifier', 'GO ID',
+           'Evidence', 'Aspect', 'taxon', 'Date', 'Assigned_by', 'name']
+df2 = df1[columns].rename(columns=mapper)
 
 bool1 = df2['qualifier'].isin(['enables', 'contributes_to', 'involved_in',  # Select appropriate qualifiers (FB defines additional qualifiers)
                                'located_in', 'part_of', 'is_active_in'])
@@ -147,7 +149,8 @@ write_table(counts, 'TOP 10 RENAMED ANNOTATIONS')
 df5 = segments.merge(df4, on='gnid')
 
 # Propagate ancestors to table and drop poorly represented annotations
-df6 = df5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1).rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
+df6 = df5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
+df6 = df6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
 df7 = df6.groupby(['GOid', 'disorder']).filter(lambda x: x['gnid'].nunique() >= 50)
 
 # Make plots
@@ -165,7 +168,8 @@ plt.close()
 counts = [df['aspect'].value_counts() for df in dfs]
 bottoms = [0 for count in counts]
 for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
-    plt.bar(range(len(counts)), [count[aspect] for count in counts], bottom=bottoms, label=label, width=0.5, tick_label=labels)
+    plt.bar(range(len(counts)), [count[aspect] for count in counts],
+            bottom=bottoms, label=label, width=0.5, tick_label=labels)
     bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
 plt.legend()
 plt.xlabel('Cleaning step')
@@ -187,7 +191,8 @@ for count in counts:
 counts = merged_counts
 bottoms = [0 for _ in counts]
 for code in (top_codes + ['other']):
-    plt.bar(range(len(counts)), [count[code] for count in counts], bottom=bottoms, label=code, width=0.5, tick_label=labels)
+    plt.bar(range(len(counts)), [count[code] for count in counts],
+            bottom=bottoms, label=code, width=0.5, tick_label=labels)
     bottoms = [b + count[code] for b, count in zip(bottoms, counts)]
 plt.legend()
 plt.xlabel('Cleaning step')
@@ -206,7 +211,8 @@ plt.close()
 counts = [df[['GOid', 'aspect']].drop_duplicates()['aspect'].value_counts() for df in dfs]
 bottoms = [0 for count in counts]
 for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
-    plt.bar(range(len(counts)), [count[aspect] for count in counts], bottom=bottoms, label=label, width=0.5, tick_label=labels)
+    plt.bar(range(len(counts)), [count[aspect] for count in counts],
+            bottom=bottoms, label=label, width=0.5, tick_label=labels)
     bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
 plt.legend()
 plt.xlabel('Cleaning step')
