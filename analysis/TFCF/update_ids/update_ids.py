@@ -4,13 +4,13 @@ import os
 import pandas as pd
 
 # Load raw ids and report some basic stats
-df1 = pd.read_csv('../../../data/TF_CF_ids/nature15545-s1.csv', usecols=['TYPE', 'SYM', 'FBGN', 'CG', 'FBTR'])  # Stampfel et al.
-df2 = pd.read_csv('../../../data/TF_CF_ids/nmeth.1763-S2.csv', usecols=['FBgn', 'Symbol', 'CG', 'Name'])  # Hens et al.
+df1 = pd.read_csv('../../../data/TFCF/nature15545-s1.csv', usecols=['TYPE', 'SYM', 'FBGN', 'CG', 'FBTR'])  # Stampfel et al.
+df2 = pd.read_csv('../../../data/TFCF/nmeth.1763-S2.csv', usecols=['FBgn', 'Symbol', 'CG', 'Name'])  # Hens et al.
 
 # Load Stampfel et al. types
 # (Not using pandas to_dict since it creates a nested dictionary)
 FBgn2type = {}
-with open('../../../data/TF_CF_ids/nature15545-s1.csv', encoding='utf-8-sig') as file:
+with open('../../../data/TFCF/nature15545-s1.csv', encoding='utf-8-sig') as file:
     field_names = file.readline().rstrip('\n').split(',')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split(','))}
@@ -20,7 +20,7 @@ with open('../../../data/TF_CF_ids/nature15545-s1.csv', encoding='utf-8-sig') as
 
 # Load Stampfel et al. map
 TFs1, CFs, FBids = set(), set(), set()
-with open('../../../data/TF_CF_ids/nature15545-s1_map.tsv') as file:
+with open('../../../data/TFCF/nature15545-s1_map.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -36,7 +36,7 @@ with open('../../../data/TF_CF_ids/nature15545-s1_map.tsv') as file:
 
 # Load Hens et al. map
 TFs2, FBids = set(), set()
-with open('../../../data/TF_CF_ids/nmeth.1763-S2_map.tsv') as file:
+with open('../../../data/TFCF/nmeth.1763-S2_map.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}

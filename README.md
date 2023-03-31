@@ -23,7 +23,7 @@ Only `analysis/` and `src/`, which together contain all code written for this pr
 - `evosim/`: Simulations of evolution of alignments from reconstructed ancestors
 - `GOpred/`: Prediction of GO terms associated with proteins using rates of feature evolution
 - `IDRpred/`: Prediction of IDRs in alignments and other analyses used to partition the data
-- `TF_CF_ids/`: Analyses to parse and deduplicate lists of transcription factors and cofactors found in [Stampfel *et al.*](https://pubmed.ncbi.nlm.nih.gov/26550828/) and [Hens *et al.*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3929264/)
+- `TFCF/`: Analyses to parse and deduplicate lists of transcription factors and cofactors found in [Stampfel *et al.*](https://pubmed.ncbi.nlm.nih.gov/26550828/) and [Hens *et al.*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3929264/)
 
 ## Dependencies
 Nearly all code is written in Python and run with version 3.10.5. The remaining code is written in Bash shell scripts. The following Python libraries were used.
