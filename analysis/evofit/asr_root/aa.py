@@ -29,7 +29,7 @@ models = {'disorder': load_model('../iqtree_merge/out/50R_disorder.paml'),
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-OGids = [path.removesuffix('.tsv') for path in os.listdir('../asr_aa/out/') if path.endswith('.tsv')]
+OGids = sorted([path.removesuffix('.tsv') for path in os.listdir('../asr_aa/out/') if path.endswith('.tsv')])
 for OGid in OGids:
     # Load partition regions
     partitions = {}

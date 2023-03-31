@@ -41,7 +41,7 @@ name2id = {'disorder': 0,
 insertion_dists = {0: stats.geom(0.8), 1: stats.geom(0.75)}
 deletion_dists = {0: stats.geom(0.6), 1: stats.geom(0.55)}
 
-OGids = [path.removesuffix('.afa') for path in os.listdir('../asr_generate/out/') if path.endswith('.afa')]
+OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../asr_generate/out/') if path.endswith('.afa')])
 for OGid in OGids:
     # Load FASTA
     fasta = list(read_fasta(f'../asr_generate/out/{OGid}.afa'))

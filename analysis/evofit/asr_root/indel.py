@@ -16,7 +16,7 @@ tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newi
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-OGids = [path.removesuffix('.iqtree') for path in os.listdir('../asr_indel/out/') if path.endswith('.iqtree')]
+OGids = sorted([path.removesuffix('.iqtree') for path in os.listdir('../asr_indel/out/') if path.endswith('.iqtree')])
 for OGid in OGids:
     # Load tree
     indel_tree = skbio.read(f'../asr_indel/out/{OGid}.treefile', 'newick', skbio.TreeNode)
