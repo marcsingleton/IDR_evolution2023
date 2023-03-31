@@ -89,10 +89,10 @@ for min_length in min_lengths:
         plt.close()
 
     # Combined PCAs
-    plots = [(means, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
-             (zscore(means), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (means_nonmotif, 'merge', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
-             (zscore(means_nonmotif), 'merge', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
+    plots = [(means, 'all', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(means), 'all', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (means_nonmotif, 'all', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(means_nonmotif), 'all', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())

@@ -108,7 +108,7 @@ for min_length in min_lengths:
         plt.close()
 
     # 1.2 Plot correlation heatmaps
-    plots = [(contrasts[nonmotif_labels], 'merge', 'All regions'),
+    plots = [(contrasts[nonmotif_labels], 'all', 'All regions'),
              (disorder[nonmotif_labels], 'disorder', 'Disorder regions'),
              (order[nonmotif_labels], 'order', 'Order regions')]
     for data, data_label, title_label in plots:
@@ -121,7 +121,7 @@ for min_length in min_lengths:
         ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
         ax.set_title(title_label)
         fig.colorbar(im)
-        fig.savefig(f'{prefix}/heatmap_{data_label}.png')
+        fig.savefig(f'{prefix}/heatmap_corr_{data_label}.png')
         plt.close()
 
     corr1 = np.corrcoef(disorder[nonmotif_labels], rowvar=False)
@@ -136,7 +136,7 @@ for min_length in min_lengths:
     ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
     ax.set_title('Difference between disorder and order regions')
     fig.colorbar(im)
-    fig.savefig(f'{prefix}/heatmap_delta.png')
+    fig.savefig(f'{prefix}/heatmap_corr_delta.png')
     plt.close()
 
     # 2 RATES
@@ -168,7 +168,7 @@ for min_length in min_lengths:
         plt.close()
 
     # 2.2 Plot correlation heatmaps
-    plots = [(rates[nonmotif_labels], 'merge', 'All regions'),
+    plots = [(rates[nonmotif_labels], 'all', 'All regions'),
              (disorder[nonmotif_labels], 'disorder', 'Disorder regions'),
              (order[nonmotif_labels], 'order', 'Order regions')]
     for data, data_label, title_label in plots:
@@ -181,7 +181,7 @@ for min_length in min_lengths:
         ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
         ax.set_title(title_label)
         fig.colorbar(im)
-        fig.savefig(f'{prefix}/heatmap_{data_label}.png')
+        fig.savefig(f'{prefix}/heatmap_corr_{data_label}.png')
         plt.close()
 
     corr1 = np.corrcoef(disorder[nonmotif_labels], rowvar=False)
@@ -196,14 +196,14 @@ for min_length in min_lengths:
     ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
     ax.set_title('Difference between disorder and order regions')
     fig.colorbar(im)
-    fig.savefig(f'{prefix}/heatmap_delta.png')
+    fig.savefig(f'{prefix}/heatmap_corr_delta.png')
     plt.close()
 
     # 2.3.1 Plot rate PCAs (combined)
-    plots = [(rates, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
-             (zscore(rates), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (rates_nonmotif, 'merge', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
-             (zscore(rates_nonmotif), 'merge', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
+    plots = [(rates, 'all', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(rates), 'all', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (rates_nonmotif, 'all', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(rates_nonmotif), 'all', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -377,7 +377,7 @@ for min_length in min_lengths:
         plt.close()
 
     # 3.2 Plot correlation heatmaps
-    plots = [(roots[nonmotif_labels], 'merge', 'All regions'),
+    plots = [(roots[nonmotif_labels], 'all', 'All regions'),
              (disorder[nonmotif_labels], 'disorder', 'Disorder regions'),
              (order[nonmotif_labels], 'order', 'Order regions')]
     for data, data_label, title_label in plots:
@@ -390,7 +390,7 @@ for min_length in min_lengths:
         ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
         ax.set_title(title_label)
         fig.colorbar(im)
-        fig.savefig(f'{prefix}/heatmap_{data_label}.png')
+        fig.savefig(f'{prefix}/heatmap_corr_{data_label}.png')
         plt.close()
 
     corr1 = np.corrcoef(disorder[nonmotif_labels], rowvar=False)
@@ -405,14 +405,14 @@ for min_length in min_lengths:
     ax.set_yticks(range(len(corr)), nonmotif_labels, fontsize=6)
     ax.set_title('Difference between disorder and order regions')
     fig.colorbar(im)
-    fig.savefig(f'{prefix}/heatmap_delta.png')
+    fig.savefig(f'{prefix}/heatmap_corr_delta.png')
     plt.close()
 
     # 3.3.1 Plot root PCAs (combined)
-    plots = [(roots, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
-             (zscore(roots), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (roots_nonmotif, 'merge', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
-             (zscore(roots_nonmotif), 'merge', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
+    plots = [(roots, 'all', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(roots), 'all', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (roots_nonmotif, 'all', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(roots_nonmotif), 'all', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
@@ -602,7 +602,7 @@ for min_length in min_lengths:
         ws_order.append(w_order)
         ws_delta.append(w_delta)
 
-    plots = [(ws, 'merge', 'All regions', cmap3(0.6)),
+    plots = [(ws, 'all', 'All regions', cmap3(0.6)),
              (ws_disorder, 'disorder', 'Disorder regions', cmap1(0.6)),
              (ws_order, 'order', 'Order regions', cmap2(0.6)),
              (ws_delta, 'delta', 'Difference of disorder and order regions', cmap3(0.6))]
@@ -619,10 +619,10 @@ for min_length in min_lengths:
         plt.close()
 
     # 4.3.1 Plot root-rate PCAs (combined)
-    plots = [(merge, 'merge', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
-             (zscore(merge), 'merge', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (merge_nonmotif, 'merge', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
-             (zscore(merge_nonmotif), 'merge', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
+    plots = [(merge, 'all', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(merge), 'all', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (merge_nonmotif, 'all', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(merge_nonmotif), 'all', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
