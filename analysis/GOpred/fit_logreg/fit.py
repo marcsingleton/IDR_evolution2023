@@ -3,7 +3,6 @@
 import os
 import re
 
-import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
@@ -60,26 +59,9 @@ if not os.path.exists('out/'):
     os.mkdir('out/')
 
 rows = []
-for data, label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'), (rates, 'combined', 'C2')]:
-    corrs = data.corr()
-    plt.figure(figsize=(8, 6))
-    plt.imshow(corrs, vmin=0, vmax=1)
-    plt.xticks(range(len(corrs.index)), corrs.index, fontsize=6, rotation=60, rotation_mode='anchor',
-               horizontalalignment='right', verticalalignment='center')
-    plt.yticks(range(len(corrs.index)), corrs.index, fontsize=6)
-    plt.colorbar(shrink=0.75)
-    plt.savefig(f'out/heatmap_corr_{label}.png', bbox_inches='tight')
-    plt.close()
-
+for data, label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'), (rates, 'all', 'C2')]:
     pca = PCA(n_components=10)
     transform = pca.fit_transform(data.to_numpy())[:, :5]
-
-    plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=label, color=color)
-    plt.xlabel('Principal component')
-    plt.ylabel('Explained variance ratio')
-    plt.legend()
-    plt.savefig(f'out/bar_scree_{label}.png')
-    plt.close()
 
     for i, GOid in enumerate(GOids):
         y_true = [GOid in gnid2GOids.get(gnid, set()) for gnid in data.index.get_level_values('gnid')]
