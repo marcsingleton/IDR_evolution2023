@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import skbio
 import src.phylo as phylo
-import src.utils as utils
+from src.utils import read_fasta
 
 
 def get_args(grouped, tree, feature_labels, group_labels):
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     ppid2spid = {}
     OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
     for OGid in OGids:
-        for header, _ in utils.read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
+        for header, _ in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
             ppid = re.search(ppid_regex, header).group(1)
             spid = re.search(spid_regex, header).group(1)
             ppid2spid[ppid] = spid
