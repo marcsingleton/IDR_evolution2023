@@ -8,6 +8,11 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from src.utils import read_fasta
 
+
+def zscore(df):
+    return (df - df.mean()) / df.std()
+
+
 pdidx = pd.IndexSlice
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
@@ -51,7 +56,8 @@ contrasts = pd.read_table(f'../../brownian/get_contrasts/out/features/contrasts_
 df1 = regions.merge(contrasts, how='right', on=['OGid', 'start', 'stop'])
 df1 = df1.set_index(['OGid', 'start', 'stop', 'disorder', 'gnid', 'contrast_id'])
 
-rates = ((df1**2).groupby(['OGid', 'start', 'stop', 'disorder', 'gnid']).mean())
+rates = (df1**2).groupby(['OGid', 'start', 'stop', 'disorder', 'gnid']).mean()
+rates = zscore(rates)
 disorder = rates.loc[pdidx[:, :, :, True], :]
 order = rates.loc[pdidx[:, :, :, False], :]
 
@@ -59,11 +65,11 @@ if not os.path.exists('out/'):
     os.mkdir('out/')
 
 rows = []
-for data, label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'), (rates, 'all', 'C2')]:
+for data, label in [(disorder, 'disorder'), (order, 'order'), (rates, 'all')]:
     pca = PCA(n_components=10)
     transform = pca.fit_transform(data.to_numpy())[:, :5]
 
-    for i, GOid in enumerate(GOids):
+    for GOid in GOids:
         y_true = [GOid in gnid2GOids.get(gnid, set()) for gnid in data.index.get_level_values('gnid')]
         w = (len(y_true) - sum(y_true)) / sum(y_true)
         weights = [w if y else 1 for y in y_true]

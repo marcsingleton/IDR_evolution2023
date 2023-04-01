@@ -10,12 +10,12 @@ pdidx = pd.IndexSlice
 models = pd.read_table('out/models.tsv').set_index(['GOid', 'label'])
 disorder = models.loc[pdidx[:, 'disorder'], :]
 order = models.loc[pdidx[:, 'order'], :]
-combined = models.loc[pdidx[:, 'combined'], :]
+all = models.loc[pdidx[:, 'all'], :]
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-for data, data_label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'), (combined, 'combined', 'C2')]:
+for data, data_label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'), (all, 'all', 'C2')]:
     for feature_label in models.columns:
         plt.hist(data[feature_label], bins=50, label=data_label, color=color)
         plt.xlabel(feature_label.capitalize())
