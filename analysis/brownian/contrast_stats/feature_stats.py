@@ -20,8 +20,8 @@ pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
 min_indel_columns = 5  # Indel rates below this value are set to 0
-min_aa_rate = 1
-min_indel_rate = 1
+min_aa_rate = 0.5
+min_indel_rate = 0.1
 
 pca_components = 10
 cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']

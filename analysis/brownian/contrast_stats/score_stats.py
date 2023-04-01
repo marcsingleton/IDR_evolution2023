@@ -9,8 +9,8 @@ import pandas as pd
 min_lengths = [30, 60, 90]
 
 min_indel_columns = 5  # Indel rates below this value are set to 0
-min_aa_rate = 1
-min_indel_rate = 1
+min_aa_rate = 0.5
+min_indel_rate = 0.1
 
 for min_length in min_lengths:
     # Load regions as segments
