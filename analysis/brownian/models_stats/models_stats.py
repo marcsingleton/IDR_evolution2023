@@ -127,7 +127,9 @@ for min_length in min_lengths:
     column_labels = [f'{feature_label}_sigma2_ratio' for feature_label in feature_labels]
     column_labels_nonmotif = [f'{feature_label}_sigma2_ratio' for feature_label in nonmotif_labels]
     plots = [(df.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
-             (df.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif')]
+             (df.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif'),
+             (df.loc[pdidx[:, :, :, False], column_labels], 'order', 'all features', 'all'),
+             (df.loc[pdidx[:, :, :, False], column_labels_nonmotif], 'order', 'no motifs', 'nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(np.nan_to_num(data.to_numpy(), nan=1))
