@@ -46,6 +46,7 @@ def write_table(counts, title):
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 min_length = 30
+min_gnids = 50  # Minimum number of unique genes associated with a term to maintain it in set
 
 # Load sequence data
 ppid2gnid = {}
@@ -151,7 +152,7 @@ df5 = segments.merge(df4, on='gnid')
 # Propagate ancestors to table and drop poorly represented annotations
 df6 = df5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
 df6 = df6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
-df7 = df6.groupby(['GOid', 'disorder']).filter(lambda x: x['gnid'].nunique() >= 50)
+df7 = df6.groupby(['GOid', 'disorder']).filter(lambda x: x['gnid'].nunique() >= min_gnids)
 
 # Make plots
 dfs = [df2, df3, df4, df5, df6, df7]
