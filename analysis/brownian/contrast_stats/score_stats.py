@@ -87,11 +87,11 @@ for min_length in min_lengths:
     corr_stack = np.stack(corr_stack)
 
     ys = np.arange(len(feature_labels))
-    ws = np.corrcoef(score_contrasts['score_fraction'], feature_contrasts, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
+    xs = np.corrcoef(score_contrasts['score_fraction'], feature_contrasts, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
 
     # Calculate two-sided permutation p-values using conventions from SciPy permutation_test
-    right = ws <= corr_stack
-    left = ws >= corr_stack
+    right = xs <= corr_stack
+    left = xs >= corr_stack
     pvalues_right = (right.sum(axis=0) + 1) / (len(right) + 1)
     pvalues_left = (left.sum(axis=0) + 1) / (len(left) + 1)
     pvalues = 2 * np.minimum(pvalues_right, pvalues_left)
@@ -99,18 +99,18 @@ for min_length in min_lengths:
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
     ax.set_ymargin(0.01)
-    ax.barh(ys, ws)
+    ax.barh(ys, xs)
     ax.set_yticks(ys, feature_labels, fontsize=6)
     ax.set_xlabel('Correlation between feature and score contrasts')
     ax.set_ylabel('Feature')
     ax.set_title('All regions')
     alpha = 0.01
-    offset = (ws.max() - ws.min()) / 200
-    for y, w, pvalue in zip(ys, ws, pvalues):
+    offset = (xs.max() - xs.min()) / 200
+    for y, x, pvalue in zip(ys, xs, pvalues):
         if pvalue <= alpha:
-            sign = 1 if w >= 0 else -1
-            rotation = -90 if w >= 0 else 90
-            ax.text(w + sign * offset, y, '*', fontsize=6, va='center', ha='center', rotation=rotation)
+            sign = 1 if x >= 0 else -1
+            rotation = -90 if x >= 0 else 90
+            ax.text(x + sign * offset, y, '*', fontsize=6, va='center', ha='center', rotation=rotation)
     fig.savefig(f'{prefix}/bar_feature-score_contrast_corr.png')
     plt.close()
 
@@ -119,12 +119,12 @@ for min_length in min_lengths:
     feature_rates = (feature_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
 
     ys = np.arange(len(feature_labels))
-    ws = np.corrcoef(score_rates['score_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
+    xs = np.corrcoef(score_rates['score_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
 
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
     ax.set_ymargin(0.01)
-    ax.barh(ys, ws)
+    ax.barh(ys, xs)
     ax.set_yticks(ys, feature_labels, fontsize=6)
     ax.set_xlabel('Correlation between feature roots and score rates')
     ax.set_ylabel('Feature')

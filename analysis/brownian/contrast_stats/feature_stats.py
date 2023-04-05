@@ -512,15 +512,15 @@ for min_length in min_lengths:
         plt.close()
 
     ys = np.arange(len(feature_labels))
-    ws = []
+    xs = []
     for feature_label in feature_labels:
-        w = np.corrcoef(merge[f'{feature_label}_root'], merge[f'{feature_label}_mean'])[0, 1]
-        ws.append(w)
+        x = np.corrcoef(merge[f'{feature_label}_root'], merge[f'{feature_label}_mean'])[0, 1]
+        xs.append(x)
 
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
     ax.set_ymargin(0.01)
-    ax.barh(ys, ws, color=cmap3(0.6))
+    ax.barh(ys, xs, color=cmap3(0.6))
     ax.set_yticks(ys, feature_labels, fontsize=6)
     ax.set_xlabel('Correlation between root and tip mean')
     ax.set_ylabel('Feature')
@@ -590,26 +590,26 @@ for min_length in min_lengths:
         plt.close()
 
     ys = np.arange(len(feature_labels))
-    ws, ws_disorder, ws_order, ws_delta = [], [], [], []
+    xs_all, xs_disorder, xs_order, xs_delta = [], [], [], []
     for feature_label in feature_labels:
-        w = np.corrcoef(merge[f'{feature_label}_root'], merge[f'{feature_label}_rate'])[0, 1]
-        w_disorder = np.corrcoef(disorder[f'{feature_label}_root'], disorder[f'{feature_label}_rate'])[0, 1]
-        w_order = np.corrcoef(order[f'{feature_label}_root'], order[f'{feature_label}_rate'])[0, 1]
-        w_delta = w_disorder - w_order
-        ws.append(w)
-        ws_disorder.append(w_disorder)
-        ws_order.append(w_order)
-        ws_delta.append(w_delta)
+        x = np.corrcoef(merge[f'{feature_label}_root'], merge[f'{feature_label}_rate'])[0, 1]
+        x_disorder = np.corrcoef(disorder[f'{feature_label}_root'], disorder[f'{feature_label}_rate'])[0, 1]
+        x_order = np.corrcoef(order[f'{feature_label}_root'], order[f'{feature_label}_rate'])[0, 1]
+        x_delta = x_disorder - x_order
+        xs_all.append(x)
+        xs_disorder.append(x_disorder)
+        xs_order.append(x_order)
+        xs_delta.append(x_delta)
 
-    plots = [(ws, 'all', 'All regions', cmap3(0.6)),
-             (ws_disorder, 'disorder', 'Disorder regions', cmap1(0.6)),
-             (ws_order, 'order', 'Order regions', cmap2(0.6)),
-             (ws_delta, 'delta', 'Difference of disorder and order regions', cmap3(0.6))]
-    for data, data_label, title_label, color in plots:
+    plots = [(xs_all, 'all', 'All regions', cmap3(0.6)),
+             (xs_disorder, 'disorder', 'Disorder regions', cmap1(0.6)),
+             (xs_order, 'order', 'Order regions', cmap2(0.6)),
+             (xs_delta, 'delta', 'Difference of disorder and order regions', cmap3(0.6))]
+    for xs, data_label, title_label, color in plots:
         fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
         ax.invert_yaxis()
         ax.set_ymargin(0.01)
-        ax.barh(ys, data, color=color)
+        ax.barh(ys, xs, color=color)
         ax.set_yticks(ys, feature_labels, fontsize=6)
         ax.set_xlabel('Correlation between root and rate')
         ax.set_ylabel('Feature')
