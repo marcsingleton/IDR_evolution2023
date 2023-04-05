@@ -40,17 +40,17 @@ with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
 regions = pd.DataFrame(rows)
 
 # Load GOids
-GOids, gnid2GOids = set(), {}
+gnid2GOids = {}
 with open('../filter_GAF/out/GAF_drop.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
         gnid, GOid = fields['gnid'], fields['GOid']
-        GOids.add(GOid)
         try:
             gnid2GOids[gnid].add(GOid)
         except KeyError:
             gnid2GOids[gnid] = {GOid}
+GOids = set.union(*gnid2GOids.values())
 
 contrasts = pd.read_table(f'../../brownian/get_contrasts/out/features/contrasts_{min_length}.tsv', skiprows=[1])
 df1 = regions.merge(contrasts, how='right', on=['OGid', 'start', 'stop'])
