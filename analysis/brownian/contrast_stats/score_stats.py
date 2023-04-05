@@ -6,11 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
 min_indel_columns = 5  # Indel rates below this value are set to 0
 min_aa_rate = 0.5
 min_indel_rate = 0.1
+
+cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
 
 for min_length in min_lengths:
     # Load regions as segments
@@ -19,8 +22,7 @@ for min_length in min_lengths:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-            OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields[
-                'disorder'] == 'True'
+            OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
             for ppid in fields['ppids'].split(','):
                 rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder, 'ppid': ppid})
     all_segments = pd.DataFrame(rows)
@@ -113,11 +115,11 @@ for min_length in min_lengths:
     plt.close()
 
     # Correlation of scores rate with features
-    scores_rates = (score_contrasts ** 2).groupby(['OGid', 'start', 'stop']).mean()
-    feature_rates = (feature_contrasts ** 2).groupby(['OGid', 'start', 'stop']).mean()
+    score_rates = (score_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+    feature_rates = (feature_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
 
     ys = np.arange(len(feature_labels))
-    ws = np.corrcoef(scores_rates['score_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
+    ws = np.corrcoef(score_rates['score_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
 
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
@@ -128,4 +130,21 @@ for min_length in min_lengths:
     ax.set_ylabel('Feature')
     ax.set_title('All regions')
     fig.savefig(f'{prefix}/bar_feature_root-score_rate_corr.png')
+    plt.close()
+
+    disorder = score_rates.loc[pdidx[:, :, :, True], :]
+    order = score_rates.loc[pdidx[:, :, :, False], :]
+    fig, axs = plt.subplots(2, 1, sharex=True)
+    xmin, xmax = score_rates['score_fraction'].min(), score_rates['score_fraction'].max()
+    axs[0].hist(disorder['score_fraction'], bins=np.linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
+    axs[1].hist(order['score_fraction'], bins=np.linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
+    axs[1].set_xlabel(f'Score rate')
+    axs[0].set_title(f'minimum length ≥ {min_length}')
+    for ax in axs:
+        ax.set_ylabel('Number of regions')
+        ax.legend()
+    fig.savefig(f'{prefix}/hist_numregions-score_rate.png')
+    for ax in axs:
+        ax.set_yscale('log')
+    fig.savefig(f'{prefix}/hist_numregions-score_rate_log.png')
     plt.close()
