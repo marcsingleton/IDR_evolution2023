@@ -8,7 +8,6 @@ from src.utils import read_fasta
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
-spid_regex = r'spid=([a-z]+)'
 
 # Load OGs
 rows = []
@@ -18,16 +17,15 @@ for OGid in OGids:
     for header, seq in msa:
         ppid = re.search(ppid_regex, header).group(1)
         gnid = re.search(gnid_regex, header).group(1)
-        spid = re.search(spid_regex, header).group(1)
-        rows.append({'OGid': OGid, 'ppid': ppid, 'gnid': gnid, 'spid': spid})
+        rows.append({'OGid': OGid, 'ppid': ppid, 'gnid': gnid})
 OGs = pd.DataFrame(rows)
 
 # Load TFs and CFs and merge with OGs
 TFs = pd.read_table('../update_ids/out/TFs.txt', names=['gnid'])
 CFs = pd.read_table('../update_ids/out/CFs.txt', names=['gnid'])
 
-OGs_TF = TFs.merge(OGs[['OGid', 'ppid', 'gnid']], how='inner', on=['gnid'])
-OGs_CF = CFs.merge(OGs[['OGid', 'ppid', 'gnid']], how='inner', on=['gnid'])
+OGs_TF = OGs.merge(TFs, how='inner', on=['gnid'])
+OGs_CF = OGs.merge(CFs, how='inner', on=['gnid'])
 
 # Write stats and IDs to file
 if not os.path.exists('out/'):
