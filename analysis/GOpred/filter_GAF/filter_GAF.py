@@ -105,68 +105,68 @@ with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
 segments = pd.DataFrame(rows)
 
 # Load raw table and add term names
-df1 = pd.read_table('../../../data/GO/dmel_r6.45_FB2022_02_gene_association.fb',
-                    skiprows=5,
-                    usecols=list(range(15)),  # File contains two spare tabs at end
-                    names=['DB', 'DB_Object_ID', 'DB_Object_Symbol', 'Qualifier', 'GO ID',  # Official column labels
-                           'DB:Reference', 'Evidence', 'With (or) From', 'Aspect', 'DB_Object_Name',
-                           'DB_Object_Synonym', 'DB_Object_Type', 'taxon', 'Date', 'Assigned_by'])
-df1['name'] = df1['GO ID'].apply(lambda x: GO[x]['name'])
+gaf1 = pd.read_table('../../../data/GO/dmel_r6.45_FB2022_02_gene_association.fb',
+                     skiprows=5,
+                     usecols=list(range(15)),  # File contains two spare tabs at end
+                     names=['DB', 'DB_Object_ID', 'DB_Object_Symbol', 'Qualifier', 'GO ID',  # Official column labels
+                            'DB:Reference', 'Evidence', 'With (or) From', 'Aspect', 'DB_Object_Name',
+                            'DB_Object_Synonym', 'DB_Object_Type', 'taxon', 'Date', 'Assigned_by'])
+gaf1['name'] = gaf1['GO ID'].apply(lambda x: GO[x]['name'])
 
 # Drop unneeded columns and filter
 mapper = {'DB_Object_ID': 'gnid', 'DB_Object_Symbol': 'symbol', 'Qualifier': 'qualifier', 'GO ID': 'GOid',
           'Evidence': 'evidence', 'Aspect': 'aspect', 'Date': 'date', 'Assigned_by': 'origin'}
 columns = ['DB_Object_ID', 'DB_Object_Symbol', 'Qualifier', 'GO ID',
            'Evidence', 'Aspect', 'taxon', 'Date', 'Assigned_by', 'name']
-df2 = df1[columns].rename(columns=mapper)
+gaf2 = gaf1[columns].rename(columns=mapper)
 
-bool1 = df2['qualifier'].isin(['enables', 'contributes_to', 'involved_in',  # Select appropriate qualifiers (FB defines additional qualifiers)
+bool1 = gaf2['qualifier'].isin(['enables', 'contributes_to', 'involved_in',  # Select appropriate qualifiers (FB defines additional qualifiers)
                                'located_in', 'part_of', 'is_active_in'])
-bool2 = df2['evidence'].isin(['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP',  # Remove lower quality annotations
-                              'HTP', 'HDA', 'HMP', 'HGI', 'HEP',
-                              'TAS', 'IC'])
-bool3 = df2['taxon'] == 'taxon:7227'  # Keep only dmel annotations
-bool4 = ~df2['GOid'].apply(lambda x: GO[x]['is_obsolete'])  # Remove obsolete annotations
-df3 = df2[bool1 & bool2 & bool3 & bool4].drop(['qualifier', 'taxon'], axis=1)
+bool2 = gaf2['evidence'].isin(['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP',  # Remove lower quality annotations
+                               'HTP', 'HDA', 'HMP', 'HGI', 'HEP',
+                               'TAS', 'IC'])
+bool3 = gaf2['taxon'] == 'taxon:7227'  # Keep only dmel annotations
+bool4 = ~gaf2['GOid'].apply(lambda x: GO[x]['is_obsolete'])  # Remove obsolete annotations
+gaf3 = gaf2[bool1 & bool2 & bool3 & bool4].drop(['qualifier', 'taxon'], axis=1)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
 # Identify IDs of obsolete and renamed annotations
-counts = df2.loc[~bool4, ['GOid', 'name']].value_counts()
+counts = gaf2.loc[~bool4, ['GOid', 'name']].value_counts()
 write_table(counts, 'TOP 10 OBSOLETE ANNOTATIONS (ORIGINAL)')
 
-counts = df2.loc[bool1 & bool2 & bool3 & ~bool4, ['GOid', 'name']].value_counts()
+counts = gaf2.loc[bool1 & bool2 & bool3 & ~bool4, ['GOid', 'name']].value_counts()
 write_table(counts, 'TOP 10 OBSOLETE ANNOTATIONS (FILTERED)')
 
 # Update IDs
-df4 = df3.copy()
-df4['GOid'] = df4['GOid'].apply(lambda x: GO[x]['primary_id'])
+gaf4 = gaf3.copy()
+gaf4['GOid'] = gaf4['GOid'].apply(lambda x: GO[x]['primary_id'])
 
-counts = df3.loc[df3['GOid'] != df4['GOid'], ['GOid', 'name']].value_counts()
+counts = gaf3.loc[gaf3['GOid'] != gaf4['GOid'], ['GOid', 'name']].value_counts()
 write_table(counts, 'TOP 10 RENAMED ANNOTATIONS')
 
 # Join with segments
-df5 = segments.merge(df4, on='gnid')
+gaf5 = segments.merge(gaf4, on='gnid')
 
 # Propagate ancestors to table and drop poorly represented annotations
-df6 = df5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
-df6 = df6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
-df7 = df6.groupby(['GOid', 'disorder']).filter(lambda x: x['gnid'].nunique() >= min_gnids)
+gaf6 = gaf5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
+gaf6 = gaf6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
+gaf7 = gaf6.groupby(['GOid', 'disorder']).filter(lambda x: x['gnid'].nunique() >= min_gnids)
 
 # Make plots
-dfs = [df2, df3, df4, df5, df6, df7]
+gafs = [gaf2, gaf3, gaf4, gaf5, gaf6, gaf7]
 labels = ['original', 'filter', 'update', 'join', 'propagate', 'drop']
 
 # Number of annotations
-plt.bar(range(len(dfs)), [len(df) for df in dfs], width=0.5, tick_label=labels)
+plt.bar(range(len(gafs)), [len(gaf) for gaf in gafs], width=0.5, tick_label=labels)
 plt.xlabel('Cleaning step')
 plt.ylabel('Number of annotations')
-plt.savefig('out/bar_numannot-df.png')
+plt.savefig('out/bar_numannot-gaf.png')
 plt.close()
 
 # Number of annotations by aspect
-counts = [df['aspect'].value_counts() for df in dfs]
+counts = [gaf['aspect'].value_counts() for gaf in gafs]
 bottoms = [0 for count in counts]
 for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
     plt.bar(range(len(counts)), [count[aspect] for count in counts],
@@ -175,11 +175,11 @@ for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
 plt.legend()
 plt.xlabel('Cleaning step')
 plt.ylabel('Number of annotations')
-plt.savefig('out/bar_numannot-df_aspect.png')
+plt.savefig('out/bar_numannot-gaf_aspect.png')
 plt.close()
 
 # Number of annotations by evidence code
-counts = [df['evidence'].value_counts() for df in dfs]
+counts = [gaf['evidence'].value_counts() for gaf in gafs]
 codes = reduce(lambda x, y: x.combine(y, add, fill_value=0), counts).sort_values(ascending=False)
 top_codes = list(codes.index[:9])
 other_codes = list(codes.index[9:])
@@ -198,18 +198,18 @@ for code in (top_codes + ['other']):
 plt.legend()
 plt.xlabel('Cleaning step')
 plt.ylabel('Number of annotations')
-plt.savefig('out/bar_numannot-df_evidence.png')
+plt.savefig('out/bar_numannot-gaf_evidence.png')
 plt.close()
 
 # Number of terms
-plt.bar(range(len(dfs)), [df['GOid'].nunique() for df in dfs], width=0.5, tick_label=labels)
+plt.bar(range(len(gafs)), [gaf['GOid'].nunique() for gaf in gafs], width=0.5, tick_label=labels)
 plt.xlabel('Cleaning step')
 plt.ylabel('Number of unique terms')
-plt.savefig('out/bar_numterms-df.png')
+plt.savefig('out/bar_numterms-gaf.png')
 plt.close()
 
 # Number of terms by aspect
-counts = [df[['GOid', 'aspect']].drop_duplicates()['aspect'].value_counts() for df in dfs]
+counts = [gaf[['GOid', 'aspect']].drop_duplicates()['aspect'].value_counts() for gaf in gafs]
 bottoms = [0 for count in counts]
 for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
     plt.bar(range(len(counts)), [count[aspect] for count in counts],
@@ -218,9 +218,9 @@ for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
 plt.legend()
 plt.xlabel('Cleaning step')
 plt.ylabel('Number of unique terms')
-plt.savefig('out/bar_numterms-df_aspect.png')
+plt.savefig('out/bar_numterms-gaf_aspect.png')
 plt.close()
 
-# Write dfs to file
-for df, label in zip(dfs[2:], labels[2:]):
-    df.to_csv(f'out/GAF_{label}.tsv', sep='\t', index=False)
+# Write GAFs to file
+for gaf, label in zip(gafs[2:], labels[2:]):
+    gaf.to_csv(f'out/GAF_{label}.tsv', sep='\t', index=False)
