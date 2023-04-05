@@ -145,7 +145,7 @@ for min_length in min_lengths:
         os.mkdir(prefix)
 
     # 2.1 Plot rate distributions
-    rates = ((contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean())
+    rates = (contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
     rates_nonmotif = rates[nonmotif_labels]
     disorder = rates.loc[pdidx[:, :, :, True, :], :]
     order = rates.loc[pdidx[:, :, :, False, :], :]
