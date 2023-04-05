@@ -286,10 +286,10 @@ plt.close()
 
 freqs1, freqs2 = records['50R_disorder'].freqs.mean(axis=0), records['50R_order'].freqs.mean(axis=0)
 std1, std2 = records['50R_disorder'].freqs.std(axis=0), records['50R_order'].freqs.std(axis=0)
-rs = freqs1 / freqs2
-std = rs * ((std1 / freqs1) ** 2 + (std2 / freqs2) ** 2) ** 0.5  # Propagation of error formula for ratios
+ys = freqs1 / freqs2
+std = ys * ((std1 / freqs1) ** 2 + (std2 / freqs2) ** 2) ** 0.5  # Propagation of error formula for ratios
 fig, ax = plt.subplots(figsize=(8, 4), layout='constrained')
-ax.bar(range(len(alphabet)), rs, yerr=std, width=0.5)
+ax.bar(range(len(alphabet)), ys, yerr=std, width=0.5)
 ax.set_xticks(range(len(alphabet)), alphabet)
 ax.set_xlabel('Amino acid')
 ax.set_ylabel('Frequency ratio')
