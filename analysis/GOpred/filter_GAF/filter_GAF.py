@@ -168,9 +168,9 @@ plt.close()
 # Number of annotations by aspect
 counts = [gaf['aspect'].value_counts() for gaf in gafs]
 bottoms = [0 for count in counts]
-for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
+for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
     plt.bar(range(len(counts)), [count[aspect] for count in counts],
-            bottom=bottoms, label=label, width=0.5, tick_label=labels)
+            bottom=bottoms, label=aspect_label, width=0.5, tick_label=labels)
     bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
 plt.legend()
 plt.xlabel('Cleaning step')
@@ -211,9 +211,9 @@ plt.close()
 # Number of terms by aspect
 counts = [gaf[['GOid', 'aspect']].drop_duplicates()['aspect'].value_counts() for gaf in gafs]
 bottoms = [0 for count in counts]
-for aspect, label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
+for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
     plt.bar(range(len(counts)), [count[aspect] for count in counts],
-            bottom=bottoms, label=label, width=0.5, tick_label=labels)
+            bottom=bottoms, label=aspect_label, width=0.5, tick_label=labels)
     bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
 plt.legend()
 plt.xlabel('Cleaning step')
