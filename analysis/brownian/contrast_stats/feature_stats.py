@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
-from numpy import linspace
 from scipy.stats import linregress
 from sklearn.decomposition import PCA
 from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
@@ -94,8 +93,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = contrasts[feature_label].min(), contrasts[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
+        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
         axs[1].set_xlabel(f'Contrast value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
@@ -154,8 +153,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = rates[feature_label].min(), rates[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
+        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
         axs[1].set_xlabel(f'Rate ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
@@ -366,8 +365,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = roots[feature_label].min(), roots[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color=cmap1(0.6), label='disorder')
-        axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color=cmap2(0.6), label='order')
+        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 75), color=cmap1(0.6), label='disorder')
+        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 75), color=cmap2(0.6), label='order')
         axs[1].set_xlabel(f'Root value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
