@@ -9,10 +9,6 @@ import pandas as pd
 pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
-min_indel_columns = 5  # Indel rates below this value are set to 0
-min_aa_rate = 0.5
-min_indel_rate = 0.1
-
 cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
 
 for min_length in min_lengths:
@@ -28,17 +24,6 @@ for min_length in min_lengths:
     all_segments = pd.DataFrame(rows)
     all_regions = all_segments.drop('ppid', axis=1).drop_duplicates()
 
-    # Load and format data
-    asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
-    asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
-    row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
-    asr_rates.loc[row_idx, 'indel_rate_mean'] = 0
-
-    row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
-    column_idx = ['OGid', 'start', 'stop', 'disorder']
-    region_keys = asr_rates.loc[row_idx, column_idx]
-    segment_keys = all_segments.merge(region_keys, how='right', on=['OGid', 'start', 'stop', 'disorder'])
-
     feature_roots = pd.read_table(f'../get_contrasts/out/features/roots_{min_length}.tsv', header=[0, 1])
     feature_labels = [feature_label for feature_label, group_label in feature_roots.columns
                       if group_label != 'ids_group']
@@ -46,19 +31,19 @@ for min_length in min_lengths:
                        if group_label not in ['ids_group', 'motifs_group']]
 
     feature_roots = feature_roots.droplevel(1, axis=1)
-    feature_roots = region_keys.merge(feature_roots, how='left', on=['OGid', 'start', 'stop'])
+    feature_roots = all_regions.merge(feature_roots, how='left', on=['OGid', 'start', 'stop'])
     feature_roots = feature_roots.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     feature_contrasts = pd.read_table(f'../get_contrasts/out/features/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
-    feature_contrasts = region_keys.merge(feature_contrasts, how='left', on=['OGid', 'start', 'stop'])
+    feature_contrasts = all_regions.merge(feature_contrasts, how='left', on=['OGid', 'start', 'stop'])
     feature_contrasts = feature_contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
-    score_roots = pd.read_table(f'../get_contrasts/out/scores/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
-    score_roots = region_keys.merge(score_roots, how='left', on=['OGid', 'start', 'stop'])
+    score_roots = pd.read_table(f'../get_contrasts/out/scores/roots_{min_length}.tsv')
+    score_roots = all_regions.merge(score_roots, how='left', on=['OGid', 'start', 'stop'])
     score_roots = score_roots.set_index(['OGid', 'start', 'stop', 'disorder'])
 
-    score_contrasts = pd.read_table(f'../get_contrasts/out/scores/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
-    score_contrasts = region_keys.merge(score_contrasts, how='left', on=['OGid', 'start', 'stop'])
+    score_contrasts = pd.read_table(f'../get_contrasts/out/scores/contrasts_{min_length}.tsv')
+    score_contrasts = all_regions.merge(score_contrasts, how='left', on=['OGid', 'start', 'stop'])
     score_contrasts = score_contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
     prefix = f'out/regions_{min_length}/scores/'
@@ -79,7 +64,7 @@ for min_length in min_lengths:
     # Correlation of score contrasts with feature contrasts
     corr_stack = []
     rng = np.random.default_rng(1)
-    for _ in range(1000):
+    for _ in range(10000):
         x = rng.permutation(score_contrasts['score_fraction'].to_numpy())
         y = feature_contrasts.to_numpy()
         corr = np.corrcoef(x, y, rowvar=False)
@@ -104,7 +89,7 @@ for min_length in min_lengths:
     ax.set_xlabel('Correlation between feature and score contrasts')
     ax.set_ylabel('Feature')
     ax.set_title('All regions')
-    alpha = 0.01
+    alpha = 0.001
     offset = (xs.max() - xs.min()) / 200
     for y, x, pvalue in zip(ys, xs, pvalues):
         if pvalue <= alpha:
