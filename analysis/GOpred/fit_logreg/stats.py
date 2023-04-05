@@ -7,6 +7,8 @@ import pandas as pd
 
 pdidx = pd.IndexSlice
 
+cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
+
 models = pd.read_table('out/models.tsv').set_index(['GOid', 'label'])
 disorder = models.loc[pdidx[:, 'disorder'], :]
 order = models.loc[pdidx[:, 'order'], :]
@@ -15,7 +17,10 @@ all = models.loc[pdidx[:, 'all'], :]
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-for data, data_label, color in [(disorder, 'disorder', 'C0'), (order, 'order', 'C1'), (all, 'all', 'C2')]:
+plots = [(disorder, 'disorder', cmap1(0.6)),
+         (order, 'order', cmap2(0.6)),
+         (all, 'all', cmap3(0.6))]
+for data, data_label, color in plots:
     for feature_label in models.columns:
         plt.hist(data[feature_label], bins=50, label=data_label, color=color)
         plt.xlabel(feature_label.capitalize())

@@ -9,6 +9,8 @@ import pandas as pd
 
 min_lengths = [30, 60, 90]
 
+cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
+
 for min_length in min_lengths:
     # Load regions
     OGid2regions = {}
@@ -87,8 +89,8 @@ for min_length in min_lengths:
     xmin, xmax = x['aa_num_columns'].min(), x['aa_num_columns'].max()
     bins = np.linspace(xmin, xmax, 200)
     fig, axs = plt.subplots(2, 1)
-    axs[0].hist(x.loc[x['disorder'], 'aa_num_columns'], bins=bins, label='disorder', color='C0')
-    axs[1].hist(x.loc[~x['disorder'], 'aa_num_columns'], bins=bins, label='order', color='C1')
+    axs[0].hist(x.loc[x['disorder'], 'aa_num_columns'], bins=bins, label='disorder', color=cmap1(0.6))
+    axs[1].hist(x.loc[~x['disorder'], 'aa_num_columns'], bins=bins, label='order', color=cmap2(0.6))
     axs[1].set_xlabel('Number of columns in partition (amino acid)')
     for ax in axs:
         ax.set_ylabel('Number of partitions')
@@ -100,8 +102,8 @@ for min_length in min_lengths:
     xmin, xmax = x['indel_num_columns'].min(), x['indel_num_columns'].max()
     bins = np.linspace(xmin, xmax, 100)
     fig, axs = plt.subplots(2, 1)
-    axs[0].hist(x.loc[x['disorder'], 'indel_num_columns'], bins=bins, label='disorder', color='C0')
-    axs[1].hist(x.loc[~x['disorder'], 'indel_num_columns'], bins=bins, label='order', color='C1')
+    axs[0].hist(x.loc[x['disorder'], 'indel_num_columns'], bins=bins, label='disorder', color=cmap1(0.6))
+    axs[1].hist(x.loc[~x['disorder'], 'indel_num_columns'], bins=bins, label='order', color=cmap2(0.6))
     axs[1].set_xlabel('Number of columns in model (indel)')
     for ax in axs:
         ax.set_ylabel('Number of models')
@@ -122,7 +124,7 @@ for min_length in min_lengths:
     fig, axs = plt.subplots(2, 1)
     xmin, xmax = df['aa_rate_mean'].min(), df['aa_rate_mean'].max()
     bins = np.linspace(xmin, xmax, 100)
-    for ax, label, color in zip(axs, ['disorder', 'order'], ['C0', 'C1']):
+    for ax, label, color in zip(axs, ['disorder', 'order'], [cmap1(0.6), cmap2(0.6)]):
         ax.hist(df.loc[df['disorder'] if label == 'disorder' else ~df['disorder'], 'aa_rate_mean'],
                 bins=bins, label=label, color=color)
         ax.set_ylabel('Number of regions')
@@ -134,7 +136,7 @@ for min_length in min_lengths:
     fig, axs = plt.subplots(2, 1)
     xmin, xmax = df['indel_rate_mean'].min(), df['indel_rate_mean'].max()
     bins = np.linspace(xmin, xmax, 150)
-    for ax, label, color in zip(axs, ['disorder', 'order'], ['C0', 'C1']):
+    for ax, label, color in zip(axs, ['disorder', 'order'], [cmap1(0.6), cmap2(0.6)]):
         ax.hist(df.loc[df['disorder'] if label == 'disorder' else ~df['disorder'], 'indel_rate_mean'],
                 bins=bins, label=label, color=color)
         ax.set_ylabel('Number of regions')
