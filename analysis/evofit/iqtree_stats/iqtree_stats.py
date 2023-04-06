@@ -109,7 +109,7 @@ for data_label, title_label in plots:
     fig, axs = plt.subplots(2, 3, figsize=(8, 6), layout='constrained')
     for ax, record in zip(axs.ravel(), records.values()):
         data = getattr(record, data_label)
-        ax.imshow(data.mean(axis=0), vmax=vmax, cmap='Greys')
+        ax.imshow(data.mean(axis=0), vmin=0, vmax=vmax, cmap='Greys')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_title(record.label)
@@ -188,11 +188,11 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-        rs = np.log10(matrix1 / matrix2)
-        vext = np.nanmax(np.abs(rs))
+        ratio = np.log10(matrix1 / matrix2)
+        vext = np.nanmax(np.abs(ratio))
 
         fig, ax = plt.subplots()
-        im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
+        im = ax.imshow(ratio, vmin=-vext, vmax=vext, cmap='RdBu')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_title(f'log10 ratio of {record1.label} to {record2.label}:\n{title_label} matrix')
@@ -205,8 +205,8 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-        rs = np.log10(matrix1 / matrix2)
-        v = np.nanmax(np.abs(rs))
+        ratio = np.log10(matrix1 / matrix2)
+        v = np.nanmax(np.abs(ratio))
         if v > vext:
             vext = v
 
@@ -216,8 +216,8 @@ for pairs, data_label, title_label in plots:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
 
-        rs = np.log10(matrix1 / matrix2)
-        im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
+        ratio = np.log10(matrix1 / matrix2)
+        im = ax.imshow(ratio, vmin=-vext, vmax=vext, cmap='RdBu')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_title(f'{record1.label} to {record2.label}')
@@ -231,11 +231,11 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-        ds = matrix1 - matrix2
-        vext = np.nanmax(np.abs(ds))
+        diff = matrix1 - matrix2
+        vext = np.nanmax(np.abs(diff))
 
         fig, ax = plt.subplots()
-        im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
+        im = ax.imshow(diff, vmin=-vext, vmax=vext, cmap='RdBu')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_title(f'Difference of {record1.label} to {record2.label}:\n{title_label} matrix')
@@ -248,8 +248,8 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-        ds = matrix1 - matrix2
-        v = np.nanmax(np.abs(ds))
+        diff = matrix1 - matrix2
+        v = np.nanmax(np.abs(diff))
         if v > vext:
             vext = v
 
@@ -259,8 +259,8 @@ for pairs, data_label, title_label in plots:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
 
-        ds = matrix1 - matrix2
-        im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
+        diff = matrix1 - matrix2
+        im = ax.imshow(diff, vmin=-vext, vmax=vext, cmap='RdBu')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
         ax.set_title(f'{record1.label} to {record2.label}')
