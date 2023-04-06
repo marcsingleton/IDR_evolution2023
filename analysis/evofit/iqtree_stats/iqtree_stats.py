@@ -130,6 +130,7 @@ for data_label, title_label in plots:
             r = np.corrcoef(matrix1.ravel(), matrix2.ravel())
             corr[i, j] = r[0, 1]
             corr[j, i] = r[0, 1]
+
     fig, ax = plt.subplots()
     im = ax.imshow(corr)
     ax.set_xticks(range(len(labels)), labels, fontsize=8, rotation=30, rotation_mode='anchor',
@@ -147,7 +148,7 @@ plots = [(records['50R_disorder'], 'ematrix', 'exchangeability'),
          (records['50R_order'], 'rmatrix', 'rate')]
 for record, data_label, title_label in plots:
     fig = plt.figure()
-    gs = plt.GridSpec(2, 2, left=0.1, right=0.95, top=0.9, bottom=0.1, height_ratios=[2, 1])
+    gs = plt.GridSpec(2, 2, left=0.075, right=0.9, top=0.9, bottom=0.1, height_ratios=[2, 1], wspace=0.45)
 
     data = getattr(record, data_label)
     mean = data.mean(axis=0)
@@ -158,14 +159,14 @@ for record, data_label, title_label in plots:
     ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_title('Mean')
-    fig.colorbar(im, ax=ax)
+    fig.colorbar(im, cax=ax.inset_axes((1.05, 0, 0.05, 1)))
 
     ax = fig.add_subplot(gs[0, 1])
     im = ax.imshow(std / mean, cmap='Greys')
     ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_yticks(range(len(alphabet)), alphabet, fontsize=7)
     ax.set_title('Coefficient of variation')
-    fig.colorbar(im, ax=ax)
+    fig.colorbar(im, cax=ax.inset_axes((1.05, 0, 0.05, 1)))
 
     ax = fig.add_subplot(gs[1, :])
     ax.scatter(mean, std / mean, s=10, alpha=0.5, edgecolor='none')
@@ -187,9 +188,9 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-
         rs = np.log10(matrix1 / matrix2)
         vext = np.nanmax(np.abs(rs))
+
         fig, ax = plt.subplots()
         im = ax.imshow(rs, vmin=-vext, vmax=vext, cmap='RdBu')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
@@ -204,11 +205,11 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-
         rs = np.log10(matrix1 / matrix2)
         v = np.nanmax(np.abs(rs))
         if v > vext:
             vext = v
+
     fig, axs = plt.subplots(1, len(pairs), figsize=(9.6, 3.2), layout='constrained')
     for ax, pair in zip(axs.ravel(), pairs):
         record1, record2 = pair
@@ -230,9 +231,9 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-
         ds = matrix1 - matrix2
         vext = np.nanmax(np.abs(ds))
+
         fig, ax = plt.subplots()
         im = ax.imshow(ds, vmin=-vext, vmax=vext, cmap='RdBu')
         ax.set_xticks(range(len(alphabet)), alphabet, fontsize=7)
@@ -247,11 +248,11 @@ for pairs, data_label, title_label in plots:
     for record1, record2 in pairs:
         matrix1 = getattr(record1, data_label).mean(axis=0)
         matrix2 = getattr(record2, data_label).mean(axis=0)
-
         ds = matrix1 - matrix2
         v = np.nanmax(np.abs(ds))
         if v > vext:
             vext = v
+
     fig, axs = plt.subplots(1, len(pairs), figsize=(9.6, 3.2), layout='constrained')
     for ax, pair in zip(axs.ravel(), pairs):
         record1, record2 = pair
