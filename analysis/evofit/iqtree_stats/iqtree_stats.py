@@ -174,7 +174,7 @@ for record, data_label, title_label in plots:
     ax.set_ylabel('Coefficient of variation')
 
     fig.suptitle(f'{record.label}: {title_label} matrix')
-    fig.savefig(f'out/panel_CV_{record.label}_{data_label}.png')
+    fig.savefig(f'out/CV_{record.label}_{data_label}.png')
     plt.close()
 
 pairs = [(records['50R_disorder'], LG_record),
