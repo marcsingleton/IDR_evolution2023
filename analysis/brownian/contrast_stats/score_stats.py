@@ -121,7 +121,7 @@ for min_length in min_lengths:
     xmin, xmax = score_rates['score_fraction'].min(), score_rates['score_fraction'].max()
     axs[0].hist(disorder['score_fraction'], bins=np.linspace(xmin, xmax, 150), color='C0', label='disorder')
     axs[1].hist(order['score_fraction'], bins=np.linspace(xmin, xmax, 150), color='C1', label='order')
-    axs[1].set_xlabel(f'Score rate')
+    axs[1].set_xlabel('Score rate')
     axs[0].set_title(f'minimum length ≥ {min_length}')
     for ax in axs:
         ax.set_ylabel('Number of regions')
