@@ -53,7 +53,7 @@ for ax, column, label, color in zip(axs, columns, labels, colors):
     ax.hist(df[f'{column}_root'], bins=np.linspace(0, 1, 100), color=color)
     ax.set_xlabel(f'{label} at root')
     ax.set_ylabel('Number of alignments')
-plt.savefig('out/hist_alignmentnum-root.png')
+fig.savefig('out/hist_alignmentnum-root.png')
 plt.close()
 
 xs = [get_quantile(df[f'{column}_rate'].to_numpy(), 0.99) for column in columns]
@@ -65,7 +65,7 @@ for ax, x, label, color in zip(axs, xs, labels, colors):
     ax.hist(x, bins=xrange, color=color)
     ax.set_xlabel(f'{label} rate')
     ax.set_ylabel('Number of alignments')
-plt.savefig('out/hist_alignmentnum-rate.png')
+fig.savefig('out/hist_alignmentnum-rate.png')
 plt.close()
 
 for ax, column, label in zip(axs, columns, labels):
@@ -168,5 +168,5 @@ for row in examples.itertuples():
         xmin, xmax = ax.get_xlim()
         xrange = np.arange(xmin, xmax)
         ax.fill_between(xrange, upper[int(xmin):int(xmax)], lower[int(xmin):int(xmax)], alpha=0.25)
-    plt.savefig(f'out/traces/{row.Index:04}_{row.OGid}_root.png')
+    fig.savefig(f'out/traces/{row.Index:04}_{row.OGid}_root.png')
     plt.close()

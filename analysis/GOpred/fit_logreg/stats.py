@@ -7,7 +7,7 @@ import pandas as pd
 
 pdidx = pd.IndexSlice
 
-cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
+color1, color2, color3 = '#4e79a7', '#f28e2b', '#b07aa1'
 
 models = pd.read_table('out/models.tsv').set_index(['GOid', 'label'])
 disorder = models.loc[pdidx[:, 'disorder'], :]
@@ -17,23 +17,24 @@ all = models.loc[pdidx[:, 'all'], :]
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-plots = [(disorder, 'disorder', cmap1(0.6)),
-         (order, 'order', cmap2(0.6)),
-         (all, 'all', cmap3(0.6))]
+plots = [(disorder, 'disorder', color1),
+         (order, 'order', color2),
+         (all, 'all', color3)]
 for data, data_label, color in plots:
     for feature_label in models.columns:
-        plt.hist(data[feature_label], bins=50, label=data_label, color=color)
-        plt.xlabel(feature_label.capitalize())
-        plt.ylabel('Number of models')
-        plt.legend()
-        plt.savefig(f'out/hist_modelnum-{feature_label}_{data_label}.png')
+        fig, ax = plt.subplots()
+        ax.hist(data[feature_label], bins=50, label=data_label, color=color)
+        ax.set_xlabel(feature_label.capitalize())
+        ax.set_ylabel('Number of models')
+        ax.legend()
+        fig.savefig(f'out/hist_modelnum-{feature_label}_{data_label}.png')
         plt.close()
 
-    plt.scatter(data['sensitivity'], data['specificity'], label=data_label, facecolor=color, edgecolor='none', alpha=0.25, s=12)
-    plt.xlabel('Sensitivity')
-    plt.ylabel('Specificity')
-    leg = plt.legend(markerscale=1.5)
-    for lh in leg.legendHandles:
-        lh.set_alpha(1)
-    plt.savefig(f'out/scatter_spec-sens_{data_label}.png')
+    fig, ax = plt.subplots()
+    ax.scatter(data['sensitivity'], data['specificity'],
+               label=data_label, facecolor=color, edgecolor='none', alpha=0.25, s=12)
+    ax.set_xlabel('Sensitivity')
+    ax.set_ylabel('Specificity')
+    ax.legend(handles=[plt.Line2D([], [], label=data_label, marker='.', markerfacecolor=color, markeredgecolor='none', linestyle='none')])
+    fig.savefig(f'out/scatter_spec-sens_{data_label}.png')
     plt.close()

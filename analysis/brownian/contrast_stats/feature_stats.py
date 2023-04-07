@@ -23,7 +23,8 @@ min_aa_rate = 0.5
 min_indel_rate = 0.1
 
 pca_components = 10
-cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
+cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Oranges'], plt.colormaps['Purples']
+color1, color2, color3 = '#4e79a7', '#f28e2b', '#b07aa1'
 hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 hexbin_kwargs_log = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0, 'bins': 'log'}
 handle_markerfacecolor = 0.6
@@ -93,8 +94,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = contrasts[feature_label].min(), contrasts[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
-        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
+        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 150), color=color1, label='disorder')
+        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 150), color=color2, label='order')
         axs[1].set_xlabel(f'Contrast value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
@@ -153,8 +154,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = rates[feature_label].min(), rates[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
-        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
+        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 150), color=color1, label='disorder')
+        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 150), color=color2, label='order')
         axs[1].set_xlabel(f'Rate ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
@@ -207,25 +208,27 @@ for min_length in min_lengths:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
         idx = data.index.get_level_values('disorder').array.astype(bool)
-        cmap = cmap3
+        color = color3
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
@@ -254,12 +257,8 @@ for min_length in min_lengths:
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
         xmin, xmax = xs.min(), xs.max()
-        if m >= 0:
-            xpos = xmax
-            ha = 'right'
-        else:
-            xpos = xmin
-            ha = 'left'
+        xpos = xmax if m >= 0 else xmin
+        ha = 'right' if m >= 0 else 'left'
 
         fig, ax = plt.subplots()
         hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0)
@@ -286,24 +285,27 @@ for min_length in min_lengths:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
         cmap = cmap1 if data_label == 'disorder' else cmap2
+        color = color1 if data_label == 'disorder' else color2
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
@@ -332,12 +334,8 @@ for min_length in min_lengths:
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
         xmin, xmax = xs.min(), xs.max()
-        if m >= 0:
-            xpos = xmax
-            ha = 'right'
-        else:
-            xpos = xmin
-            ha = 'left'
+        xpos = xmax if m >= 0 else xmin
+        ha = 'right' if m >= 0 else 'left'
 
         fig, ax = plt.subplots()
         hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0)
@@ -365,8 +363,8 @@ for min_length in min_lengths:
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
         xmin, xmax = roots[feature_label].min(), roots[feature_label].max()
-        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 75), color=cmap1(0.6), label='disorder')
-        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 75), color=cmap2(0.6), label='order')
+        axs[0].hist(disorder[feature_label], bins=np.linspace(xmin, xmax, 75), color=color1, label='disorder')
+        axs[1].hist(order[feature_label], bins=np.linspace(xmin, xmax, 75), color=color2, label='order')
         axs[1].set_xlabel(f'Root value ({feature_label})')
         axs[0].set_title(f'minimum length ≥ {min_length}')
         for ax in axs:
@@ -416,25 +414,27 @@ for min_length in min_lengths:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
         idx = data.index.get_level_values('disorder').array.astype(bool)
-        cmap = cmap3
+        cmap, color = cmap3, color3
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
@@ -458,24 +458,27 @@ for min_length in min_lengths:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
         cmap = cmap1 if data_label == 'disorder' else cmap2
+        color = color1 if data_label == 'disorder' else color2
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
@@ -520,7 +523,7 @@ for min_length in min_lengths:
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
     ax.set_ymargin(0.01)
-    ax.barh(ys, xs, color=cmap3(0.6))
+    ax.barh(ys, xs, color=color3)
     ax.set_yticks(ys, feature_labels, fontsize=6)
     ax.set_xlabel('Correlation between root and tip mean')
     ax.set_ylabel('Feature')
@@ -543,12 +546,8 @@ for min_length in min_lengths:
         m, b = result.slope, result.intercept
         r2 = result.rvalue ** 2
         xmin, xmax = xs.min(), xs.max()
-        if m >= 0:
-            xpos = xmax
-            ha = 'right'
-        else:
-            xpos = xmin
-            ha = 'left'
+        xpos = xmax if m >= 0 else xmin
+        ha = 'right' if m >= 0 else 'left'
 
         fig, ax = plt.subplots()
         hb = ax.hexbin(xs, ys, gridsize=75, mincnt=1, linewidth=0, cmap=cmap3)
@@ -569,12 +568,8 @@ for min_length in min_lengths:
             result = linregress(xs, ys)
             m, b = result.slope, result.intercept
             r2 = result.rvalue ** 2
-            if m >= 0:
-                xpos = xmax
-                ha = 'right'
-            else:
-                xpos = xmin
-                ha = 'left'
+            xpos = xmax if m >= 0 else xmin
+            ha = 'right' if m >= 0 else 'left'
 
             hb = ax.hexbin(xs, ys, gridsize=50, mincnt=1, linewidth=0, cmap=cmap, extent=(xmin, xmax, ymin, ymax))
             ax.set_ylabel('Rate')
@@ -601,10 +596,10 @@ for min_length in min_lengths:
         xs_order.append(x_order)
         xs_delta.append(x_delta)
 
-    plots = [(xs_all, 'all', 'All regions', cmap3(0.6)),
-             (xs_disorder, 'disorder', 'Disorder regions', cmap1(0.6)),
-             (xs_order, 'order', 'Order regions', cmap2(0.6)),
-             (xs_delta, 'delta', 'Difference of disorder and order regions', cmap3(0.6))]
+    plots = [(xs_all, 'all', 'All regions', color3),
+             (xs_disorder, 'disorder', 'Disorder regions', color1),
+             (xs_order, 'order', 'Order regions', color2),
+             (xs_delta, 'delta', 'Difference of disorder and order regions', color3)]
     for xs, data_label, title_label, color in plots:
         fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
         ax.invert_yaxis()
@@ -626,26 +621,28 @@ for min_length in min_lengths:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
         idx = data.index.get_level_values('disorder').array.astype(bool)
-        cmap = cmap3
+        cmap, color = cmap3, color3
         width_ratios = (0.76, 0.03, 0.03, 0.15, 0.03)
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
@@ -680,25 +677,28 @@ for min_length in min_lengths:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
         cmap = cmap1 if data_label == 'disorder' else cmap2
+        color = color1 if data_label == 'disorder' else color2
         width_ratios = (0.76, 0.03, 0.03, 0.18)
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label, color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters

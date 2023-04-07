@@ -9,8 +9,6 @@ import pandas as pd
 pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
-cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Reds']
-
 for min_length in min_lengths:
     # Load regions as segments
     rows = []
@@ -121,8 +119,8 @@ for min_length in min_lengths:
     order = score_rates.loc[pdidx[:, :, :, False], :]
     fig, axs = plt.subplots(2, 1, sharex=True)
     xmin, xmax = score_rates['score_fraction'].min(), score_rates['score_fraction'].max()
-    axs[0].hist(disorder['score_fraction'], bins=np.linspace(xmin, xmax, 150), color=cmap1(0.6), label='disorder')
-    axs[1].hist(order['score_fraction'], bins=np.linspace(xmin, xmax, 150), color=cmap2(0.6), label='order')
+    axs[0].hist(disorder['score_fraction'], bins=np.linspace(xmin, xmax, 150), color='C0', label='disorder')
+    axs[1].hist(order['score_fraction'], bins=np.linspace(xmin, xmax, 150), color='C1', label='order')
     axs[1].set_xlabel(f'Score rate')
     axs[0].set_title(f'minimum length ≥ {min_length}')
     for ax in axs:

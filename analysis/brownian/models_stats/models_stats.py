@@ -40,7 +40,8 @@ min_aa_rate = 0.5
 min_indel_rate = 0.1
 
 pca_components = 10
-cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Reds'], plt.colormaps['Purples']
+cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Oranges']
+color1, color2 = '#4e79a7', '#f28e2b'
 hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 hexbin_kwargs_log = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 handle_markerfacecolor = 0.6
@@ -124,8 +125,8 @@ for min_length in min_lengths:
         fig.savefig(f'out/regions_{min_length}/hexbin_sigma2-delta_AIC_{feature_label}.png')
         plt.close()
 
-    column_labels = [f'{feature_label}_sigma2_ratio' for feature_label in feature_labels]
-    column_labels_nonmotif = [f'{feature_label}_sigma2_ratio' for feature_label in nonmotif_labels]
+    column_labels = [f'{feature_label}_delta_AIC' for feature_label in feature_labels]
+    column_labels_nonmotif = [f'{feature_label}_delta_AIC' for feature_label in nonmotif_labels]
     plots = [(df.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
              (df.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif'),
              (df.loc[pdidx[:, :, :, False], column_labels], 'order', 'all features', 'all'),
@@ -133,31 +134,34 @@ for min_length in min_lengths:
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(np.nan_to_num(data.to_numpy(), nan=1))
-        arrow_labels = [column_label.removesuffix('_sigma2_ratio') for column_label in data.columns]
         cmap = cmap1 if data_label == 'disorder' else cmap2
+        color = color1 if data_label == 'disorder' else color2
         width_ratios = (0.79, 0.03, 0.03, 0.15)
 
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        plt.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        plt.title(f'Feature variance\n{title_label}')
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.subplots_adjust(right=0.65)
-        plt.savefig(f'out/regions_{min_length}/pie_variance_{data_label}_{file_label}.png')
+        labels = [column_label.removesuffix('_delta_AIC') for column_label in truncate.index]
+        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
+        ax.pie(truncate.values, labels=labels, labeldistance=None)
+        ax.set_title(f'Feature variance\n{title_label}')
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.savefig(f'out/regions_{min_length}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
-        plt.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_, label=data_label,
-                color=cmap(0.6))
-        plt.xlabel('Principal component')
-        plt.ylabel('Explained variance ratio')
-        plt.title(title_label)
-        plt.legend()
-        plt.savefig(f'out/regions_{min_length}/bar_scree_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots()
+        ax.bar(range(1, len(pca.explained_variance_ratio_) + 1), pca.explained_variance_ratio_,
+               label=data_label, color=color)
+        ax.set_xlabel('Principal component')
+        ax.set_ylabel('Explained variance ratio')
+        ax.set_title(title_label)
+        ax.legend()
+        fig.savefig(f'out/regions_{min_length}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
+        arrow_labels = [column_label.removesuffix('_delta_AIC') for column_label in data.columns]
         plot_pca(transform, 0, 1, cmap, data_label, title_label,
                  f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
                  hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
@@ -219,7 +223,7 @@ for min_length in min_lengths:
         ax = axs[0, 0]
         plot_tree(tree, ax=ax, linecolor=node2color, linewidth=0.2, tip_labels=False,
                   xmin_pad=0.025, xmax_pad=0, ymin_pad=1/(2*len(array)), ymax_pad=1/(2*len(array)))
-        ax.set_ylabel('Disordered regions')
+        ax.set_ylabel('Disorder regions')
         ax.set_xticks([])
         ax.set_yticks([])
         ax.spines['left'].set_visible(False)
@@ -254,8 +258,8 @@ for min_length in min_lengths:
         ax.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.25, 0), fontsize=8)
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
         # Colorbar
         xcenter = 0.75
