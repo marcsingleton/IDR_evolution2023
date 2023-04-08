@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import skbio
 from src.draw import plot_msa_data
-from src.phylo import get_brownian_weights, get_contrasts
+from src.phylo import get_brownian_weights
 from src.utils import read_fasta
 
 
@@ -31,7 +31,7 @@ def load_scores(path):
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 spid_regex = r'spid=([a-z]+)'
 
-plot_msa_kwargs = {'hspace': 0.2, 'left': 0.025, 'right': 0.925, 'top': 0.99, 'bottom': 0.05,
+plot_msa_kwargs = {'hspace': 0.2, 'left': 0.1, 'right': 0.925, 'top': 0.99, 'bottom': 0.05, 'anchor': (0, 0.5),
                    'data_min': -0.05, 'data_max': 1.05,
                    'msa_legend': True, 'legend_kwargs': {'bbox_to_anchor': (0.935, 0.5), 'loc': 'center left', 'fontsize': 10,
                                                          'handletextpad': 0.5, 'markerscale': 2, 'handlelength': 1}}
@@ -141,14 +141,16 @@ for row in examples.itertuples():
             aligned_scores[i, start:stop] = np.nan
     aligned_scores = np.ma.masked_invalid(aligned_scores)
 
-    # Plot all score traces
-    plot_msa_data([record['seq'] for record in msa], aligned_scores, **plot_msa_kwargs)
-    plt.savefig(f'out/traces/{row.Index:04}_{row.OGid}_all.png')
-    plt.close()
-
     # Get Brownian weights and calculate root score
     spids = [record['spid'] for record in msa]
     tree = tree_template.shear(spids)
+    for node in tree.postorder():  # Ensure tree is ordered as in original
+        if node.is_tip():
+            node.value = tip_order[node.name]
+        else:
+            node.children = sorted(node.children, key=lambda x: x.value)
+            node.value = sum([child.value for child in node.children])
+
     tips, weights = get_brownian_weights(tree)
     weight_dict = {tip.name: weight for tip, weight in zip(tips, weights)}
     weight_array = np.zeros((len(msa), 1))
@@ -158,11 +160,46 @@ for row in examples.itertuples():
     weight_sum = (weight_array * ~aligned_scores.mask).sum(axis=0)
     root_scores = (weight_array * aligned_scores).sum(axis=0) / weight_sum
     rate_scores = (weight_array * (aligned_scores - root_scores) ** 2).sum(axis=0) / weight_sum
-
-    # Plot root score trace
-    fig = plot_msa_data([record['seq'] for record in msa], root_scores, **plot_msa_kwargs)
     upper = root_scores + rate_scores ** 0.5
     lower = root_scores - rate_scores ** 0.5
+
+    # Format tree colors
+    # Tip values are assigned by using a cumulative sum of Brownian weights in tip order to span the interval [0, 1]
+    # Tip colors are assigned by using a colormap to map this value to a color
+    # The values of internal nodes are calculated using a weighted average of the tip values
+    # These values are then converted to colors with the colormap; this ensures all colors are "in" the colormap
+    cmap = plt.colormaps['cubehelix']
+    get_color = lambda x: cmap(0.7 * x + 0.2)  # Shift range to [0.2, 0.9]
+    weight_dict = {tip.name: weight for tip, weight in zip(tips, weights)}
+    value_dict = {tip.name: i / len(tips) for i, tip in enumerate(tips)}
+
+    node2color, node2names = {}, {}
+    for node in tree.postorder():
+        if node.is_tip():
+            node2color[node] = get_color(value_dict[node.name])
+            node2names[node] = [node.name]
+        else:
+            names = [name for child in node.children for name in node2names[child]]
+            ws = [weight_dict[name] for name in names]
+            vs = [value_dict[name] for name in names]
+            value = sum([w * v for w, v in zip(ws, vs)]) / sum(ws)
+            node2color[node] = get_color(value)
+            node2names[node] = names
+
+    # Plot all score traces
+    fig = plot_msa_data([record['seq'] for record in msa], aligned_scores,
+                        data_linewidths=1, data_colors=[node2color[tip] for tip in tree.tips()],
+                        tree=tree, tree_kwargs={'linewidth': 1, 'linecolor': node2color,
+                                                'tip_labels': False, 'xmin_pad': 0.025, 'xmax_pad': 0.025},
+                        **plot_msa_kwargs)
+    fig.savefig(f'out/traces/{row.Index:04}_{row.OGid}_all.png')
+    plt.close()
+
+    # Plot root score trace
+    fig = plot_msa_data([record['seq'] for record in msa], root_scores,
+                        tree=tree, tree_kwargs={'linewidth': 1, 'linecolor': 'black',
+                                                'tip_labels': False, 'xmin_pad': 0.025, 'xmax_pad': 0.025},
+                        **plot_msa_kwargs)
     axs = [ax for i, ax in enumerate(fig.axes) if i % 2 == 1]
     for ax in axs:
         xmin, xmax = ax.get_xlim()

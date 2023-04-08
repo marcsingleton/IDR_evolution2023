@@ -152,6 +152,7 @@ for OGid in OGids:
     # Get Brownian weights and calculate root score
     spids = [record['spid'] for record in msa]
     tree = tree_template.shear(spids)
+
     tips, weights = get_brownian_weights(tree)
     weight_dict = {tip.name: weight for tip, weight in zip(tips, weights)}
     weight_array = np.zeros((len(msa), 1))
