@@ -19,10 +19,6 @@ def hypergeom_test(k, M, n, N):
 
 min_length = 30
 
-min_indel_columns = 5  # Indel rates below this value are set to 0
-min_aa_rate = 0.5
-min_indel_rate = 0.1
-
 # Load regions as segments
 rows = []
 with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
@@ -33,22 +29,13 @@ with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
         rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder})
 all_regions = pd.DataFrame(rows)
 
-gaf = pd.read_table('../filter_GAF/out/GAF_drop.tsv')
-
-asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
-asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
-row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
-asr_rates.loc[row_idx, 'indel_rate_mean'] = 0
-
-row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
-column_idx = ['OGid', 'start', 'stop', 'disorder']
-region_keys = asr_rates.loc[row_idx, column_idx]
+gaf = pd.read_table('../filter_GAF/out/regions/GAF_propagate.tsv')  # Use all terms
 
 contrasts = pd.read_table(f'../../brownian/get_contrasts/out/scores/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
-contrasts = region_keys.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
+contrasts = all_regions.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
 contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
-reference_gaf = region_keys.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
+reference_gaf = all_regions.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 
 rates = (contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
 quantile = rates['score_fraction'].quantile(0.9, interpolation='higher')  # Capture at least 90% of data with higher
