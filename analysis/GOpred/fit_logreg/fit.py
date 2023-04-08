@@ -41,7 +41,7 @@ regions = pd.DataFrame(rows)
 
 # Load GOids
 gnid2GOids = {}
-with open('../filter_GAF/out/GAF_drop.tsv') as file:
+with open('../filter_GAF/out/regions/GAF_drop.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
