@@ -57,7 +57,7 @@ result = pd.DataFrame(rows).sort_values(by=['aspect', 'pvalue'], ignore_index=Tr
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-result.to_csv('out/pvalues.tsv', sep='\t', index=False)
+result.to_csv('out/pvalues_regions.tsv', sep='\t', index=False)
 
 fig, ax = plt.subplots(figsize=(6.4, 6.4), layout='constrained')
 bars = [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]
@@ -75,5 +75,5 @@ ax.set_yticks(np.arange(0, 2 * len(labels), 2), labels, fontsize=8)
 ax.set_xlabel('$\mathregular{-log_{10}}$(p-value)')
 ax.set_ylabel('Term')
 ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.075), ncol=len(bars))
-fig.savefig('out/bar_enrichment.png')
+fig.savefig('out/bar_enrichment_regions.png')
 plt.close()
