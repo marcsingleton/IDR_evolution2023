@@ -94,7 +94,7 @@ for OGid in OGids:
         gnid = re.search(gnid_regex, header).group(1)
         rows.append({'OGid': OGid, 'gnid': gnid})
         ppid2gnid[ppid] = gnid
-all_genes = pd.DataFrame(rows)
+all_proteins = pd.DataFrame(rows)
 
 # Load regions as segments
 rows = []
@@ -150,7 +150,7 @@ counts = gaf3.loc[gaf3['GOid'] != gaf4['GOid'], ['GOid', 'name']].value_counts()
 write_table(counts, 'TOP 10 RENAMED ANNOTATIONS')
 
 # Join with segments
-joins = [(all_genes, ['GOid'], 'genes'),
+joins = [(all_proteins, ['GOid'], 'proteins'),
          (all_segments, ['GOid', 'disorder'], 'regions')]
 for df, group_keys, prefix in joins:
     if not os.path.exists(f'out/{prefix}/'):
