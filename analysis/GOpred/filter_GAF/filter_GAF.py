@@ -49,13 +49,16 @@ min_length = 30
 min_gnids = 50  # Minimum number of unique genes associated with a term to maintain it in set
 
 # Load sequence data
+rows = []
 ppid2gnid = {}
 OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
 for OGid in OGids:
     for header, _ in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
         ppid = re.search(ppid_regex, header).group(1)
         gnid = re.search(gnid_regex, header).group(1)
+        rows.append({'OGid': OGid, 'gnid': gnid})
         ppid2gnid[ppid] = gnid
+all_genes = pd.DataFrame(rows)
 
 # Load ontology
 GO = {}
@@ -102,7 +105,7 @@ with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
         OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
         for ppid in fields['ppids'].split(','):
             rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder, 'gnid': ppid2gnid[ppid]})
-segments = pd.DataFrame(rows)
+all_segments = pd.DataFrame(rows)
 
 # Load raw table and add term names
 gaf1 = pd.read_table('../../../data/GO/dmel_r6.45_FB2022_02_gene_association.fb',
@@ -147,80 +150,93 @@ counts = gaf3.loc[gaf3['GOid'] != gaf4['GOid'], ['GOid', 'name']].value_counts()
 write_table(counts, 'TOP 10 RENAMED ANNOTATIONS')
 
 # Join with segments
-gaf5 = segments.merge(gaf4, on='gnid')
+joins = [(all_genes, ['GOid'], 'genes'),
+         (all_segments, ['GOid', 'disorder'], 'regions')]
+for df, group_keys, prefix in joins:
+    if not os.path.exists(f'out/{prefix}/'):
+        os.mkdir(f'out/{prefix}/')
+    prefix = f'out/{prefix}/'
 
-# Propagate ancestors to table and drop poorly represented annotations
-gaf6 = gaf5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
-gaf6 = gaf6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
-gaf7 = gaf6.groupby(['GOid', 'disorder']).filter(lambda x: x['gnid'].nunique() >= min_gnids)
+    gaf5 = df.merge(gaf4, on='gnid')
 
-# Make plots
-gafs = [gaf2, gaf3, gaf4, gaf5, gaf6, gaf7]
-labels = ['original', 'filter', 'update', 'join', 'propagate', 'drop']
+    # Propagate ancestors to table and drop poorly represented annotations
+    # The min_gnid filter is applied to GO terms grouped by disorder subset, so the subset models fulfill the requirement
+    gaf6 = gaf5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
+    gaf6 = gaf6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
+    gaf7 = gaf6.groupby(group_keys).filter(lambda x: x['gnid'].nunique() >= min_gnids)
 
-# Number of annotations
-plt.bar(range(len(gafs)), [len(gaf) for gaf in gafs], width=0.5, tick_label=labels)
-plt.xlabel('Cleaning step')
-plt.ylabel('Number of annotations')
-plt.savefig('out/bar_numannot-gaf.png')
-plt.close()
+    # Make plots
+    gafs = [gaf2, gaf3, gaf4, gaf5, gaf6, gaf7]
+    labels = ['original', 'filter', 'update', 'join', 'propagate', 'drop']
 
-# Number of annotations by aspect
-counts = [gaf['aspect'].value_counts() for gaf in gafs]
-bottoms = [0 for count in counts]
-for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
-    plt.bar(range(len(counts)), [count[aspect] for count in counts],
-            bottom=bottoms, label=aspect_label, width=0.5, tick_label=labels)
-    bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
-plt.legend()
-plt.xlabel('Cleaning step')
-plt.ylabel('Number of annotations')
-plt.savefig('out/bar_numannot-gaf_aspect.png')
-plt.close()
+    # Number of annotations
+    fig, ax = plt.subplots()
+    ax.bar(range(len(gafs)), [len(gaf) for gaf in gafs], width=0.5, tick_label=labels)
+    ax.set_xlabel('Cleaning step')
+    ax.set_ylabel('Number of annotations')
+    fig.savefig(f'{prefix}/bar_numannot-gaf.png')
+    plt.close()
 
-# Number of annotations by evidence code
-counts = [gaf['evidence'].value_counts() for gaf in gafs]
-codes = reduce(lambda x, y: x.combine(y, add, fill_value=0), counts).sort_values(ascending=False)
-top_codes = list(codes.index[:9])
-other_codes = list(codes.index[9:])
-merged_counts = []
-for count in counts:
-    merged_count = {code: count.get(code, 0) for code in top_codes}
-    merged_count['other'] = sum([count.get(code, 0) for code in other_codes])
-    merged_counts.append(merged_count)
+    # Number of annotations by aspect
+    fig, ax = plt.subplots()
+    counts = [gaf['aspect'].value_counts() for gaf in gafs]
+    bottoms = [0 for count in counts]
+    for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
+        ax.bar(range(len(counts)), [count[aspect] for count in counts],
+               bottom=bottoms, label=aspect_label, width=0.5, tick_label=labels)
+        bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
+    ax.set_xlabel('Cleaning step')
+    ax.set_ylabel('Number of annotations')
+    ax.legend()
+    fig.savefig(f'{prefix}/bar_numannot-gaf_aspect.png')
+    plt.close()
 
-counts = merged_counts
-bottoms = [0 for _ in counts]
-for code in (top_codes + ['other']):
-    plt.bar(range(len(counts)), [count[code] for count in counts],
-            bottom=bottoms, label=code, width=0.5, tick_label=labels)
-    bottoms = [b + count[code] for b, count in zip(bottoms, counts)]
-plt.legend()
-plt.xlabel('Cleaning step')
-plt.ylabel('Number of annotations')
-plt.savefig('out/bar_numannot-gaf_evidence.png')
-plt.close()
+    # Number of annotations by evidence code
+    counts = [gaf['evidence'].value_counts() for gaf in gafs]
+    codes = reduce(lambda x, y: x.combine(y, add, fill_value=0), counts).sort_values(ascending=False)
+    top_codes = list(codes.index[:9])
+    other_codes = list(codes.index[9:])
+    merged_counts = []
+    for count in counts:
+        merged_count = {code: count.get(code, 0) for code in top_codes}
+        merged_count['other'] = sum([count.get(code, 0) for code in other_codes])
+        merged_counts.append(merged_count)
 
-# Number of terms
-plt.bar(range(len(gafs)), [gaf['GOid'].nunique() for gaf in gafs], width=0.5, tick_label=labels)
-plt.xlabel('Cleaning step')
-plt.ylabel('Number of unique terms')
-plt.savefig('out/bar_numterms-gaf.png')
-plt.close()
+    fig, ax = plt.subplots()
+    counts = merged_counts
+    bottoms = [0 for _ in counts]
+    for code in (top_codes + ['other']):
+        ax.bar(range(len(counts)), [count[code] for count in counts],
+               bottom=bottoms, label=code, width=0.5, tick_label=labels)
+        bottoms = [b + count[code] for b, count in zip(bottoms, counts)]
+    ax.set_xlabel('Cleaning step')
+    ax.set_ylabel('Number of annotations')
+    ax.legend()
+    fig.savefig(f'{prefix}/bar_numannot-gaf_evidence.png')
+    plt.close()
 
-# Number of terms by aspect
-counts = [gaf[['GOid', 'aspect']].drop_duplicates()['aspect'].value_counts() for gaf in gafs]
-bottoms = [0 for count in counts]
-for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
-    plt.bar(range(len(counts)), [count[aspect] for count in counts],
-            bottom=bottoms, label=aspect_label, width=0.5, tick_label=labels)
-    bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
-plt.legend()
-plt.xlabel('Cleaning step')
-plt.ylabel('Number of unique terms')
-plt.savefig('out/bar_numterms-gaf_aspect.png')
-plt.close()
+    # Number of terms
+    fig, ax = plt.subplots()
+    ax.bar(range(len(gafs)), [gaf['GOid'].nunique() for gaf in gafs], width=0.5, tick_label=labels)
+    ax.set_xlabel('Cleaning step')
+    ax.set_ylabel('Number of unique terms')
+    fig.savefig(f'{prefix}/bar_numterms-gaf.png')
+    plt.close()
 
-# Write GAFs to file
-for gaf, label in zip(gafs[2:], labels[2:]):
-    gaf.to_csv(f'out/GAF_{label}.tsv', sep='\t', index=False)
+    # Number of terms by aspect
+    fig, ax = plt.subplots()
+    counts = [gaf[['GOid', 'aspect']].drop_duplicates()['aspect'].value_counts() for gaf in gafs]
+    bottoms = [0 for count in counts]
+    for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
+        ax.bar(range(len(counts)), [count[aspect] for count in counts],
+               bottom=bottoms, label=aspect_label, width=0.5, tick_label=labels)
+        bottoms = [b + count[aspect] for b, count in zip(bottoms, counts)]
+    ax.set_xlabel('Cleaning step')
+    ax.set_ylabel('Number of unique terms')
+    ax.legend()
+    fig.savefig(f'{prefix}/bar_numterms-gaf_aspect.png')
+    plt.close()
+
+    # Write GAFs to file
+    for gaf, label in zip(gafs[2:], labels[2:]):
+        gaf.to_csv(f'{prefix}/GAF_{label}.tsv', sep='\t', index=False)
