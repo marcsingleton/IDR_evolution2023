@@ -48,18 +48,6 @@ gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 min_length = 30
 min_gnids = 50  # Minimum number of unique genes associated with a term to maintain it in set
 
-# Load sequence data
-rows = []
-ppid2gnid = {}
-OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
-for OGid in OGids:
-    for header, _ in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
-        ppid = re.search(ppid_regex, header).group(1)
-        gnid = re.search(gnid_regex, header).group(1)
-        rows.append({'OGid': OGid, 'gnid': gnid})
-        ppid2gnid[ppid] = gnid
-all_genes = pd.DataFrame(rows)
-
 # Load ontology
 GO = {}
 with open('../../../data/GO/go-basic.obo') as file:
@@ -95,6 +83,18 @@ for GOid in GO:
     for ancestor_id in get_ancestors(GO, GOid):
         rows.append({'GOid': GOid, 'ancestor_id': ancestor_id, 'ancestor_name': GO[ancestor_id]['name']})
 ancestors = pd.DataFrame(rows)
+
+# Load sequence data
+rows = []
+ppid2gnid = {}
+OGids = sorted([path.removesuffix('.afa') for path in os.listdir('../../../data/alignments/fastas/') if path.endswith('.afa')])
+for OGid in OGids:
+    for header, _ in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
+        ppid = re.search(ppid_regex, header).group(1)
+        gnid = re.search(gnid_regex, header).group(1)
+        rows.append({'OGid': OGid, 'gnid': gnid})
+        ppid2gnid[ppid] = gnid
+all_genes = pd.DataFrame(rows)
 
 # Load regions as segments
 rows = []
