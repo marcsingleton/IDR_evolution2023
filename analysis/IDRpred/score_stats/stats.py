@@ -168,8 +168,8 @@ for row in examples.itertuples():
     # Tip colors are assigned by using a colormap to map this value to a color
     # The values of internal nodes are calculated using a weighted average of the tip values
     # These values are then converted to colors with the colormap; this ensures all colors are "in" the colormap
-    cmap = plt.colormaps['cubehelix']
-    get_color = lambda x: cmap(0.7 * x + 0.2)  # Shift range to [0.2, 0.9]
+    cmap = plt.colormaps['magma']
+    get_color = lambda x: cmap(0.8 * x + 0.1)  # Shift range to [0.1, 0.9]
     weight_dict = {tip.name: weight for tip, weight in zip(tips, weights)}
     value_dict = {tip.name: i / len(tips) for i, tip in enumerate(tips)}
 
@@ -192,7 +192,10 @@ for row in examples.itertuples():
                         tree=tree, tree_kwargs={'linewidth': 1, 'linecolor': node2color,
                                                 'tip_labels': False, 'xmin_pad': 0.025, 'xmax_pad': 0.025},
                         **plot_msa_kwargs)
-    fig.savefig(f'out/traces/{row.Index:04}_{row.OGid}_all.png')
+    axs = [ax for i, ax in enumerate(fig.axes) if i % 2 == 1]
+    for ax in axs:
+        ax.set_ylabel('Disorder score')
+    fig.savefig(f'out/traces/{row.Index:04}_{row.OGid}_all.png', dpi=300)
     plt.close()
 
     # Plot root score trace
@@ -205,5 +208,6 @@ for row in examples.itertuples():
         xmin, xmax = ax.get_xlim()
         xrange = np.arange(xmin, xmax)
         ax.fill_between(xrange, upper[int(xmin):int(xmax)], lower[int(xmin):int(xmax)], alpha=0.25)
-    fig.savefig(f'out/traces/{row.Index:04}_{row.OGid}_root.png')
+        ax.set_ylabel('Disorder score')
+    fig.savefig(f'out/traces/{row.Index:04}_{row.OGid}_root.png', dpi=300)
     plt.close()
