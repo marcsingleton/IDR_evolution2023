@@ -157,11 +157,11 @@ for df, group_keys, prefix in joins:
         os.mkdir(f'out/{prefix}/')
     prefix = f'out/{prefix}/'
 
-    gaf5 = df.merge(gaf4, on='gnid')
+    gaf5 = df.merge(gaf4, how='inner', on='gnid')
 
     # Propagate ancestors to table and drop poorly represented annotations
     # The min_gnid filter is applied to GO terms grouped by disorder subset, so the subset models fulfill the requirement
-    gaf6 = gaf5.merge(ancestors, on='GOid').drop(['GOid', 'name'], axis=1)
+    gaf6 = gaf5.merge(ancestors, how='inner', on='GOid').drop(['GOid', 'name'], axis=1)
     gaf6 = gaf6.rename(columns={'ancestor_id': 'GOid', 'ancestor_name': 'name'}).drop_duplicates()
     gaf7 = gaf6.groupby(group_keys).filter(lambda x: x['gnid'].nunique() >= min_gnids)
 
