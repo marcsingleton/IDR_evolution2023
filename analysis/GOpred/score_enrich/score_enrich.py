@@ -1,6 +1,7 @@
 """Calculate GO term enrichment on regions with high rates of score evolution."""
 
 import os
+from textwrap import fill
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -58,19 +59,21 @@ if not os.path.exists('out/'):
 
 result.to_csv('out/pvalues.tsv', sep='\t', index=False)
 
-y0, labels = 0, []
 fig, ax = plt.subplots(figsize=(6.4, 6.4), layout='constrained')
-for aspect, aspect_label in [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]:
-    data = result[(result['aspect'] == aspect) & (result['pvalue'] <= 0.2)]
+bars = [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]
+y0, labels = 0, []
+for aspect, aspect_label in bars:
+    data = result[(result['aspect'] == aspect) & (result['pvalue'] <= 0.001)]
     xs = -np.log10(data['pvalue'])
-    ys = np.arange(y0, y0 + len(xs))
-    labels.extend([f'{name} ({GOid})' for GOid, name in zip(data['GOid'], data['name'])])
-    y0 += len(xs)
-    ax.barh(ys, xs, label=aspect_label)
+    ys = np.arange(y0, y0 + 2 * len(xs), 2)
+    labels.extend([fill(f'{name} ({GOid})', 45) for GOid, name in zip(data['GOid'], data['name'])])
+    y0 += 2 * len(xs)
+    ax.barh(ys, xs, label=aspect_label, height=1.25)
 ax.invert_yaxis()
-ax.set_yticks(np.arange(len(labels)), labels, fontsize=8)
+ax.set_ymargin(0.01)
+ax.set_yticks(np.arange(0, 2 * len(labels), 2), labels, fontsize=8)
 ax.set_xlabel('$\mathregular{-log_{10}}$(p-value)')
 ax.set_ylabel('Term')
-ax.legend()
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.075), ncol=len(bars))
 fig.savefig('out/bar_enrichment.png')
 plt.close()
