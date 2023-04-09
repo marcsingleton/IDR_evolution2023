@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 pdidx = pd.IndexSlice
-
 color1, color2, color3 = '#4e79a7', '#f28e2b', '#b07aa1'
 
 models = pd.read_table('out/models.tsv').set_index(['GOid', 'label'])

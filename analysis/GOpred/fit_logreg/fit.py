@@ -14,7 +14,6 @@ def zscore(df):
 
 
 pdidx = pd.IndexSlice
-
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 min_length = 30
