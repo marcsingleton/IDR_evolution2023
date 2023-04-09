@@ -33,6 +33,7 @@ spid_regex = r'spid=([a-z]+)'
 
 plot_msa_kwargs = {'hspace': 0.2, 'left': 0.1, 'right': 0.925, 'top': 0.99, 'bottom': 0.05, 'anchor': (0, 0.5),
                    'data_min': -0.05, 'data_max': 1.05,
+                   'tree_position': 0, 'tree_width': 0.1,
                    'msa_legend': True, 'legend_kwargs': {'bbox_to_anchor': (0.935, 0.5), 'loc': 'center left', 'fontsize': 10,
                                                          'handletextpad': 0.5, 'markerscale': 2, 'handlelength': 1}}
 
