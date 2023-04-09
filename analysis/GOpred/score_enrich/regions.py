@@ -52,18 +52,18 @@ for aspect, GOid, name in terms:
     N = enrichment_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
     pvalue = hypergeom_test(k, M, n, N)
     rows.append({'pvalue': pvalue, 'aspect': aspect, 'GOid': GOid, 'name': name})
-result = pd.DataFrame(rows).sort_values(by=['aspect', 'pvalue'], ignore_index=True)
+pvalues = pd.DataFrame(rows).sort_values(by=['aspect', 'pvalue'], ignore_index=True)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-result.to_csv('out/pvalues_regions.tsv', sep='\t', index=False)
+pvalues.to_csv('out/pvalues_regions.tsv', sep='\t', index=False)
 
 fig, ax = plt.subplots(figsize=(6.4, 6.4), layout='constrained')
 bars = [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]
 y0, labels = 0, []
 for aspect, aspect_label in bars:
-    data = result[(result['aspect'] == aspect) & (result['pvalue'] <= 0.001)]
+    data = pvalues[(pvalues['aspect'] == aspect) & (pvalues['pvalue'] <= 0.001)]
     xs = -np.log10(data['pvalue'])
     ys = np.arange(y0, y0 + 2 * len(xs), 2)
     labels.extend([fill(f'{name} ({GOid})', 45) for GOid, name in zip(data['GOid'], data['name'])])
