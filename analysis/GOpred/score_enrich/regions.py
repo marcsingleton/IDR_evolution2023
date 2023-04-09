@@ -66,7 +66,8 @@ for aspect, aspect_label in bars:
     data = pvalues[(pvalues['aspect'] == aspect) & (pvalues['pvalue'] <= 0.001)]
     xs = -np.log10(data['pvalue'])
     ys = np.arange(y0, y0 + 2 * len(xs), 2)
-    labels.extend([fill(f'{name} ({GOid})', 45) for GOid, name in zip(data['GOid'], data['name'])])
+    for GOid, name in zip(data['GOid'], data['name']):
+        labels.append(fill(f'{name} ({GOid})', 45))
     y0 += 2 * len(xs)
     ax.barh(ys, xs, label=aspect_label, height=1.25)
 ax.invert_yaxis()
