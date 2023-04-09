@@ -75,9 +75,11 @@ for min_length in min_lengths:
     # Calculate two-sided permutation p-values using conventions from SciPy permutation_test
     right = xs <= corr_stack
     left = xs >= corr_stack
-    pvalues_right = (right.sum(axis=0) + 1) / (len(right) + 1)
-    pvalues_left = (left.sum(axis=0) + 1) / (len(left) + 1)
-    pvalues = 2 * np.minimum(pvalues_right, pvalues_left)
+    ps_right = (right.sum(axis=0) + 1) / (len(right) + 1)
+    ps_left = (left.sum(axis=0) + 1) / (len(left) + 1)
+    ps = 2 * np.minimum(ps_right, ps_left)
+    pvalues = pd.DataFrame({'feature_label': feature_labels, 'pvalue': ps})
+    pvalues.to_csv(f'{prefix}/pvalues.tsv', sep='\t', index=False)
 
     fig, ax = plt.subplots(figsize=(4.8, 8), layout='constrained')
     ax.invert_yaxis()
@@ -89,8 +91,8 @@ for min_length in min_lengths:
     ax.set_title('All regions')
     alpha = 0.001
     offset = (xs.max() - xs.min()) / 200
-    for y, x, pvalue in zip(ys, xs, pvalues):
-        if pvalue <= alpha:
+    for y, x, p in zip(ys, xs, ps):
+        if p <= alpha:
             sign = 1 if x >= 0 else -1
             rotation = -90 if x >= 0 else 90
             ax.text(x + sign * offset, y, '*', fontsize=6, va='center', ha='center', rotation=rotation)
