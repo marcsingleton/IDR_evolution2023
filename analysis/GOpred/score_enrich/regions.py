@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from matplotlib.patches import Patch
 
 
 def hypergeom_test(k, M, n, N):
@@ -19,6 +20,9 @@ def hypergeom_test(k, M, n, N):
 
 
 min_length = 30
+
+color3 = '#b07aa1'
+grey = '#e6e6e6'
 
 # Load regions as segments
 rows = []
@@ -36,10 +40,10 @@ contrasts = pd.read_table(f'../../brownian/get_contrasts/out/scores/contrasts_{m
 contrasts = all_regions.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
 contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
-reference_gaf = all_regions.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
-
 rates = (contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
 quantile = rates['score_fraction'].quantile(0.9, interpolation='higher')  # Capture at least 90% of data with higher
+
+reference_gaf = all_regions.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 enrichment_keys = rates[rates['score_fraction'] > quantile].index.to_frame(index=False)  # False forces re-index
 enrichment_gaf = reference_gaf.merge(enrichment_keys, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 terms = list(enrichment_gaf[['aspect', 'GOid', 'name']].drop_duplicates().itertuples(index=False, name=None))
@@ -58,6 +62,17 @@ if not os.path.exists('out/'):
     os.mkdir('out/')
 
 pvalues.to_csv('out/pvalues_regions.tsv', sep='\t', index=False)
+
+fig, axs = plt.subplots(2, 1, gridspec_kw={'right': 0.85})
+for ax in axs:
+    ax.axvspan(quantile, rates['score_fraction'].max(), color=grey)
+    ax.hist(rates['score_fraction'], bins=150, color=color3)
+    ax.set_ylabel('Number of regions')
+axs[1].set_xlabel('Score rate')
+axs[1].set_yscale('log')
+fig.legend(handles=[Patch(facecolor=color3, label='all')], bbox_to_anchor=(0.85, 0.5), loc='center left')
+fig.savefig('out/hist_numregions-score_rate.png')
+plt.close()
 
 fig, ax = plt.subplots(figsize=(6.4, 6.4), layout='constrained')
 bars = [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]
