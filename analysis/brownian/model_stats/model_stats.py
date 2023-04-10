@@ -172,7 +172,7 @@ for min_length in min_lengths:
     group_labels_nonmotif = ['aa_group', 'charge_group', 'physchem_group', 'complexity_group']
     gridspec_kw = {'width_ratios': [0.1, 0.9], 'wspace': 0,
                    'height_ratios': [0.975, 0.025], 'hspace': 0.01,
-                   'left': 0.05, 'right': 0.95, 'top': 0.95, 'bottom': 0.1}
+                   'left': 0.05, 'right': 0.95, 'top': 0.95, 'bottom': 0.125}
 
     plots = [('euclidean', group_labels, 'all'),
              ('euclidean', group_labels_nonmotif, 'nonmotif'),
@@ -199,7 +199,7 @@ for min_length in min_lengths:
             node2tips[node] = tips
             node2color[node] = str(max(0, (11 - tips) / 10))
 
-        fig, axs = plt.subplots(2, 2, figsize=(6, 9), gridspec_kw=gridspec_kw)
+        fig, axs = plt.subplots(2, 2, figsize=(7.5, 7.5), gridspec_kw=gridspec_kw)
 
         # Tree
         ax = axs[0, 0]
