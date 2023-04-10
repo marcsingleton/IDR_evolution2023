@@ -6,30 +6,12 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import skbio
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
 from sklearn.decomposition import PCA
+from src.brownian.linkage import make_tree
 from src.brownian.pca_plots import plot_pca, plot_pca_arrows
 from src.draw import plot_tree
-
-
-def make_tree(lm):
-    num_tips = len(lm) + 1
-    nodes = {node_id: skbio.TreeNode(name=node_id, children=[]) for node_id in range(num_tips)}
-    heights = {node_id: 0 for node_id in range(2*num_tips-1)}
-    for idx in range(len(lm)):
-        node_id = idx + num_tips
-        child_id1, child_id2, distance, _ = lm[idx]
-        child1, child2 = nodes[child_id1], nodes[child_id2]
-        height1, height2 = heights[child_id1], heights[child_id2]
-        child1.length = distance - height1
-        child2.length = distance - height2
-        parent = skbio.TreeNode(name=node_id, children=[child1, child2])
-        nodes[node_id] = parent
-        heights[node_id] = distance
-    tree = nodes[2*(num_tips-1)]
-    return tree
 
 
 pdidx = pd.IndexSlice
