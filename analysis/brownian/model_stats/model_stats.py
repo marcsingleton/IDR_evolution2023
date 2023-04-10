@@ -208,8 +208,8 @@ for min_length in min_lengths:
         ax.set_ylabel('Disorder regions')
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
         # Heatmap
         ax = axs[0, 1]
@@ -218,8 +218,8 @@ for min_length in min_lengths:
         ax.set_xlabel('Features')
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.spines['left'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
         # Corner axis
         ax = axs[1, 0]
