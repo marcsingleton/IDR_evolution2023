@@ -44,6 +44,9 @@ for min_length in min_lengths:
     score_contrasts = all_regions.merge(score_contrasts, how='left', on=['OGid', 'start', 'stop'])
     score_contrasts = score_contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
+    score_rates = (score_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+    feature_rates = (feature_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+
     prefix = f'out/regions_{min_length}/scores/'
     if not os.path.exists(prefix):
         os.makedirs(prefix)
@@ -100,9 +103,6 @@ for min_length in min_lengths:
     plt.close()
 
     # Correlation of scores rate with features
-    score_rates = (score_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
-    feature_rates = (feature_contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
-
     ys = np.arange(len(feature_labels))
     xs = np.corrcoef(score_rates['score_fraction'], feature_roots, rowvar=False)[1:, 0]  # Remove score_fraction self correlation
 

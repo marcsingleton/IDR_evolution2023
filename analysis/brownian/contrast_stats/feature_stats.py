@@ -83,6 +83,8 @@ for min_length in min_lengths:
     contrasts = region_keys.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
     contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
+    rates = (contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+
     # 1 CONTRASTS
     prefix = f'out/regions_{min_length}/contrasts/'
     if not os.path.exists(prefix):
@@ -145,7 +147,6 @@ for min_length in min_lengths:
         os.mkdir(prefix)
 
     # 2.1 Plot rate distributions
-    rates = (contrasts**2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
     rates_nonmotif = rates[nonmotif_labels]
     disorder = rates.loc[pdidx[:, :, :, True, :], :]
     order = rates.loc[pdidx[:, :, :, False, :], :]

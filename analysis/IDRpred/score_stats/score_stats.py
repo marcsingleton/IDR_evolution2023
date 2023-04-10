@@ -42,7 +42,7 @@ tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
 roots = pd.read_table('../get_contrasts/out/roots.tsv')
 contrasts = pd.read_table('../get_contrasts/out/contrasts.tsv').set_index(['OGid', 'contrast_id'])
-rates = (contrasts**2).groupby('OGid').mean()
+rates = (contrasts ** 2).groupby('OGid').mean()
 df = roots.merge(rates, on='OGid', suffixes=('_root', '_rate'))
 
 columns = ['score_fraction', 'binary_fraction']

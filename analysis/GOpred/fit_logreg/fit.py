@@ -55,7 +55,7 @@ contrasts = pd.read_table(f'../../brownian/get_contrasts/out/features/contrasts_
 df1 = regions.merge(contrasts, how='right', on=['OGid', 'start', 'stop'])
 df1 = df1.set_index(['OGid', 'start', 'stop', 'disorder', 'gnid', 'contrast_id'])
 
-rates = (df1**2).groupby(['OGid', 'start', 'stop', 'disorder', 'gnid']).mean()
+rates = (df1 ** 2).groupby(['OGid', 'start', 'stop', 'disorder', 'gnid']).mean()
 rates = zscore(rates)
 disorder = rates.loc[pdidx[:, :, :, True], :]
 order = rates.loc[pdidx[:, :, :, False], :]
