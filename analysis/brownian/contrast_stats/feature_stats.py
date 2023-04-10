@@ -8,7 +8,7 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from scipy.stats import linregress
 from sklearn.decomposition import PCA
-from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
+from src.brownian.pca import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
 
 
 def zscore(df):

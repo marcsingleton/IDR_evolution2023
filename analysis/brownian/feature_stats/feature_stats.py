@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from numpy import linspace
 from sklearn.decomposition import PCA
-from src.brownian.pca_plots import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
+from src.brownian.pca import plot_pca, plot_pca_arrows, plot_pca2, plot_pca2_arrows
 
 
 def zscore(df):

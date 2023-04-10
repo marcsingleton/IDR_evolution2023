@@ -10,7 +10,7 @@ from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
 from sklearn.decomposition import PCA
 from src.brownian.linkage import make_tree
-from src.brownian.pca_plots import plot_pca, plot_pca_arrows
+from src.brownian.pca import plot_pca, plot_pca_arrows
 from src.draw import plot_tree
 
 
