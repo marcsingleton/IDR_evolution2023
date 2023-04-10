@@ -58,10 +58,10 @@ def plot_hexbin2(x1, y1, x2, y2, cmap1, cmap2, hexbin_kwargs=None, ax=None):
 
 def plot_pca(transform, pcx, pcy,
              cmap, label,
-             title_label, file_label,
+             title_label,
              hexbin_kwargs=None, handle_marker='h',
              handle_markersize=8, handle_markerfacecolor=0.5,
-             figsize=None, width_ratios=None):
+             fig=None, figsize=None, width_ratios=None):
     if width_ratios is None:
         width_ratios = (0.79, 0.03, 0.03, 0.15)
     if hexbin_kwargs is None:
@@ -69,7 +69,7 @@ def plot_pca(transform, pcx, pcy,
 
     x, y = transform[:, pcx], transform[:, pcy]
 
-    fig = plt.figure(figsize=figsize)
+    fig = fig if fig is not None else plt.figure(figsize=figsize)
     gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     hb = ax.hexbin(x, y, cmap=cmap, **hexbin_kwargs)
@@ -81,17 +81,16 @@ def plot_pca(transform, pcx, pcy,
     ax.legend(handles=handles)
     fig.colorbar(hb, cax=fig.add_subplot(gs[:, 2]))
 
-    fig.savefig(file_label)
-    plt.close()
+    return fig
 
 
 def plot_pca_arrows(pca, transform, arrow_labels, pcx, pcy,
                     cmap,
-                    title_label, file_label,
+                    title_label,
                     hexbin_kwargs=None,
                     legend_linewidth=2, legend_kwargs=None,
                     arrow_colors=None, arrow_scale=0.9, arrowstyle_kwargs=None,
-                    figsize=None, width_ratios=None):
+                    fig=None, figsize=None, width_ratios=None):
     if width_ratios is None:
         width_ratios = (0.79, 0.03, 0.03, 0.15)
     if hexbin_kwargs is None:
@@ -99,7 +98,7 @@ def plot_pca_arrows(pca, transform, arrow_labels, pcx, pcy,
 
     x, y = transform[:, pcx], transform[:, pcy]
 
-    fig = plt.figure(figsize=figsize)
+    fig = fig if fig is not None else plt.figure(figsize=figsize)
     gs = fig.add_gridspec(1, 4, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     ax.hexbin(x, y, cmap=cmap, **hexbin_kwargs)
@@ -111,16 +110,15 @@ def plot_pca_arrows(pca, transform, arrow_labels, pcx, pcy,
                    legend_linewidth=legend_linewidth, legend_kwargs=legend_kwargs,
                    arrow_colors=arrow_colors, arrow_scale=arrow_scale, arrowstyle_kwargs=arrowstyle_kwargs)
 
-    fig.savefig(file_label)
-    plt.close()
+    return fig
 
 
 def plot_pca2(transform, pcx, pcy,
               idx1, idx2, cmap1, cmap2, label1, label2,
-              title_label, file_label,
+              title_label,
               hexbin_kwargs=None,
               handle_marker='h', handle_markersize=8, handle_markerfacecolor=0.5,
-              figsize=None, width_ratios=None):
+              fig=None, figsize=None, width_ratios=None):
     if width_ratios is None:
         width_ratios = (0.79, 0.03, 0.03, 0.12, 0.03)
     if hexbin_kwargs is None:
@@ -129,7 +127,7 @@ def plot_pca2(transform, pcx, pcy,
     x1, y1 = transform[idx1, pcx], transform[idx1, pcy]
     x2, y2 = transform[idx2, pcx], transform[idx2, pcy]
 
-    fig = plt.figure(figsize=figsize)
+    fig = fig if fig is not None else plt.figure(figsize=figsize)
     gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     hb1, hb2 = plot_hexbin2(x1, y1, x2, y2, cmap1=cmap1, cmap2=cmap2, hexbin_kwargs=hexbin_kwargs, ax=ax)
@@ -144,17 +142,16 @@ def plot_pca2(transform, pcx, pcy,
     fig.colorbar(hb1, cax=fig.add_subplot(gs[:, 2]))
     fig.colorbar(hb2, cax=fig.add_subplot(gs[:, 4]))
 
-    fig.savefig(file_label)
-    plt.close()
+    return fig
 
 
 def plot_pca2_arrows(pca, transform, arrow_labels, pcx, pcy,
                      idx1, idx2, cmap1, cmap2,
-                     title_label, file_label,
+                     title_label,
                      hexbin_kwargs=None,
                      legend_linewidth=2, legend_kwargs=None,
                      arrow_colors=None, arrow_scale=0.9, arrowstyle_kwargs=None,
-                     figsize=None, width_ratios=None):
+                     fig=None, figsize=None, width_ratios=None):
     if width_ratios is None:
         width_ratios = (0.79, 0.03, 0.03, 0.12, 0.03)
     if hexbin_kwargs is None:
@@ -163,7 +160,7 @@ def plot_pca2_arrows(pca, transform, arrow_labels, pcx, pcy,
     x1, y1 = transform[idx1, pcx], transform[idx1, pcy]
     x2, y2 = transform[idx2, pcx], transform[idx2, pcy]
 
-    fig = plt.figure(figsize=figsize)
+    fig = fig if fig is not None else plt.figure(figsize=figsize)
     gs = fig.add_gridspec(1, 5, width_ratios=width_ratios, wspace=0)
     ax = fig.add_subplot(gs[:, 0])
     plot_hexbin2(x1, y1, x2, y2, cmap1=cmap1, cmap2=cmap2, hexbin_kwargs=hexbin_kwargs, ax=ax)
@@ -175,8 +172,7 @@ def plot_pca2_arrows(pca, transform, arrow_labels, pcx, pcy,
                    legend_linewidth=legend_linewidth, legend_kwargs=legend_kwargs,
                    arrow_colors=arrow_colors, arrow_scale=arrow_scale, arrowstyle_kwargs=arrowstyle_kwargs)
 
-    fig.savefig(file_label)
-    plt.close()
+    return fig
 
 
 def add_pca_arrows(ax, pca, arrow_labels, pcx, pcy,

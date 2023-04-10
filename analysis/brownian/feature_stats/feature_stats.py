@@ -122,12 +122,15 @@ for min_length in min_lengths:
         plt.close()
 
         # PCA scatters
-        plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
-                  f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
-                  hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
-        plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
-                         f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
-                         hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+        fig = plot_pca2(transform, 0, 1, idx, ~idx, cmap1, cmap2, 'disorder', 'order', title_label,
+                        hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
+        plt.close()
+
+        fig = plot_pca2_arrows(pca, transform, data.columns, 0, 1, idx, ~idx, cmap1, cmap2, title_label,
+                               hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png')
+        plt.close()
 
     # Individual PCAs
     plots = [(disorder, 'disorder', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
@@ -166,9 +169,12 @@ for min_length in min_lengths:
         plt.close()
 
         # PCA scatters
-        plot_pca(transform, 0, 1, cmap, data_label, title_label,
-                 f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
-                 hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
-        plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
-                        f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrows.png',
-                        hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+        fig = plot_pca(transform, 0, 1, cmap, data_label, title_label,
+                       hexbin_kwargs=hexbin_kwargs, handle_markerfacecolor=handle_markerfacecolor)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
+        plt.close()
+
+        fig = plot_pca_arrows(pca, transform, data.columns, 0, 1, cmap, title_label,
+                              hexbin_kwargs=hexbin_kwargs, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrows.png')
+        plt.close()

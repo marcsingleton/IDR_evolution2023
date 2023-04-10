@@ -144,23 +144,29 @@ for min_length in min_lengths:
 
         # PCA scatters
         arrow_labels = [column_label.removesuffix('_delta_AIC') for column_label in data.columns]
-        plot_pca(transform, 0, 1, cmap, data_label, title_label,
-                 f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png',
-                 hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
-                 width_ratios=width_ratios)
-        plot_pca_arrows(pca, transform, arrow_labels, 0, 1, cmap, title_label,
-                        f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png',
-                        hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
-                        width_ratios=width_ratios)
+        fig = plot_pca(transform, 0, 1, cmap, data_label, title_label,
+                       hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
+                       width_ratios=width_ratios)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
+        plt.close()
 
-        plot_pca(transform, 1, 2, cmap, data_label, title_label,
-                 f'out/regions_{min_length}/hexbin_pc2-pc3_{data_label}_{file_label}.png',
-                 hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
-                 width_ratios=width_ratios)
-        plot_pca_arrows(pca, transform, arrow_labels, 1, 2, cmap, title_label,
-                        f'out/regions_{min_length}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png',
-                        hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
-                        width_ratios=width_ratios)
+        fig = plot_pca_arrows(pca, transform, arrow_labels, 0, 1, cmap, title_label,
+                              hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
+                              width_ratios=width_ratios)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png')
+        plt.close()
+
+        fig = plot_pca(transform, 1, 2, cmap, data_label, title_label,
+                       hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
+                       width_ratios=width_ratios)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc2-pc3_{data_label}_{file_label}.png')
+        plt.close()
+
+        fig = plot_pca_arrows(pca, transform, arrow_labels, 1, 2, cmap, title_label,
+                              hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
+                              width_ratios=width_ratios)
+        fig.savefig(f'out/regions_{min_length}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png')
+        plt.close()
 
     # Hierarchical heatmap
     legend_args = {'aa_group': ('Amino acid content', 'grey', ''),
