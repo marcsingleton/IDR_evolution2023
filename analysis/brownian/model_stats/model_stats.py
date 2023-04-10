@@ -252,5 +252,5 @@ for min_length in min_lengths:
         cax.set_title('$\mathregular{AIC_{BM} - AIC_{OU}}$', fontdict={'fontsize': 10})
         fig.colorbar(im, cax=cax, orientation='horizontal')
 
-        fig.savefig(f'out/regions_{min_length}/cluster_{file_label}_{metric}.png', dpi=600)
+        fig.savefig(f'out/regions_{min_length}/heatmap_{file_label}_{metric}.png', dpi=600)
         plt.close()
