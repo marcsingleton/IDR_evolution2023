@@ -21,7 +21,7 @@ Only `analysis/` and `src/`, which together contain all code written for this pr
 - `brownian/`: Application of Brownian motion model to orthologs from NCBI annotations, among other phylogenetic analyses
 - `evofit/`: Fitting various phylogenetic substitution models to alignments
 - `evosim/`: Simulations of evolution of alignments from reconstructed ancestors
-- `GOpred/`: Prediction of GO terms associated with proteins using rates of feature evolution
+- `GO/`: Analyses using GO terms and the results of other analyses
 - `IDRpred/`: Prediction of IDRs in alignments and other analyses used to partition the data
 - `TFCF/`: Analyses to parse and deduplicate lists of transcription factors and cofactors found in [Stampfel *et al.*](https://pubmed.ncbi.nlm.nih.gov/26550828/) and [Hens *et al.*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3929264/)
 
