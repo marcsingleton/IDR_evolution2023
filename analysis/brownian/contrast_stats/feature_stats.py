@@ -18,10 +18,6 @@ def zscore(df):
 pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
-min_indel_columns = 5  # Indel rates below this value are set to 0
-min_aa_rate = 0.5
-min_indel_rate = 0.1
-
 pca_components = 10
 cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Oranges'], plt.colormaps['Purples']
 color1, color2, color3 = '#4e79a7', '#f28e2b', '#b07aa1'
@@ -64,25 +60,18 @@ for min_length in min_lengths:
     # Load and format data
     asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
     asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
-    row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
-    asr_rates.loc[row_idx, 'indel_rate_mean'] = 0
 
-    row_idx = (asr_rates['aa_rate_mean'] > min_aa_rate) | (asr_rates['indel_rate_mean'] > min_indel_rate)
-    column_idx = ['OGid', 'start', 'stop', 'disorder']
-    region_keys = asr_rates.loc[row_idx, column_idx]
-    segment_keys = all_segments.merge(region_keys, how='right', on=['OGid', 'start', 'stop', 'disorder'])
-
-    features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+    features = all_segments.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     features = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
-    features = region_keys.merge(features, how='left', on=['OGid', 'start', 'stop', 'disorder'])
+    features = all_regions.merge(features, how='left', on=['OGid', 'start', 'stop', 'disorder'])
     features = features.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     roots = pd.read_table(f'../get_contrasts/out/features/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
-    roots = region_keys.merge(roots, how='left', on=['OGid', 'start', 'stop'])
+    roots = all_regions.merge(roots, how='left', on=['OGid', 'start', 'stop'])
     roots = roots.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     contrasts = pd.read_table(f'../get_contrasts/out/features/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
-    contrasts = region_keys.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
+    contrasts = all_regions.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
     contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
     rates = (contrasts ** 2).groupby(['OGid', 'start', 'stop', 'disorder']).mean()
