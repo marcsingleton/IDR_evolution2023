@@ -55,8 +55,8 @@ for min_length in min_lengths:
     region_keys = asr_rates.loc[row_idx, column_idx]
 
     models = pd.read_table(f'../get_models/out/models_{min_length}.tsv', header=[0, 1])
-    df = region_keys.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
-    df = df.set_index(['OGid', 'start', 'stop', 'disorder'])
+    models = region_keys.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
+    models = models.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     feature_groups = {}
     feature_labels = []
@@ -75,30 +75,30 @@ for min_length in min_lengths:
 
     columns = {}
     for feature_label in feature_labels:
-        columns[f'{feature_label}_AIC_BM'] = 2*(2 - df[f'{feature_label}_loglikelihood_BM'])
-        columns[f'{feature_label}_AIC_OU'] = 2*(3 - df[f'{feature_label}_loglikelihood_OU'])
+        columns[f'{feature_label}_AIC_BM'] = 2*(2 - models[f'{feature_label}_loglikelihood_BM'])
+        columns[f'{feature_label}_AIC_OU'] = 2*(3 - models[f'{feature_label}_loglikelihood_OU'])
         columns[f'{feature_label}_delta_AIC'] = columns[f'{feature_label}_AIC_BM'] - columns[f'{feature_label}_AIC_OU']
-        columns[f'{feature_label}_sigma2_ratio'] = df[f'{feature_label}_sigma2_BM'] / df[f'{feature_label}_sigma2_OU']
-    df = pd.concat([df, pd.DataFrame(columns)], axis=1)
+        columns[f'{feature_label}_sigma2_ratio'] = models[f'{feature_label}_sigma2_BM'] / models[f'{feature_label}_sigma2_OU']
+    models = pd.concat([models, pd.DataFrame(columns)], axis=1)
 
     for feature_label in feature_labels:
         fig, ax = plt.subplots()
-        ax.hist(df[f'{feature_label}_delta_AIC'], bins=50)
+        ax.hist(models[f'{feature_label}_delta_AIC'], bins=50)
         ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
         fig.savefig(f'out/regions_{min_length}/hist_regionnum-delta_AIC_{feature_label}.png')
         plt.close()
 
         fig, ax = plt.subplots()
-        ax.hist(df[f'{feature_label}_sigma2_ratio'], bins=50)
+        ax.hist(models[f'{feature_label}_sigma2_ratio'], bins=50)
         ax.set_xlabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
         fig.savefig(f'out/regions_{min_length}/hist_regionnum-sigma2_{feature_label}.png')
         plt.close()
 
         fig, ax = plt.subplots()
-        hb = ax.hexbin(df[f'{feature_label}_delta_AIC'],
-                       df[f'{feature_label}_sigma2_ratio'],
+        hb = ax.hexbin(models[f'{feature_label}_delta_AIC'],
+                       models[f'{feature_label}_sigma2_ratio'],
                        gridsize=75, mincnt=1, linewidth=0, bins='log')
         ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$')
         ax.set_ylabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$')
@@ -109,10 +109,10 @@ for min_length in min_lengths:
 
     column_labels = [f'{feature_label}_delta_AIC' for feature_label in feature_labels]
     column_labels_nonmotif = [f'{feature_label}_delta_AIC' for feature_label in nonmotif_labels]
-    plots = [(df.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
-             (df.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif'),
-             (df.loc[pdidx[:, :, :, False], column_labels], 'order', 'all features', 'all'),
-             (df.loc[pdidx[:, :, :, False], column_labels_nonmotif], 'order', 'no motifs', 'nonmotif')]
+    plots = [(models.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
+             (models.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif'),
+             (models.loc[pdidx[:, :, :, False], column_labels], 'order', 'all features', 'all'),
+             (models.loc[pdidx[:, :, :, False], column_labels_nonmotif], 'order', 'no motifs', 'nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(np.nan_to_num(data.to_numpy(), nan=1))
@@ -188,7 +188,7 @@ for min_length in min_lengths:
         column_labels = []
         for group_label in group_labels:
             column_labels.extend([f'{feature_label}_delta_AIC' for feature_label in feature_groups[group_label]])
-        array = np.nan_to_num(df.loc[pdidx[:, :, :, True], column_labels].to_numpy(), nan=1)  # Re-arrange and convert to array
+        array = np.nan_to_num(models.loc[pdidx[:, :, :, True], column_labels].to_numpy(), nan=1)  # Re-arrange and convert to array
 
         cdm = pdist(array, metric=metric)
         lm = linkage(cdm, method='average')
