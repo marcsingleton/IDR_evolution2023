@@ -68,17 +68,20 @@ for min_length in min_lengths:
     region_keys = asr_rates.loc[row_idx, column_idx]
 
     features = all_segments.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
-    means = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
-    means_nonmotif = means[nonmotif_labels]
-    disorder = means.loc[pdidx[:, :, :, True], :]
-    order = means.loc[pdidx[:, :, :, False], :]
+    features = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+    features = region_keys.merge(features, how='left', on=['OGid', 'start', 'stop', 'disorder'])
+    features = features.set_index(['OGid', 'start', 'stop', 'disorder'])
+
+    features_nonmotif = features[nonmotif_labels]
+    disorder = features.loc[pdidx[:, :, :, True], :]
+    order = features.loc[pdidx[:, :, :, False], :]
     disorder_nonmotif = disorder[nonmotif_labels]
     order_nonmotif = order[nonmotif_labels]
 
     # Feature histograms
     for feature_label in feature_labels:
         fig, axs = plt.subplots(2, 1, sharex=True)
-        xmin, xmax = means[feature_label].min(), means[feature_label].max()
+        xmin, xmax = features[feature_label].min(), features[feature_label].max()
         axs[0].hist(disorder[feature_label], bins=linspace(xmin, xmax, 75), color=color1, label='disorder')
         axs[1].hist(order[feature_label], bins=linspace(xmin, xmax, 75), color=color2, label='order')
         axs[1].set_xlabel(f'Mean {feature_label}')
@@ -90,10 +93,10 @@ for min_length in min_lengths:
         plt.close()
 
     # Combined PCAs
-    plots = [(means, 'all', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
-             (zscore(means), 'all', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
-             (means_nonmotif, 'all', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
-             (zscore(means_nonmotif), 'all', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
+    plots = [(features, 'all', f'minimum length ≥ {min_length}, no norm, all features', 'nonorm_all'),
+             (zscore(features), 'all', f'minimum length ≥ {min_length}, z-score, all features', 'zscore_all'),
+             (features_nonmotif, 'all', f'minimum length ≥ {min_length}, no norm, non-motif features', 'nonorm_nonmotif'),
+             (zscore(features_nonmotif), 'all', f'minimum length ≥ {min_length}, z-score, non-motif features', 'zscore_nonmotif')]
     for data, data_label, title_label, file_label in plots:
         pca = PCA(n_components=pca_components)
         transform = pca.fit_transform(data.to_numpy())
