@@ -2,10 +2,10 @@
 
 import os
 
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.patches import Patch, Rectangle
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
 from sklearn.decomposition import PCA
@@ -18,12 +18,13 @@ pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
 min_indel_columns = 5  # Indel rates below this value are set to 0
-min_aa_rate = 0.5
+min_aa_rate = 1
 min_indel_rate = 0.1
 
 pca_components = 10
 cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Oranges']
 color1, color2 = '#4e79a7', '#f28e2b'
+grey = '#e6e6e6'
 hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 hexbin_kwargs_log = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 handle_markerfacecolor = 0.6
@@ -61,7 +62,10 @@ for min_length in min_lengths:
     feature_groups = {}
     feature_labels = []
     nonmotif_labels = []
-    for column_label, group_label in models.columns:
+    with open(f'../get_models/out/models_{min_length}.tsv') as file:
+        column_labels = file.readline().rstrip('\n').split('\t')
+        group_labels = file.readline().rstrip('\n').split('\t')
+    for column_label, group_label in zip(column_labels, group_labels):
         if not column_label.endswith('_loglikelihood_BM') or group_label == 'ids_group':
             continue
         feature_label = column_label.removesuffix('_loglikelihood_BM')
@@ -81,7 +85,29 @@ for min_length in min_lengths:
         columns[f'{feature_label}_sigma2_ratio'] = models[f'{feature_label}_sigma2_BM'] / models[f'{feature_label}_sigma2_OU']
     models = pd.concat([models, pd.DataFrame(columns)], axis=1)
 
+    # ASR rate histogram with cutoff
+    fig, axs = plt.subplots(2, 1, gridspec_kw={'right': 0.825, 'top': 0.99, 'bottom': 0.1, 'hspace': 0.25})
+
+    ax = axs[0]
+    xs = asr_rates.loc[asr_rates['disorder'], 'aa_rate_mean']
+    ax.axvspan(min_aa_rate, xs.max(), color=grey)
+    ax.hist(xs, bins=100)
+    ax.set_xlabel('Average amino acid rate in region')
+    ax.set_ylabel('Number of regions')
+
+    ax = axs[1]
+    xs = asr_rates.loc[asr_rates['disorder'], 'indel_rate_mean']
+    ax.axvspan(min_indel_rate, xs.max(), color=grey)
+    ax.hist(xs, bins=100)
+    ax.set_xlabel('Average indel rate in region')
+    ax.set_ylabel('Number of regions')
+
+    fig.legend(handles=[Patch(facecolor=color1, label='disorder')], bbox_to_anchor=(0.825, 0.5), loc='center left')
+    fig.savefig(f'out/regions_{min_length}/hist_regionnum-rate.png')
+
+    # Individual feature plots
     for feature_label in feature_labels:
+        # AIC histograms
         fig, ax = plt.subplots()
         ax.hist(models[f'{feature_label}_delta_AIC'], bins=50)
         ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$' + f' ({feature_label})')
@@ -89,6 +115,7 @@ for min_length in min_lengths:
         fig.savefig(f'out/regions_{min_length}/hist_regionnum-delta_AIC_{feature_label}.png')
         plt.close()
 
+        # sigma2 histograms
         fig, ax = plt.subplots()
         ax.hist(models[f'{feature_label}_sigma2_ratio'], bins=50)
         ax.set_xlabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$' + f' ({feature_label})')
@@ -96,6 +123,7 @@ for min_length in min_lengths:
         fig.savefig(f'out/regions_{min_length}/hist_regionnum-sigma2_{feature_label}.png')
         plt.close()
 
+        # AIC-sigma2 hexbins
         fig, ax = plt.subplots()
         hb = ax.hexbin(models[f'{feature_label}_delta_AIC'],
                        models[f'{feature_label}_sigma2_ratio'],
@@ -107,6 +135,7 @@ for min_length in min_lengths:
         fig.savefig(f'out/regions_{min_length}/hexbin_sigma2-delta_AIC_{feature_label}.png')
         plt.close()
 
+    # PCAs
     column_labels = [f'{feature_label}_delta_AIC' for feature_label in feature_labels]
     column_labels_nonmotif = [f'{feature_label}_delta_AIC' for feature_label in nonmotif_labels]
     plots = [(models.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
@@ -238,10 +267,10 @@ for min_length in min_lengths:
         for group_label in group_labels:
             label, color, hatch = legend_args[group_label]
             dx = len(feature_groups[group_label]) / len(column_labels)
-            rectangle = mpatches.Rectangle((x, 0), dx, 1, label=label, facecolor=color, hatch=hatch,
-                                           edgecolor='black', linewidth=0.75, clip_on=False)
-            ax.add_patch(rectangle)
-            handles.append(rectangle)
+            rect = Rectangle((x, 0), dx, 1, label=label, facecolor=color, hatch=hatch,
+                             edgecolor='black', linewidth=0.75, clip_on=False)
+            ax.add_patch(rect)
+            handles.append(rect)
             x += dx
         ax.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.25, 0), fontsize=8)
         ax.set_xticks([])
