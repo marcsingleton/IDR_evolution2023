@@ -74,6 +74,8 @@ for min_length in min_lengths:
 
     features = segment_keys.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     features = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
+    features = region_keys.merge(features, how='left', on=['OGid', 'start', 'stop', 'disorder'])
+    features = features.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     roots = pd.read_table(f'../get_contrasts/out/features/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
     roots = region_keys.merge(roots, how='left', on=['OGid', 'start', 'stop'])
