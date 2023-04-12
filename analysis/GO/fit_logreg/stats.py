@@ -4,6 +4,7 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.lines import Line2D
 
 pdidx = pd.IndexSlice
 
@@ -35,6 +36,6 @@ for data, data_label, color in plots:
                label=data_label, facecolor=color, edgecolor='none', alpha=0.25, s=12)
     ax.set_xlabel('Sensitivity')
     ax.set_ylabel('Specificity')
-    ax.legend(handles=[plt.Line2D([], [], label=data_label, marker='.', markerfacecolor=color, markeredgecolor='none', linestyle='none')])
+    ax.legend(handles=[Line2D([], [], label=data_label, marker='.', markerfacecolor=color, markeredgecolor='none', linestyle='none')])
     fig.savefig(f'out/scatter_spec-sens_{data_label}.png')
     plt.close()
