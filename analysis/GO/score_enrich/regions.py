@@ -22,7 +22,6 @@ def hypergeom_test(k, M, n, N):
 min_length = 30
 
 color3 = '#b07aa1'
-grey = '#e6e6e6'
 
 # Load regions as segments
 rows = []
@@ -65,7 +64,7 @@ pvalues.to_csv('out/pvalues_regions.tsv', sep='\t', index=False)
 
 fig, axs = plt.subplots(2, 1, gridspec_kw={'right': 0.85})
 for ax in axs:
-    ax.axvspan(quantile, rates['score_fraction'].max(), color=grey)
+    ax.axvspan(quantile, rates['score_fraction'].max(), color='#e6e6e6')
     ax.hist(rates['score_fraction'], bins=150, color=color3)
     ax.set_ylabel('Number of regions')
 axs[1].set_xlabel('Score rate')

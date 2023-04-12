@@ -22,7 +22,6 @@ ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'
 
 color3 = '#b07aa1'
-grey = '#e6e6e6'
 
 gaf = pd.read_table('../filter_GAF/out/proteins/GAF_propagate.tsv')  # Use all terms
 
@@ -55,7 +54,7 @@ result.to_csv('out/pvalues_proteins.tsv', sep='\t', index=False)
 
 fig, axs = plt.subplots(2, 1, gridspec_kw={'right': 0.85})
 for ax in axs:
-    ax.axvspan(quantile, rates['score_fraction'].max(), color=grey)
+    ax.axvspan(quantile, rates['score_fraction'].max(), color='#e6e6e6')
     ax.hist(rates['score_fraction'], bins=150, color=color3)
     ax.set_ylabel('Number of proteins')
 axs[1].set_xlabel('Score rate')

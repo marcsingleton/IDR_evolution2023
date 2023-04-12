@@ -24,7 +24,6 @@ min_indel_rate = 0.1
 pca_components = 10
 cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Oranges']
 color1, color2 = '#4e79a7', '#f28e2b'
-grey = '#e6e6e6'
 hexbin_kwargs = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 hexbin_kwargs_log = {'gridsize': 75, 'mincnt': 1, 'linewidth': 0}
 handle_markerfacecolor = 0.6
@@ -90,14 +89,14 @@ for min_length in min_lengths:
 
     ax = axs[0]
     xs = asr_rates.loc[asr_rates['disorder'], 'aa_rate_mean']
-    ax.axvspan(min_aa_rate, xs.max(), color=grey)
+    ax.axvspan(min_aa_rate, xs.max(), color='#e6e6e6')
     ax.hist(xs, bins=100)
     ax.set_xlabel('Average amino acid rate in region')
     ax.set_ylabel('Number of regions')
 
     ax = axs[1]
     xs = asr_rates.loc[asr_rates['disorder'], 'indel_rate_mean']
-    ax.axvspan(min_indel_rate, xs.max(), color=grey)
+    ax.axvspan(min_indel_rate, xs.max(), color='#e6e6e6')
     ax.hist(xs, bins=100)
     ax.set_xlabel('Average indel rate in region')
     ax.set_ylabel('Number of regions')
