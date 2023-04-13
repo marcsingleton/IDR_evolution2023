@@ -139,8 +139,8 @@ for min_length in min_lengths:
 
     # 2.1 Plot rate distributions
     rates_nonmotif = rates[nonmotif_labels]
-    disorder = rates.loc[pdidx[:, :, :, True, :], :]
-    order = rates.loc[pdidx[:, :, :, False, :], :]
+    disorder = rates.loc[pdidx[:, :, :, True], :]
+    order = rates.loc[pdidx[:, :, :, False], :]
     disorder_nonmotif = disorder[nonmotif_labels]
     order_nonmotif = order[nonmotif_labels]
     for feature_label in feature_labels:
@@ -360,8 +360,8 @@ for min_length in min_lengths:
 
     # 3.1 Plot root distributions
     roots_nonmotif = roots[nonmotif_labels]
-    disorder = roots.loc[pdidx[:, :, :, True, :], :]
-    order = roots.loc[pdidx[:, :, :, False, :], :]
+    disorder = roots.loc[pdidx[:, :, :, True], :]
+    order = roots.loc[pdidx[:, :, :, False], :]
     disorder_nonmotif = disorder[nonmotif_labels]
     order_nonmotif = order[nonmotif_labels]
     for feature_label in feature_labels:
@@ -546,8 +546,8 @@ for min_length in min_lengths:
                              [f'{feature_label}_rate' for feature_label in nonmotif_labels])
     merge = roots.merge(rates, how='inner', on=['OGid', 'start', 'stop', 'disorder'], suffixes=('_root', '_rate'))
     merge_nonmotif = merge[nonmotif_labels_merge]
-    disorder = merge.loc[pdidx[:, :, :, True, :], :]
-    order = merge.loc[pdidx[:, :, :, False, :], :]
+    disorder = merge.loc[pdidx[:, :, :, True], :]
+    order = merge.loc[pdidx[:, :, :, False], :]
     disorder_nonmotif = disorder[nonmotif_labels_merge]
     order_nonmotif = order[nonmotif_labels_merge]
     for feature_label in feature_labels:
