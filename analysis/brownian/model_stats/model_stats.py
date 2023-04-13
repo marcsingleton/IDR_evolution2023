@@ -240,20 +240,14 @@ for min_length in min_lengths:
         plot_tree(tree, ax=ax, linecolor=node2color, linewidth=0.2, tip_labels=False,
                   xmin_pad=0.025, xmax_pad=0, ymin_pad=1/(2*len(array)), ymax_pad=1/(2*len(array)))
         ax.set_ylabel('Disorder regions')
-        ax.set_xticks([])
-        ax.set_yticks([])
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        ax.set_axis_off()
 
         # Heatmap
         ax = axs[0, 1]
         im = ax.imshow(array[tip_order], aspect='auto', cmap=plt.colormaps['inferno'], interpolation='none')
         ax.xaxis.set_label_position('top')
         ax.set_xlabel('Features')
-        ax.set_xticks([])
-        ax.set_yticks([])
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        ax.set_axis_off()
 
         # Corner axis
         ax = axs[1, 0]
@@ -272,10 +266,7 @@ for min_length in min_lengths:
             handles.append(rect)
             x += dx
         ax.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.25, 0), fontsize=8)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        ax.set_axis_off()
 
         # Colorbar
         xcenter = 0.75
