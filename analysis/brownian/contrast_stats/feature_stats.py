@@ -18,6 +18,8 @@ def zscore(df):
 pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
 
+min_indel_columns = 5  # Indel rates below this value are set to 0
+
 pca_components = 10
 cmap1, cmap2, cmap3 = plt.colormaps['Blues'], plt.colormaps['Oranges'], plt.colormaps['Purples']
 color1, color2, color3 = '#4e79a7', '#f28e2b', '#b07aa1'
@@ -60,6 +62,8 @@ for min_length in min_lengths:
     # Load and format data
     asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
     asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
+    row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
+    asr_rates.loc[row_idx, 'indel_rate_mean'] = 0
 
     features = all_segments.merge(all_features, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     features = features.groupby(['OGid', 'start', 'stop', 'disorder']).mean()
