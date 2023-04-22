@@ -159,8 +159,10 @@ for min_length in min_lengths:
     fig.savefig(f'out/regions_{min_length}/hexbin_indelrate-aarate.png')
     plt.close()
 
-    x1 = (df.loc[df['disorder'] == True, 'aa_rate_mean'] + df.loc[df['disorder'] == True, 'indel_rate_mean']).dropna()
-    x2 = (df.loc[df['disorder'] == False, 'aa_rate_mean'] + df.loc[df['disorder'] == False, 'indel_rate_mean']).dropna()
+    x1 = (df.loc[df['disorder'] == True, 'aa_rate_mean'] +
+          df.loc[df['disorder'] == True, 'indel_rate_mean']).dropna()
+    x2 = (df.loc[df['disorder'] == False, 'aa_rate_mean'] +
+          df.loc[df['disorder'] == False, 'indel_rate_mean']).dropna()
     fig, ax = plt.subplots()
     ax.boxplot([x1, x2], labels=['disorder', 'order'])
     ax.set_ylabel('Sum of average amino acid and indel rates in region')

@@ -86,7 +86,8 @@ for min_length in min_lengths:
     if not os.path.exists(f'out/regions_{min_length}/'):
         os.mkdir(f'out/regions_{min_length}/')
 
-    segments = all_segments[all_segments['min_length'] == min_length].merge(all_lengths, how='left', on=['OGid', 'start', 'stop', 'ppid'])
+    segments = all_segments[all_segments['min_length'] == min_length]
+    segments = segments.merge(all_lengths, how='left', on=['OGid', 'start', 'stop', 'ppid'])
     regions = segments.groupby(['OGid', 'start', 'stop', 'disorder'])
 
     means = regions.mean()
