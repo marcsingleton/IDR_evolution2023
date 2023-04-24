@@ -238,7 +238,8 @@ for min_length in min_lengths:
         # Tree
         ax = axs[0, 0]
         plot_tree(tree, ax=ax, linecolor=node2color, linewidth=0.2, tip_labels=False,
-                  xmin_pad=0.025, xmax_pad=0, ymin_pad=1/(2*len(array)), ymax_pad=1/(2*len(array)))
+                  xmin_pad=0.025, xmax_pad=0)
+        ax.sharey(axs[0, 1])
         ax.set_ylabel('Disorder regions')
         ax.set_axis_off()
 
