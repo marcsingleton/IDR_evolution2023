@@ -1,6 +1,7 @@
 """Calculate GO term enrichment on proteins with high rates of score evolution."""
 
 import os
+from textwrap import dedent
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,22 +26,31 @@ quantile = rates['score_fraction'].quantile(0.9, interpolation='higher')  # Capt
 reference_gaf = all_proteins.merge(gaf, how='inner', on=['OGid'])
 enrichment_keys = rates[rates['score_fraction'] > quantile].index.to_frame(index=False)  # False forces re-index
 enrichment_gaf = reference_gaf.merge(enrichment_keys, how='inner', on=['OGid'])
+
 terms = list(enrichment_gaf[['aspect', 'GOid', 'name']].drop_duplicates().itertuples(index=False, name=None))
+M = reference_gaf.groupby(['OGid']).ngroups
+N = enrichment_gaf.groupby(['OGid']).ngroups
 
 rows = []
 for aspect, GOid, name in terms:
     k = enrichment_gaf[enrichment_gaf['GOid'] == GOid].groupby(['OGid']).ngroups
-    M = reference_gaf.groupby(['OGid']).ngroups
     n = reference_gaf[reference_gaf['GOid'] == GOid].groupby(['OGid']).ngroups
-    N = enrichment_gaf.groupby(['OGid']).ngroups
     pvalue = hypergeom_test(k, M, n, N)
-    rows.append({'pvalue': pvalue, 'aspect': aspect, 'GOid': GOid, 'name': name})
-result = pd.DataFrame(rows).sort_values(by=['aspect', 'pvalue'], ignore_index=True)
+    rows.append({'pvalue': pvalue, 'k': k, 'n': n,
+                 'aspect': aspect, 'GOid': GOid, 'name': name})
+pvalues = pd.DataFrame(rows).sort_values(by=['aspect', 'pvalue'], ignore_index=True)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-result.to_csv('out/pvalues_proteins.tsv', sep='\t', index=False)
+pvalues.to_csv('out/pvalues_proteins.tsv', sep='\t', index=False)
+with open('out/output_proteins.txt', 'w') as file:
+    output = f"""\
+    M (reference size): {M}
+    N (enrichment size): {N}
+    Number of tests: {len(terms)}
+    """
+    file.write(dedent(output))  # Remove leading whitespace
 
 fig, axs = plt.subplots(2, 1, gridspec_kw={'right': 0.85})
 for ax in axs:
@@ -57,7 +67,7 @@ fig, ax = plt.subplots(figsize=(8, 6.4), layout='constrained')
 bars = [('P', 'Process'), ('F', 'Function'), ('C', 'Component')]
 y0, labels = 0, []
 for aspect, aspect_label in bars:
-    data = result[(result['aspect'] == aspect) & (result['pvalue'] <= 0.01)]
+    data = pvalues[(pvalues['aspect'] == aspect) & (pvalues['pvalue'] <= 0.01)]
     xs = -np.log10(data['pvalue'])
     ys = np.arange(y0, y0 + 2 * len(xs), 2)
     for GOid, name in zip(data['GOid'], data['name']):

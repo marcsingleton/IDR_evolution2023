@@ -52,23 +52,35 @@ region_keys = asr_rates.loc[row_idx, column_idx]
 reference_keys = region_keys[region_keys['disorder']].reset_index(drop=True)  # Filter again by disorder
 reference_gaf = region_keys.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 
-rows = []
+pvalue_rows = []
+cluster_rows = []
 for cluster_id, root_id in clusters:
     root_node = tree.find(root_id)
     node_ids = [int(tip.name) for tip in root_node.tips()]
     enrichment_keys = reference_keys.iloc[node_ids]
     enrichment_gaf = reference_gaf.merge(enrichment_keys, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
+
     terms = list(enrichment_gaf[['aspect', 'GOid', 'name']].drop_duplicates().itertuples(index=False, name=None))
+    M = reference_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
+    N = enrichment_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
+
     for aspect, GOid, name in terms:
         k = enrichment_gaf[enrichment_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
-        M = reference_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
         n = reference_gaf[reference_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
-        N = enrichment_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
         pvalue = hypergeom_test(k, M, n, N)
-        rows.append({'cluster_id': cluster_id, 'pvalue': pvalue, 'aspect': aspect, 'GOid': GOid, 'name': name})
-pvalues = pd.DataFrame(rows).sort_values(by=['cluster_id', 'aspect', 'pvalue'], ignore_index=True)
+        pvalue_rows.append({'cluster_id': cluster_id,
+                            'pvalue': pvalue, 'k': k, 'n': n,
+                            'aspect': aspect, 'GOid': GOid, 'name': name})
+
+    cluster_rows.append({'cluster_id': cluster_id,
+                         'num_regions': len(enrichment_keys), 'num_OGids': enrichment_keys['OGid'].nunique(),
+                         'num_tests': len(terms),
+                         'regions': ','.join([f'{row.OGid}-{row.start}-{row.stop}' for row in enrichment_keys.itertuples()])})
+pvalues = pd.DataFrame(pvalue_rows).sort_values(by=['cluster_id', 'aspect', 'pvalue'], ignore_index=True)
+clusters = pd.DataFrame(cluster_rows)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
 pvalues.to_csv('out/pvalues.tsv', sep='\t', index=False)
+clusters.to_csv('out/clusters.tsv', sep='\t', index=False)

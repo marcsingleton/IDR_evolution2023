@@ -1,7 +1,7 @@
 """Calculate GO term enrichment on regions with high rates of score evolution."""
 
 import os
-from textwrap import fill
+from textwrap import dedent, fill
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,22 +35,31 @@ quantile = rates['score_fraction'].quantile(0.9, interpolation='higher')  # Capt
 reference_gaf = all_regions.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 enrichment_keys = rates[rates['score_fraction'] > quantile].index.to_frame(index=False)  # False forces re-index
 enrichment_gaf = reference_gaf.merge(enrichment_keys, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
+
 terms = list(enrichment_gaf[['aspect', 'GOid', 'name']].drop_duplicates().itertuples(index=False, name=None))
+M = reference_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
+N = enrichment_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
 
 rows = []
 for aspect, GOid, name in terms:
     k = enrichment_gaf[enrichment_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
-    M = reference_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
     n = reference_gaf[reference_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
-    N = enrichment_gaf.groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
     pvalue = hypergeom_test(k, M, n, N)
-    rows.append({'pvalue': pvalue, 'aspect': aspect, 'GOid': GOid, 'name': name})
+    rows.append({'pvalue': pvalue, 'k': k, 'n': n,
+                 'aspect': aspect, 'GOid': GOid, 'name': name})
 pvalues = pd.DataFrame(rows).sort_values(by=['aspect', 'pvalue'], ignore_index=True)
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
 pvalues.to_csv('out/pvalues_regions.tsv', sep='\t', index=False)
+with open('out/output_regions.txt', 'w') as file:
+    output = f"""\
+    M (reference size): {M}
+    N (enrichment size): {N}
+    Number of tests: {len(terms)}
+    """
+    file.write(dedent(output))  # Remove leading whitespace
 
 fig, axs = plt.subplots(2, 1, gridspec_kw={'right': 0.85})
 for ax in axs:
