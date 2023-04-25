@@ -25,12 +25,18 @@ min_aa_rate = 1
 min_indel_rate = 0.1
 
 tree = skbio.read('../../brownian/model_stats/out/regions_30/heatmap_all_correlation.nwk', 'newick', skbio.TreeNode)
-clusters = {'A': '15086', 'B': '15170',
-            'C': '15160', 'D': '15070',
-            'E': '14415', 'F': '15217',
-            'G': '15078', 'H': '15021',
-            'I': '15161', 'J': '15191',
-            'K': '15143', 'L': '14937'}
+clusters = [('A', '15086'),
+            ('B', '15170'),
+            ('C', '15160'),
+            ('D', '15070'),
+            ('E', '14415'),
+            ('F', '15217'),
+            ('G', '15078'),
+            ('H', '15021'),
+            ('I', '15161'),
+            ('J', '15191'),
+            ('K', '15143'),
+            ('L', '14937')]
 
 # Load regions
 rows = []
@@ -58,7 +64,7 @@ reference_keys = region_keys[region_keys['disorder']].reset_index(drop=True)  # 
 reference_gaf = region_keys.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 
 rows = []
-for cluster_id, root_id in clusters.items():
+for cluster_id, root_id in clusters:
     root_node = tree.find(root_id)
     node_ids = [int(tip.name) for tip in root_node.tips()]
     enrichment_keys = reference_keys.iloc[node_ids]
