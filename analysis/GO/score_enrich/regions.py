@@ -6,18 +6,8 @@ from textwrap import fill
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 from matplotlib.patches import Patch
-
-
-def hypergeom_test(k, M, n, N):
-    """Return the p-value for a hypergeometric test."""
-    kmax = min(n, N)
-    ks = np.arange(k, kmax + 1)
-    pmfs = stats.hypergeom.pmf(k=ks, M=M, n=n, N=N)
-    pvalue = pmfs.sum()
-    return pvalue
-
+from src.GO.enrich import hypergeom_test
 
 min_length = 30
 

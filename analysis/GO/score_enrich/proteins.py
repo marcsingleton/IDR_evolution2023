@@ -5,18 +5,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 from matplotlib.patches import Patch
-
-
-def hypergeom_test(k, M, n, N):
-    """Return the p-value for a hypergeometric test."""
-    kmax = min(n, N)
-    ks = np.arange(k, kmax + 1)
-    pmfs = stats.hypergeom.pmf(k=ks, M=M, n=n, N=N)
-    pvalue = pmfs.sum()
-    return pvalue
-
+from src.GO.enrich import hypergeom_test
 
 ppid_regex = r'ppid=([A-Za-z0-9_.]+)'
 gnid_regex = r'gnid=([A-Za-z0-9_.]+)'

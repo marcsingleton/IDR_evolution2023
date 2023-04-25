@@ -2,20 +2,9 @@
 
 import os
 
-import numpy as np
 import pandas as pd
-import scipy.stats as stats
 import skbio
-
-
-def hypergeom_test(k, M, n, N):
-    """Return the p-value for a hypergeometric test."""
-    kmax = min(n, N)
-    ks = np.arange(k, kmax + 1)
-    pmfs = stats.hypergeom.pmf(k=ks, M=M, n=n, N=N)
-    pvalue = pmfs.sum()
-    return pvalue
-
+from src.GO.enrich import hypergeom_test
 
 pdidx = pd.IndexSlice
 min_length = 30
