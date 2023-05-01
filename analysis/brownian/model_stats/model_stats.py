@@ -289,7 +289,7 @@ for min_length in min_lengths:
         ax.set_axis_off()
 
         # Colorbar
-        xcenter = 0.75
+        xcenter = gridspec_kw['width_ratios'][0] + gridspec_kw['width_ratios'][1] * 0.75
         width = 0.2
         ycenter = gridspec_kw['bottom'] / 2
         height = 0.015
