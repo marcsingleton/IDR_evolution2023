@@ -127,8 +127,8 @@ for OGid in OGids:
         # Get likelihoods for rate categories
         for rate, prior in rates[1:]:  # Skip invariant
             s, conditional = get_conditional(tree, speed * rate * matrix)
-            likelihood = np.expand_dims(freqs, -1) * conditional
-            likelihoods.append(np.exp(s) * likelihood * prior)
+            likelihood = np.expand_dims(freqs, -1) * np.exp(s) * conditional
+            likelihoods.append(likelihood * prior)
 
         likelihoods = np.stack(likelihoods)
         likelihoods = likelihoods / likelihoods.sum(axis=(0, 1))
