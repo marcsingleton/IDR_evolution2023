@@ -1,6 +1,7 @@
 """Simulate data under BM and OU models and calculate estimated parameters and likelihoods."""
 
 import os
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -8,10 +9,20 @@ import scipy.stats as stats
 import skbio
 import src.phylo as phylo
 
+# Sampling parameters
 num_samples = 10
-models_BM = [1]
-models_OU = [(1, 0.1)]
+sigma2_min, sigma2_max = 0.1, 1
+sigma2_delta = 0.1
+alpha_min, alpha_max = 0.1, 1
+alpha_delta = 0.1
 
+# Create parameter tuples
+sigma2_range = np.linspace(sigma2_min, sigma2_max, int((sigma2_max - sigma2_min) / sigma2_delta) + 1)
+alpha_range = np.linspace(alpha_min, alpha_max, int((alpha_max - alpha_min) / alpha_delta) + 1)
+models_BM = product(sigma2_range)
+models_OU = product(sigma2_range, alpha_range)
+
+# Load and calculate reference tree and its parameters
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tree_reference = tree_template.shear({tip.name for tip in tree_template.tips() if tip.name != 'sleb'})
 tips_reference, cov_reference = phylo.get_brownian_covariance(tree_reference)
@@ -22,7 +33,7 @@ if not os.path.exists('out/'):
 
 # BM simulations
 rows = []
-for sigma2 in models_BM:
+for sigma2, in models_BM:
     for sample_id in range(num_samples):
         tree = tree_reference.copy()
         tips = list(tree.tips())
