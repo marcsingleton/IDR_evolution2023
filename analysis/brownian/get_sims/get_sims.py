@@ -8,19 +8,16 @@ import pandas as pd
 import scipy.stats as stats
 import skbio
 import src.phylo as phylo
-
-# Sampling parameters
-num_samples = 10
-sigma2_min, sigma2_max = 0.1, 1
-sigma2_delta = 0.1
-alpha_min, alpha_max = 0.1, 1
-alpha_delta = 0.1
+from src.brownian.get_sims.sampling import num_samples, seed
+from src.brownian.get_sims.sampling import sigma2_min, sigma2_max, sigma2_num
+from src.brownian.get_sims.sampling import alpha_min, alpha_max, alpha_num
 
 # Create parameter tuples
-sigma2_range = np.linspace(sigma2_min, sigma2_max, int((sigma2_max - sigma2_min) / sigma2_delta) + 1)
-alpha_range = np.linspace(alpha_min, alpha_max, int((alpha_max - alpha_min) / alpha_delta) + 1)
-models_BM = product(sigma2_range)
-models_OU = product(sigma2_range, alpha_range)
+rng = np.random.default_rng(seed)
+sigma2_range = np.linspace(sigma2_min, sigma2_max, sigma2_num)
+alpha_range = np.linspace(alpha_min, alpha_max, alpha_num)
+models_BM = enumerate(sigma2_range)
+models_OU = product(enumerate(sigma2_range), enumerate(alpha_range))
 
 # Load and calculate reference tree and its parameters
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
@@ -33,12 +30,12 @@ if not os.path.exists('out/'):
 
 # BM simulations
 rows = []
-for sigma2, in models_BM:
+for sigma2_id, sigma2 in models_BM:
     for sample_id in range(num_samples):
         tree = tree_reference.copy()
         tips = list(tree.tips())
         cov = cov_reference * sigma2
-        values = stats.multivariate_normal.rvs(cov=cov)
+        values = stats.multivariate_normal.rvs(cov=cov, random_state=rng)
         for tip, value in zip(tips, values):
             tip.value = value
 
@@ -50,7 +47,8 @@ for sigma2, in models_BM:
         loglikelihood_hat_OU = phylo.get_OU_loglikelihood(mu_hat_OU, sigma2_hat_OU, alpha_hat_OU,
                                                           tips=tips, ts=cov_reference)
 
-        rows.append({'sigma2': sigma2, 'sample_id': sample_id,
+        rows.append({'sigma2_id': sigma2_id, 'sample_id': sample_id,
+                     'sigma2': sigma2,
                      'mu_hat_BM': mu_hat_BM, 'sigma2_hat_BM': sigma2_hat_BM,
                      'loglikelihood_hat_BM': loglikelihood_hat_BM,
                      'mu_hat_OU': mu_hat_OU, 'sigma2_hat_OU': sigma2_hat_OU, 'alpha_hat_OU': alpha_hat_OU,
@@ -60,12 +58,12 @@ df_BM.to_csv('out/models_BM.tsv', sep='\t', index=False)
 
 # OU simulations
 rows = []
-for sigma2, alpha in models_OU:
+for (sigma2_id, sigma2), (alpha_id, alpha) in models_OU:
     for sample_id in range(num_samples):
         tree = tree_reference.copy()
         tips = list(tree.tips())
         _, cov = phylo.get_OU_covariance(alpha, tips=tips, ts=cov_reference * sigma2)
-        values = stats.multivariate_normal.rvs(cov=cov)
+        values = stats.multivariate_normal.rvs(cov=cov, random_state=rng)
         for tip, value in zip(tips, values):
             tip.value = value
 
@@ -77,7 +75,8 @@ for sigma2, alpha in models_OU:
         loglikelihood_hat_OU = phylo.get_OU_loglikelihood(mu_hat_OU, sigma2_hat_OU, alpha_hat_OU,
                                                           tips=tips, ts=cov_reference)
 
-        rows.append({'sigma2': sigma2, 'alpha': alpha, 'sample_id': sample_id,
+        rows.append({'sigma2_id': sigma2_id, 'alpha_id': alpha_id, 'sample_id': sample_id,
+                     'sigma2': sigma2, 'alpha': alpha,
                      'mu_hat_BM': mu_hat_BM, 'sigma2_hat_BM': sigma2_hat_BM,
                      'loglikelihood_hat_BM': loglikelihood_hat_BM,
                      'mu_hat_OU': mu_hat_OU, 'sigma2_hat_OU': sigma2_hat_OU, 'alpha_hat_OU': alpha_hat_OU,
