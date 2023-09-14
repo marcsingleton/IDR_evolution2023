@@ -4,6 +4,9 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import ListedColormap, Normalize
+from numpy import linspace
 from src.brownian.get_sims.sampling import sigma2_min, sigma2_max, sigma2_delta, sigma2_num
 from src.brownian.get_sims.sampling import alpha_min, alpha_max, alpha_delta, alpha_num
 
@@ -64,15 +67,37 @@ ax.set_ylabel('$\mathregular{AIC_{BM} - AIC_{OU}}$')
 fig.savefig('out/violin_delta_AIC_BM.png')
 plt.close()
 
-# Bars of type I errors
-xs = groups_BM['sigma2'].mean()
-ys = groups_BM['delta_AIC'].aggregate(lambda x: (x > 0).mean())
+# Type I error as function of cutoff
+delta_AIC_min, delta_AIC_max = df_BM['delta_AIC'].min(), df_BM['delta_AIC'].max()
+cutoffs = linspace(delta_AIC_min, delta_AIC_max, 50)
+
+errors = []
+for cutoff in cutoffs:
+    errors.append(groups_BM['delta_AIC'].aggregate(lambda x: (x > cutoff).mean()))
+errors = pd.DataFrame(errors).reset_index(drop=True)
 
 fig, ax = plt.subplots()
-ax.bar(xs, ys, width=sigma2_delta/2)
-ax.set_xlabel('true $\mathregular{\sigma^2_{BM}}$')
+id2value = groups_BM['sigma2'].mean().to_dict()
+cmap = ListedColormap(plt.colormaps['viridis'].colors[:240])
+norm = Normalize(sigma2_min, sigma2_max)
+get_color = lambda x: cmap(norm(x))
+for sigma2_id in errors:
+    ax.plot(cutoffs, errors[sigma2_id], color=get_color(id2value[sigma2_id]), alpha=0.5)
+ax.set_xlabel('$\mathregular{AIC_{BM}-AIC_{OU}}$ cutoff')
 ax.set_ylabel('Type I error')
-fig.savefig('out/bar_typeI_BM.png')
+fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), label='true $\mathregular{\sigma^2_{BM}}$')
+fig.savefig('out/line_typeI-sigma2.png')
+plt.close()
+
+errors = []
+for cutoff in cutoffs:
+    errors.append((df_BM['delta_AIC'] > cutoff).mean())
+
+fig, ax = plt.subplots()
+ax.plot(cutoffs, errors)
+ax.set_xlabel('$\mathregular{AIC_{BM}-AIC_{OU}}$ cutoff')
+ax.set_ylabel('Type I error')
+fig.savefig('out/line_typeI-sigma2_merge.png')
 plt.close()
 
 # OU MODEL PLOTS
@@ -84,7 +109,7 @@ extent = (alpha_min-alpha_delta/2, alpha_max+alpha_delta/2,
 # Heatmap of sigma2
 fig, ax = plt.subplots()
 array = parameter_df['sigma2_hat_OU'].to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower')
+im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
 ax.set_xlabel('true $\mathregular{\\alpha}$')
 ax.set_ylabel('true $\mathregular{\sigma^2_{OU}}$')
 ax.set_title('estimated $\mathregular{\sigma^2_{OU}}$')
@@ -95,7 +120,7 @@ plt.close()
 # Heatmap of alpha
 fig, ax = plt.subplots()
 array = parameter_df['alpha_hat_OU'].to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower')
+im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
 ax.set_xlabel('true $\mathregular{\\alpha}$')
 ax.set_ylabel('true $\mathregular{\sigma^2_{OU}}$')
 ax.set_title('estimated $\mathregular{\\alpha}$')
@@ -106,7 +131,7 @@ plt.close()
 # Heatmap of type II errors
 fig, ax = plt.subplots()
 array = error_df.to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower')
+im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
 ax.set_xlabel('alpha')
 ax.set_ylabel('sigma2')
 ax.set_title('Type II error')
