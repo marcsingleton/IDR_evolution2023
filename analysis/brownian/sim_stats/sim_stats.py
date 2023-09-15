@@ -3,6 +3,7 @@
 import os
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, Normalize
@@ -33,13 +34,13 @@ if not os.path.exists('out/'):
 # BM MODEL PLOTS
 # Violin plots of sigma2
 dataset = [group['sigma2_hat_BM'].to_list() for _, group in groups_BM]
-positions = groups_BM['sigma2'].mean().to_list()
+positions = groups_BM['sigma2'].mean().apply(np.log10).to_list()
 
 fig, ax = plt.subplots()
 ax.violinplot(dataset, positions, widths=sigma2_delta/2, showmedians=True)
-ax.plot(positions, positions, color='black')
-ax.set_xlabel('true $\mathregular{\sigma^2_{BM}}$')
+ax.set_xlabel('true $\mathregular{\log_{10}(\sigma^2_{BM})}$')
 ax.set_ylabel('estimated $\mathregular{\sigma^2_{BM}}$')
+ax.set_yscale('log')
 fig.savefig('out/violin_sigma2_BM.png')
 plt.close()
 
@@ -49,20 +50,46 @@ ys = groups_BM['sigma2_hat_BM'].mean()
 yerrs = groups_BM['sigma2_hat_BM'].std()
 
 fig, ax = plt.subplots()
-ax.errorbar(xs, ys, yerr=yerrs, fmt='o')
+ax.errorbar(xs, ys, yerr=yerrs, fmt='.')
 ax.plot(xs, xs, color='black')
 ax.set_xlabel('true $\mathregular{\sigma^2_{BM}}$')
 ax.set_ylabel('estimated $\mathregular{\sigma^2_{BM}}$')
+ax.set_xscale('log')
+ax.set_yscale('log')
 fig.savefig('out/scatter_sigma2_hat-sigma2_BM.png')
+plt.close()
+
+# Violin plots of alpha
+dataset = [group['alpha_hat_OU'].to_list() for _, group in groups_BM]
+positions = groups_BM['sigma2'].mean().apply(np.log10).to_list()
+
+fig, ax = plt.subplots()
+ax.violinplot(dataset, positions, widths=sigma2_delta/2, showmedians=True)
+ax.set_xlabel('true $\mathregular{\log_{10}(\sigma^2_{BM})}$')
+ax.set_ylabel('estimated $\mathregular{\\alpha}$')
+fig.savefig('out/violin_alpha_hat_BM.png')
+plt.close()
+
+# Scatters with errors of alpha
+xs = groups_BM['sigma2'].mean()
+ys = groups_BM['alpha_hat_OU'].mean()
+yerrs = groups_BM['alpha_hat_OU'].std()
+
+fig, ax = plt.subplots()
+ax.errorbar(xs, ys, yerr=yerrs, fmt='o')
+ax.set_xlabel('true $\mathregular{\sigma^2_{BM}}$')
+ax.set_ylabel('estimated $\mathregular{\\alpha}$')
+ax.set_xscale('log')
+fig.savefig('out/scatter_alpha_hat-sigma2_BM.png')
 plt.close()
 
 # Violin plots of delta AIC
 dataset = [group['delta_AIC'].to_list() for _, group in groups_BM]
-positions = groups_BM['sigma2'].mean().to_list()
+positions = groups_BM['sigma2'].mean().apply(np.log10).to_list()
 
 fig, ax = plt.subplots()
 ax.violinplot(dataset, positions, widths=sigma2_delta/2, showmedians=True)
-ax.set_xlabel('true $\mathregular{\sigma^2_{BM}}$')
+ax.set_xlabel('true $\mathregular{\log_{10}(\sigma^2_{BM})}$')
 ax.set_ylabel('$\mathregular{AIC_{BM} - AIC_{OU}}$')
 fig.savefig('out/violin_delta_AIC_BM.png')
 plt.close()
@@ -77,15 +104,15 @@ for cutoff in cutoffs:
 errors = pd.DataFrame(errors).reset_index(drop=True)
 
 fig, ax = plt.subplots()
-id2value = groups_BM['sigma2'].mean().to_dict()
+id2value = groups_BM['sigma2'].mean().apply(np.log10).to_dict()
 cmap = ListedColormap(plt.colormaps['viridis'].colors[:240])
 norm = Normalize(sigma2_min, sigma2_max)
 get_color = lambda x: cmap(norm(x))
 for sigma2_id in errors:
-    ax.plot(cutoffs, errors[sigma2_id], color=get_color(id2value[sigma2_id]), alpha=0.5)
+    ax.plot(cutoffs, errors[sigma2_id], color=get_color(id2value[sigma2_id]), alpha=0.75)
 ax.set_xlabel('$\mathregular{AIC_{BM}-AIC_{OU}}$ cutoff')
 ax.set_ylabel('Type I error')
-fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), label='true $\mathregular{\sigma^2_{BM}}$')
+fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), label='true $\mathregular{\log_{10}(\sigma^2_{BM})}$')
 fig.savefig('out/line_typeI-sigma2.png')
 plt.close()
 
@@ -109,7 +136,7 @@ extent = (alpha_min-alpha_delta/2, alpha_max+alpha_delta/2,
 # Heatmap of sigma2
 fig, ax = plt.subplots()
 array = parameter_df['sigma2_hat_OU'].to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
+im = ax.imshow(np.log10(array), extent=extent, origin='lower', aspect='auto')
 ax.set_xlabel('true $\mathregular{\\alpha}$')
 ax.set_ylabel('true $\mathregular{\sigma^2_{OU}}$')
 ax.set_title('estimated $\mathregular{\sigma^2_{OU}}$')
@@ -120,7 +147,7 @@ plt.close()
 # Heatmap of alpha
 fig, ax = plt.subplots()
 array = parameter_df['alpha_hat_OU'].to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
+im = ax.imshow(np.log10(array), extent=extent, origin='lower', aspect='auto')
 ax.set_xlabel('true $\mathregular{\\alpha}$')
 ax.set_ylabel('true $\mathregular{\sigma^2_{OU}}$')
 ax.set_title('estimated $\mathregular{\\alpha}$')
@@ -132,8 +159,8 @@ plt.close()
 fig, ax = plt.subplots()
 array = error_df.to_numpy().reshape((sigma2_num, alpha_num))
 im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
-ax.set_xlabel('alpha')
-ax.set_ylabel('sigma2')
+ax.set_xlabel('true $\mathregular{\\alpha}$')
+ax.set_ylabel('true $\mathregular{\sigma^2_{OU}}$')
 ax.set_title('Type II error')
 fig.colorbar(im)
 fig.savefig('out/heatmap_typeII_OU.png')
