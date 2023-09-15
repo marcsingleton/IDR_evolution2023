@@ -9,13 +9,10 @@ import scipy.stats as stats
 import skbio
 import src.phylo as phylo
 from src.brownian.get_sims.sampling import num_samples, seed
-from src.brownian.get_sims.sampling import sigma2_min, sigma2_max, sigma2_num
-from src.brownian.get_sims.sampling import alpha_min, alpha_max, alpha_num
+from src.brownian.get_sims.sampling import sigma2_range, alpha_range
 
 # Create parameter tuples
 rng = np.random.default_rng(seed)
-sigma2_range = np.linspace(sigma2_min, sigma2_max, sigma2_num)
-alpha_range = np.linspace(alpha_min, alpha_max, alpha_num)
 models_BM = enumerate(sigma2_range)
 models_OU = product(enumerate(sigma2_range), enumerate(alpha_range))
 
