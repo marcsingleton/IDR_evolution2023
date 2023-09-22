@@ -7,6 +7,7 @@ from subprocess import run
 from src.utils import read_fasta
 
 spid_regex = r'spid=([a-z]+)'
+domE_cutoff = 1E-10  # Domain reporting threshold
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
@@ -23,12 +24,12 @@ for OGid in OGids:
 
     with open(f'out/{OGid}_dmel_temp.fa', 'w') as file:
         header, seq = record
-        seq = seq.replace('-', '')  # Remove gaps
+        seq = seq.translate({ord('-'): None, ord('.'): None})  # Remove gaps
         seqstring = '\n'.join([seq[i:i+80] for i in range(0, len(seq), 80)])
         file.write(f'{header}\n{seqstring}')
 
     cmd = ['../../../bin/hmmscan',
-           '--domE', '1E-10',  # Domain reporting threshold
+           '--domE', str(domE_cutoff),
            '-o', '/dev/null',  # Discard output from STDIN
            '--domtblout', f'out/{OGid}.txt',
            '../../../data/Pfam/Pfam-A_36_0.hmm',
