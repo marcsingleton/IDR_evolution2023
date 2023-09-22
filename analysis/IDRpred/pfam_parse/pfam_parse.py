@@ -3,7 +3,7 @@
 import os
 from collections import namedtuple
 
-field_names = ['file_id',
+field_names = ['OGid',
                'target_name', 'target_accession', 'tlen',
                'query_name', 'query_accession', 'qlen',
                'seq_evalue', 'seq_score', 'seq_bias',
@@ -32,14 +32,14 @@ def read_pfam_table(path, file_id):
 
 
 records = []
-OGids = [path.removesuffix('.txt') for path in os.listdir('../pfam_search/out/') if path.endswith('.txt')]
+OGids = sorted([path.removesuffix('.txt') for path in os.listdir('../pfam_search/out/') if path.endswith('.txt')])
 for OGid in OGids:
     records.extend(read_pfam_table(f'../pfam_search/out/{OGid}.txt', OGid))
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-with open('out/parsed.tsv', 'w') as file:
+with open('out/domains.tsv', 'w') as file:
     file.write('\t'.join(field_names) + '\n')
     for record in records:
         line = '\t'.join([getattr(record, field_name) for field_name in field_names]) + '\n'
