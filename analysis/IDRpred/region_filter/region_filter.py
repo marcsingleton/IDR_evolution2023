@@ -65,7 +65,7 @@ for OGid, regions in OGid2regions.items():
 
     # Get missing segments
     ppid2missing = {}
-    with open(f'../../../data/alignments/missing/{OGid}.tsv') as file:
+    with open(f'../../../data/alignments/missing_trim/{OGid}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}

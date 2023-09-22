@@ -69,7 +69,7 @@ for OGid, regions in OGid2regions.items():
 
     # Get missing segments
     ppid2missing = {}
-    with open(f'../../../data/alignments/missing/{OGid}.tsv') as file:
+    with open(f'../../../data/alignments/missing_trim/{OGid}.tsv') as file:
         field_names = file.readline().rstrip('\n').split('\t')
         for line in file:
             fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
@@ -82,8 +82,8 @@ for OGid, regions in OGid2regions.items():
 
     # Get inferred tip values
     ppid2tips = {record['ppid']: [] for record in msa}
-    if os.path.exists(f'../../../data/alignments/tips/{OGid}.fa'):
-        fasta = read_fasta(f'../../../data/alignments/tips/{OGid}.fa')
+    if os.path.exists(f'../../../data/alignments/missing_tips/{OGid}.fa'):
+        fasta = read_fasta(f'../../../data/alignments/missing_tips/{OGid}.fa')
         for header, seq in fasta:
             ppid = re.search(ppid_regex, header).group(1)
             start = int(re.search(start_regex, header).group(1))
