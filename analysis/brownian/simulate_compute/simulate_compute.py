@@ -8,8 +8,8 @@ import pandas as pd
 import scipy.stats as stats
 import skbio
 import src.phylo as phylo
-from src.brownian.get_sims.sampling import num_samples, seed
-from src.brownian.get_sims.sampling import sigma2_range, alpha_range
+from src.brownian.simulate.sampling import num_samples, seed
+from src.brownian.simulate.sampling import sigma2_range, alpha_range
 
 # Create parameter tuples
 rng = np.random.default_rng(seed)

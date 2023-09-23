@@ -8,11 +8,11 @@ import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, Normalize
 from numpy import linspace
-from src.brownian.get_sims.sampling import sigma2_min, sigma2_max, sigma2_delta, sigma2_num
-from src.brownian.get_sims.sampling import alpha_min, alpha_max, alpha_delta, alpha_num
+from src.brownian.simulate.sampling import sigma2_min, sigma2_max, sigma2_delta, sigma2_num
+from src.brownian.simulate.sampling import alpha_min, alpha_max, alpha_delta, alpha_num
 
-df_BM = pd.read_table('../get_sims/out/models_BM.tsv')
-df_OU = pd.read_table('../get_sims/out/models_OU.tsv')
+df_BM = pd.read_table('../simulate_compute/out/models_BM.tsv')
+df_OU = pd.read_table('../simulate_compute/out/models_OU.tsv')
 dfs = [df_BM, df_OU]
 
 for df in dfs:
