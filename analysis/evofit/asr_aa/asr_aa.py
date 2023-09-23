@@ -17,7 +17,7 @@ tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newi
 
 # Load regions
 OGid2regions = {}
-with open('../../IDRpred/get_regions/out/regions.tsv') as file:
+with open('../../IDRpred/region_compute/out/regions.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
