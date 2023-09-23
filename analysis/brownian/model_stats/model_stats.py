@@ -54,14 +54,14 @@ for min_length in min_lengths:
     column_idx = ['OGid', 'start', 'stop', 'disorder']
     region_keys = asr_rates.loc[row_idx, column_idx]
 
-    models = pd.read_table(f'../get_models/out/models_{min_length}.tsv', header=[0, 1])
+    models = pd.read_table(f'../model_compute/out/models_{min_length}.tsv', header=[0, 1])
     models = region_keys.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
     models = models.set_index(['OGid', 'start', 'stop', 'disorder'])
 
     feature_groups = {}
     feature_labels = []
     nonmotif_labels = []
-    with open(f'../get_models/out/models_{min_length}.tsv') as file:
+    with open(f'../model_compute/out/models_{min_length}.tsv') as file:
         column_labels = file.readline().rstrip('\n').split('\t')
         group_labels = file.readline().rstrip('\n').split('\t')
     for column_label, group_label in zip(column_labels, group_labels):
