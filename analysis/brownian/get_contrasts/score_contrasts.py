@@ -53,7 +53,7 @@ for min_length in min_lengths:
             ppid2spid[ppid] = spid
 
             aligned_scores = np.full(len(seq), np.nan)
-            scores = load_scores(f'../../IDRpred/get_scores/out/{OGid}/{ppid}.diso_noprof')
+            scores = load_scores(f'../../IDRpred/score_compute/out/{OGid}/{ppid}.diso_noprof')
             idx = 0
             for j, sym in enumerate(seq):
                 if sym not in ['-', '.']:
