@@ -16,7 +16,7 @@ color3 = '#b07aa1'
 
 gaf = pd.read_table('../filter_GAF/out/proteins/GAF_propagate.tsv')  # Use all terms
 
-contrasts = pd.read_table(f'../../IDRpred/get_contrasts/out/contrasts.tsv')
+contrasts = pd.read_table(f'../../IDRpred/score_contrasts/out/contrasts.tsv')
 contrasts = contrasts.set_index(['OGid', 'contrast_id'])
 all_proteins = contrasts.index.get_level_values('OGid').drop_duplicates().to_frame(index=False)
 

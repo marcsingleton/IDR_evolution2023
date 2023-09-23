@@ -40,8 +40,8 @@ plot_msa_kwargs = {'hspace': 0.2, 'left': 0.1, 'right': 0.925, 'top': 0.99, 'bot
 tree_template = skbio.read('../../../data/trees/consensus_LG/100R_NI.nwk', 'newick', skbio.TreeNode)
 tip_order = {tip.name: i for i, tip in enumerate(tree_template.tips())}
 
-roots = pd.read_table('../get_contrasts/out/roots.tsv')
-contrasts = pd.read_table('../get_contrasts/out/contrasts.tsv').set_index(['OGid', 'contrast_id'])
+roots = pd.read_table('../score_contrasts/out/roots.tsv')
+contrasts = pd.read_table('../score_contrasts/out/contrasts.tsv').set_index(['OGid', 'contrast_id'])
 rates = (contrasts ** 2).groupby('OGid').mean()
 df = roots.merge(rates, on='OGid', suffixes=('_root', '_rate'))
 
