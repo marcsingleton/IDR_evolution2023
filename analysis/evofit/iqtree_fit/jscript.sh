@@ -25,7 +25,7 @@ cd $WDIR
 
 echo $SLURM_JOB_NODELIST | sed s/\,/\\n/g > hostfile
 
-for file in $(ls ../make_meta/out/); do
+for file in $(ls ../iqtree_meta/out/); do
   if [[ $file == *.afa ]]; then
     echo $(basename $file .afa) $SLURM_CPUS_ON_NODE
   fi
