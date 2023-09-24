@@ -22,7 +22,7 @@ for min_length in min_lengths:
     all_segments = pd.DataFrame(rows)
     all_regions = all_segments.drop('ppid', axis=1).drop_duplicates()
 
-    feature_roots = pd.read_table(f'../get_contrasts/out/features/roots_{min_length}.tsv', header=[0, 1])
+    feature_roots = pd.read_table(f'../contrast_compute/out/features/roots_{min_length}.tsv', header=[0, 1])
     feature_labels = [feature_label for feature_label, group_label in feature_roots.columns
                       if group_label != 'ids_group']
     nonmotif_labels = [feature_label for feature_label, group_label in feature_roots.columns
@@ -32,15 +32,15 @@ for min_length in min_lengths:
     feature_roots = all_regions.merge(feature_roots, how='left', on=['OGid', 'start', 'stop'])
     feature_roots = feature_roots.set_index(['OGid', 'start', 'stop', 'disorder'])
 
-    feature_contrasts = pd.read_table(f'../get_contrasts/out/features/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
+    feature_contrasts = pd.read_table(f'../contrast_compute/out/features/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
     feature_contrasts = all_regions.merge(feature_contrasts, how='left', on=['OGid', 'start', 'stop'])
     feature_contrasts = feature_contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
-    score_roots = pd.read_table(f'../get_contrasts/out/scores/roots_{min_length}.tsv')
+    score_roots = pd.read_table(f'../contrast_compute/out/scores/roots_{min_length}.tsv')
     score_roots = all_regions.merge(score_roots, how='left', on=['OGid', 'start', 'stop'])
     score_roots = score_roots.set_index(['OGid', 'start', 'stop', 'disorder'])
 
-    score_contrasts = pd.read_table(f'../get_contrasts/out/scores/contrasts_{min_length}.tsv')
+    score_contrasts = pd.read_table(f'../contrast_compute/out/scores/contrasts_{min_length}.tsv')
     score_contrasts = all_regions.merge(score_contrasts, how='left', on=['OGid', 'start', 'stop'])
     score_contrasts = score_contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 

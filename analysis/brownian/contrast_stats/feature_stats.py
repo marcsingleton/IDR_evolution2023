@@ -70,11 +70,11 @@ for min_length in min_lengths:
     features = all_regions.merge(features, how='left', on=['OGid', 'start', 'stop', 'disorder'])
     features = features.set_index(['OGid', 'start', 'stop', 'disorder'])
 
-    roots = pd.read_table(f'../get_contrasts/out/features/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
+    roots = pd.read_table(f'../contrast_compute/out/features/roots_{min_length}.tsv', skiprows=[1])  # Skip group row
     roots = all_regions.merge(roots, how='left', on=['OGid', 'start', 'stop'])
     roots = roots.set_index(['OGid', 'start', 'stop', 'disorder'])
 
-    contrasts = pd.read_table(f'../get_contrasts/out/features/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
+    contrasts = pd.read_table(f'../contrast_compute/out/features/contrasts_{min_length}.tsv', skiprows=[1])  # Skip group row
     contrasts = all_regions.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
     contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 

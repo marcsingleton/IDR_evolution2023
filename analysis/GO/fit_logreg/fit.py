@@ -51,7 +51,7 @@ with open('../filter_GAF/out/regions/GAF_drop.tsv') as file:
             gnid2GOids[gnid] = {GOid}
 GOids = set.union(*gnid2GOids.values())
 
-contrasts = pd.read_table(f'../../brownian/get_contrasts/out/features/contrasts_{min_length}.tsv', skiprows=[1])
+contrasts = pd.read_table(f'../../brownian/contrast_compute/out/features/contrasts_{min_length}.tsv', skiprows=[1])
 df1 = regions.merge(contrasts, how='right', on=['OGid', 'start', 'stop'])
 df1 = df1.set_index(['OGid', 'start', 'stop', 'disorder', 'gnid', 'contrast_id'])
 

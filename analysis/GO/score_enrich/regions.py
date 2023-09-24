@@ -25,7 +25,7 @@ all_regions = pd.DataFrame(rows)
 
 gaf = pd.read_table('../filter_GAF/out/regions/GAF_propagate.tsv')  # Use all terms
 
-contrasts = pd.read_table(f'../../brownian/get_contrasts/out/scores/contrasts_{min_length}.tsv')
+contrasts = pd.read_table(f'../../brownian/contrast_compute/out/scores/contrasts_{min_length}.tsv')
 contrasts = all_regions.merge(contrasts, how='left', on=['OGid', 'start', 'stop'])
 contrasts = contrasts.set_index(['OGid', 'start', 'stop', 'disorder', 'contrast_id'])
 
