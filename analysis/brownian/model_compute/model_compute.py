@@ -90,7 +90,7 @@ if __name__ == '__main__':
             ppid2spid[ppid] = spid
 
     # Load features
-    all_features = pd.read_table('../get_features/out/features.tsv', header=[0, 1])
+    all_features = pd.read_table('../feature_compute/out/features.tsv', header=[0, 1])
     all_features.loc[all_features[('kappa', 'charge_group')] == -1, 'kappa'] = 1  # Need to specify full column index to get slicing to work
     all_features.loc[all_features[('omega', 'charge_group')] == -1, 'omega'] = 1
     all_features['length'] = all_features['length'] ** 0.6

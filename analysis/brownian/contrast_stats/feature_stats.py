@@ -31,7 +31,7 @@ arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295'
                 '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
 # Load features
-all_features = pd.read_table('../get_features/out/features.tsv', header=[0, 1])
+all_features = pd.read_table('../feature_compute/out/features.tsv', header=[0, 1])
 all_features.loc[all_features[('kappa', 'charge_group')] == -1, 'kappa'] = 1  # Need to specify full column index to get slicing to work
 all_features.loc[all_features[('omega', 'charge_group')] == -1, 'omega'] = 1
 all_features['length'] = all_features['length'] ** 0.6

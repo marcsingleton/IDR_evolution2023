@@ -9,15 +9,15 @@
 #SBATCH --nodes=1
 #
 # Reporting parameters
-#SBATCH --job-name=get_features
-#SBATCH --output=get_features.out
+#SBATCH --job-name=feature_compute
+#SBATCH --output=feature_compute.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=marcsingleton@berkeley.edu
 #
 # Command(s) to run:
 # Link to output in scratch
 if [ ! -d out ]; then
-  out_dir=/global/scratch/users/singleton/IDR_evolution/analysis/brownian/get_features/out/
+  out_dir=/global/scratch/users/singleton/IDR_evolution/analysis/brownian/feature_compute/out/
   if [ ! -d ${out_dir} ]; then
     mkdir -p ${out_dir}  # -p makes intermediate directory if they do not exist
   fi
@@ -26,4 +26,4 @@ fi
 
 source /global/home/users/singleton/.bashrc
 conda activate IDR_evolution
-python get_features.py
+python feature_compute.py
