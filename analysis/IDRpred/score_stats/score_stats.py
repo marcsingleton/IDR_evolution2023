@@ -49,6 +49,9 @@ columns = ['score_fraction', 'binary_fraction']
 labels = ['Average AUCpreD score', 'Fraction disorder']
 colors = ['C0', 'C1']
 
+if not os.path.exists('out/'):
+    os.mkdir('out/')
+
 fig, axs = plt.subplots(2, 1, sharex=True)
 for ax, column, label, color in zip(axs, columns, labels, colors):
     ax.hist(df[f'{column}_root'], bins=np.linspace(0, 1, 100), color=color)
