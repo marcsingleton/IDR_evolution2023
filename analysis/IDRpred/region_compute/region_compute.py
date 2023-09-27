@@ -145,7 +145,7 @@ for OGid in OGids:
                                   left=np.nan, right=np.nan)
         aligned_scores[i, nan_idx] = interp_scores
 
-        for start, stop in missing[ppid]:
+        for start, stop in ppid2missing[ppid]:
             aligned_scores[i, start:stop] = np.nan
     aligned_scores = np.ma.masked_invalid(aligned_scores)
 
