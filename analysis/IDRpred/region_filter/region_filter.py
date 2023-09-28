@@ -47,7 +47,7 @@ with open('../region_compute/out/regions.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder']
+        OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
         try:
             OGid2regions[OGid].append((start, stop, disorder))
         except KeyError:
@@ -101,7 +101,7 @@ for OGid, regions in OGid2regions.items():
             ppids = [ppid for ppid, _ in segments]
             spids = {spid for _, spid in segments}
             if len(spids) >= spid_min and spid_filter(spids):
-                record_sets[min_length].append((OGid, str(region_start), str(region_stop), disorder, ','.join(ppids)))
+                record_sets[min_length].append((OGid, str(region_start), str(region_stop), str(disorder), ','.join(ppids)))
 
 # Write records to file
 if not os.path.exists('out/'):
