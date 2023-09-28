@@ -46,7 +46,7 @@ with open('../../IDRpred/pfam_parse/out/domains.tsv') as file:
         OGid2domains[OGid] = domains
 
 records = []
-for OGid in sorted(OGid2domains):
+for OGid in sorted(OGid2regions):
     record = None
     for header, seq in read_fasta(f'../../../data/alignments/fastas/{OGid}.afa'):
         spid = re.search(spid_regex, header).group(1)
@@ -59,7 +59,7 @@ for OGid in sorted(OGid2domains):
     unaligned_seq = aligned_seq.translate({ord('-'): None, ord('.'): None})
     offsets = np.concatenate([[0], np.cumsum([sym in ['-', '.'] for sym in aligned_seq])])  # Add initial of 0 so offsets don't include current index
     domain_mask = np.zeros(len(unaligned_seq), dtype=bool)
-    for ali_from, ali_to in OGid2domains[OGid]:
+    for ali_from, ali_to in OGid2domains.get(OGid, []):  # If no domains, return empty list to prevent key error
         domain_mask[ali_from:ali_to] = True
 
     for aligned_start, aligned_stop, disorder in OGid2regions[OGid]:
