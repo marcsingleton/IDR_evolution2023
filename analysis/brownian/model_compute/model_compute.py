@@ -23,7 +23,7 @@ def get_models(args):
 
     # Calculate some common quantities for all features
     spid2idx = {spid: idx for idx, spid in zip(group.index, group['spid'])}
-    tree = tree_template.shear(group['spid'])
+    tree = tree.shear(group['spid'])
     tips, cov = phylo.get_brownian_covariance(tree)
     inv = np.linalg.inv(cov)
 
