@@ -20,7 +20,7 @@ source /global/home/users/singleton/.bashrc
 conda activate IDR_evolution
 module load gnu-parallel
 
-export WDIR=~/IDR_evolution/analysis/evofit/iqtree_fit/
+export WDIR=~/projects/IDR_evolution/analysis/evofit/iqtree_fit/
 cd $WDIR
 
 echo $SLURM_JOB_NODELIST | sed s/\,/\\n/g > hostfile
