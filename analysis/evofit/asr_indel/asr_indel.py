@@ -184,7 +184,8 @@ for OGid, regions in OGid2regions.items():
     cmd = (f'../../../bin/iqtree -s out/{OGid}.afa '
            f'-m GTR2+FO{rate_model}+ASC -keep-ident '
            f'-t out/{OGid}.nwk -blscale '
-           f'-pre out/{OGid}')
+           f'-pre out/{OGid} '
+           f'-quiet')
     run(cmd, shell=True, check=True)
 
 """

@@ -107,7 +107,8 @@ for OGid, regions in OGid2regions.items():
         cmd = (f'../../../bin/iqtree -s out/{OGid}_{name}.afa '
                f'-m {matrix}+I+G -keep-ident '
                f'-t out/{OGid}_{name}.nwk -blscale '
-               f'-pre out/{OGid}_{name}')
+               f'-pre out/{OGid}_{name} '
+               f'-quiet')
         run(cmd, shell=True, check=True)
 
 """
