@@ -78,9 +78,7 @@ for min_length in min_lengths:
 
     columns = {}
     for feature_label in feature_labels:
-        columns[f'{feature_label}_AIC_BM'] = 2*(2 - models[f'{feature_label}_loglikelihood_BM'])
-        columns[f'{feature_label}_AIC_OU'] = 2*(3 - models[f'{feature_label}_loglikelihood_OU'])
-        columns[f'{feature_label}_delta_AIC'] = columns[f'{feature_label}_AIC_BM'] - columns[f'{feature_label}_AIC_OU']
+        columns[f'{feature_label}_delta_loglikelihood'] = models[f'{feature_label}_loglikelihood_OU'] - models[f'{feature_label}_loglikelihood_BM']
         columns[f'{feature_label}_sigma2_ratio'] = models[f'{feature_label}_sigma2_BM'] / models[f'{feature_label}_sigma2_OU']
     models = pd.concat([models, pd.DataFrame(columns)], axis=1)
 
@@ -106,12 +104,12 @@ for min_length in min_lengths:
 
     # Individual feature plots
     for feature_label in feature_labels:
-        # AIC histograms
+        # loglikelihood histograms
         fig, ax = plt.subplots()
-        ax.hist(models[f'{feature_label}_delta_AIC'], bins=50)
-        ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$' + f' ({feature_label})')
+        ax.hist(models[f'{feature_label}_delta_loglikelihood'], bins=50)
+        ax.set_xlabel('$\mathregular{\log L_{OU} - \log L_{BM}}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
-        fig.savefig(f'out/regions_{min_length}/hist_regionnum-delta_AIC_{feature_label}.png')
+        fig.savefig(f'out/regions_{min_length}/hist_regionnum-delta_loglikelihood_{feature_label}.png')
         plt.close()
 
         # sigma2 histograms
@@ -122,21 +120,21 @@ for min_length in min_lengths:
         fig.savefig(f'out/regions_{min_length}/hist_regionnum-sigma2_{feature_label}.png')
         plt.close()
 
-        # AIC-sigma2 hexbins
+        # loglikelihood-sigma2 hexbins
         fig, ax = plt.subplots()
-        hb = ax.hexbin(models[f'{feature_label}_delta_AIC'],
+        hb = ax.hexbin(models[f'{feature_label}_delta_loglikelihood'],
                        models[f'{feature_label}_sigma2_ratio'],
                        gridsize=75, mincnt=1, linewidth=0, bins='log')
-        ax.set_xlabel('$\mathregular{AIC_{BM} - AIC_{OU}}$')
+        ax.set_xlabel('$\mathregular{\log L_{OU} - \log L_{BM}}$')
         ax.set_ylabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$')
         ax.set_title(feature_label)
         fig.colorbar(hb)
-        fig.savefig(f'out/regions_{min_length}/hexbin_sigma2-delta_AIC_{feature_label}.png')
+        fig.savefig(f'out/regions_{min_length}/hexbin_sigma2-delta_loglikelihood_{feature_label}.png')
         plt.close()
 
     # PCAs
-    column_labels = [f'{feature_label}_delta_AIC' for feature_label in feature_labels]
-    column_labels_nonmotif = [f'{feature_label}_delta_AIC' for feature_label in nonmotif_labels]
+    column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
+    column_labels_nonmotif = [f'{feature_label}_delta_loglikelihood' for feature_label in nonmotif_labels]
     plots = [(models.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
              (models.loc[pdidx[:, :, :, True], column_labels_nonmotif], 'disorder', 'no motifs', 'nonmotif'),
              (models.loc[pdidx[:, :, :, False], column_labels], 'order', 'all features', 'all'),
@@ -151,7 +149,7 @@ for min_length in min_lengths:
         # Feature variance pie chart
         var = data.var().sort_values(ascending=False)
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        labels = [column_label.removesuffix('_delta_AIC') for column_label in truncate.index]
+        labels = [column_label.removesuffix('_delta_loglikelihood') for column_label in truncate.index]
         fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
         ax.pie(truncate.values, labels=labels, labeldistance=None)
         ax.set_title(f'Feature variance\n{title_label}')
@@ -171,7 +169,7 @@ for min_length in min_lengths:
         plt.close()
 
         # PCA scatters
-        arrow_labels = [column_label.removesuffix('_delta_AIC') for column_label in data.columns]
+        arrow_labels = [column_label.removesuffix('_delta_loglikelihood') for column_label in data.columns]
         fig = plot_pca(transform, 0, 1, cmap, data_label, title_label,
                        hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
                        width_ratios=width_ratios)
@@ -215,7 +213,7 @@ for min_length in min_lengths:
     for metric, group_labels, file_label in plots:
         column_labels = []
         for group_label in group_labels:
-            column_labels.extend([f'{feature_label}_delta_AIC' for feature_label in feature_groups[group_label]])
+            column_labels.extend([f'{feature_label}_delta_loglikelihood' for feature_label in feature_groups[group_label]])
         data = models.loc[pdidx[:, :, :, True], column_labels]  # Re-arrange columns
         array = np.nan_to_num(data.to_numpy(), nan=1)
 
@@ -294,7 +292,7 @@ for min_length in min_lengths:
         ycenter = gridspec_kw['bottom'] / 2
         height = 0.015
         cax = fig.add_axes((xcenter - width / 2, ycenter - height / 2, width, height))
-        cax.set_title('$\mathregular{AIC_{BM} - AIC_{OU}}$', fontdict={'fontsize': 10})
+        cax.set_title('$\mathregular{\log L_{OU} - \log L_{BM}}$', fontdict={'fontsize': 10})
         fig.colorbar(im, cax=cax, orientation='horizontal')
 
         fig.savefig(f'out/regions_{min_length}/heatmap_{file_label}_{metric}.png', dpi=600)
