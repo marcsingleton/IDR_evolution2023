@@ -14,18 +14,18 @@ min_aa_rate = 1
 min_indel_rate = 0.1
 
 tree = skbio.read('../../brownian/model_stats/out/regions_30/heatmap_all_correlation.nwk', 'newick', skbio.TreeNode)
-clusters = [('A', '15086'),
-            ('B', '15170'),
-            ('C', '15160'),
-            ('D', '15070'),
-            ('E', '14415'),
-            ('F', '15217'),
-            ('G', '15078'),
-            ('H', '15021'),
-            ('I', '15161'),
-            ('J', '15191'),
-            ('K', '15143'),
-            ('L', '14937')]
+clusters = [('15150', 'A'),
+            ('15107', 'B'),
+            ('15104', 'C'),
+            ('15056', 'D'),
+            ('14889', 'E'),
+            ('15053', 'F'),
+            ('15072', 'G'),
+            ('14741', 'H'),
+            ('14379', 'I'),
+            ('15123', 'J'),
+            ('15153', 'K'),
+            ('14916', 'L')]
 
 # Load regions
 rows = []
@@ -33,8 +33,7 @@ with open(f'../../IDRpred/region_filter/out/regions_{min_length}.tsv') as file:
     field_names = file.readline().rstrip('\n').split('\t')
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
-        OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields[
-            'disorder'] == 'True'
+        OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
         rows.append({'OGid': OGid, 'start': start, 'stop': stop, 'disorder': disorder})
 all_regions = pd.DataFrame(rows)
 
@@ -54,7 +53,7 @@ reference_gaf = region_keys.merge(gaf, how='inner', on=['OGid', 'start', 'stop',
 
 pvalue_rows = []
 cluster_rows = []
-for cluster_id, root_id in clusters:
+for root_id, cluster_id in clusters:
     root_node = tree.find(root_id)
     node_ids = [int(tip.name) for tip in root_node.tips()]
     enrichment_keys = reference_keys.iloc[node_ids]
