@@ -13,7 +13,7 @@ order = df[~df['disorder']]
 if not os.path.exists('out/'):
     os.mkdir('out/')
 
-# Pie charts
+# Bar charts
 hs_disorder = [(disorder['fraction'] == 0).sum(), (disorder['fraction'] != 0).sum()]
 hs_order = [(order['fraction'] == 0).sum(), (order['fraction'] != 0).sum()]
 hs_stack = list(zip(hs_disorder, hs_order))
