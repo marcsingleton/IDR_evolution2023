@@ -220,9 +220,11 @@ for min_length in min_lengths:
         cdm = pdist(array, metric=metric)
         lm = linkage(cdm, method='average')
 
-        # Convert to tree and get branch colors
+        # Convert to tree and calculate some useful data structures
         tree = make_tree(lm)
         tip_order = [int(tip.name) for tip in tree.tips()]
+
+        # Get branch colors
         node2color, node2tips = {}, {}
         for node in tree.postorder():
             if node.is_tip():
@@ -230,7 +232,8 @@ for min_length in min_lengths:
             else:
                 tips = sum([node2tips[child] for child in node.children])
             node2tips[node] = tips
-            node2color[node] = str(max(0, (11 - tips) / 10))
+            cmap = plt.colormaps['Greys_r']
+            node2color[node] = cmap(max(0., (11 - tips) / 10))
 
         # Save tree data
         ids2id = {}
