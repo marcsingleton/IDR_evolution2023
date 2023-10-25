@@ -107,7 +107,7 @@ for min_length in min_lengths:
         # loglikelihood histograms
         fig, ax = plt.subplots()
         ax.hist(models[f'{feature_label}_delta_loglikelihood'], bins=50)
-        ax.set_xlabel('$\mathregular{\log L_{OU} - \log L_{BM}}$' + f' ({feature_label})')
+        ax.set_xlabel('$\mathregular{\log L_{OU} \ L_{BM}}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
         fig.savefig(f'out/regions_{min_length}/hist_regionnum-delta_loglikelihood_{feature_label}.png')
         plt.close()
@@ -125,7 +125,7 @@ for min_length in min_lengths:
         hb = ax.hexbin(models[f'{feature_label}_delta_loglikelihood'],
                        models[f'{feature_label}_sigma2_ratio'],
                        gridsize=75, mincnt=1, linewidth=0, bins='log')
-        ax.set_xlabel('$\mathregular{\log L_{OU} - \log L_{BM}}$')
+        ax.set_xlabel('$\mathregular{\log L_{OU} \ L_{BM}}$')
         ax.set_ylabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$')
         ax.set_title(feature_label)
         fig.colorbar(hb)
@@ -295,7 +295,7 @@ for min_length in min_lengths:
         ycenter = gridspec_kw['bottom'] / 2
         height = 0.015
         cax = fig.add_axes((xcenter - width / 2, ycenter - height / 2, width, height))
-        cax.set_title('$\mathregular{\log L_{OU} - \log L_{BM}}$', fontdict={'fontsize': 10})
+        cax.set_title('$\mathregular{\log L_{OU} \ L_{BM}}$', fontdict={'fontsize': 10})
         fig.colorbar(im, cax=cax, orientation='horizontal')
 
         fig.savefig(f'out/regions_{min_length}/heatmap_{file_label}_{metric}.png', dpi=600)

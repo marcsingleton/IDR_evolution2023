@@ -108,17 +108,17 @@ positions = groups_BM['sigma2'].mean().apply(np.log10).to_list()
 fig, ax = plt.subplots()
 ax.violinplot(dataset, positions, widths=sigma2_delta/2, showmedians=True)
 ax.set_xlabel('true $\mathregular{\log_{10}(\sigma^2_{BM})}$')
-ax.set_ylabel('$\mathregular{\log L_{OU} - \log L_{BM}}$')
+ax.set_ylabel('$\mathregular{\log L_{OU} / L_{BM}}$')
 fig.savefig(f'{prefix}/violin_delta_loglikelihood.png')
 plt.close()
 
-# Type I error as function of cutoff
+# Type I error as function of critical value
 delta_loglikelihood_min, delta_loglikelihood_max = df_BM['delta_loglikelihood'].min(), df_BM['delta_loglikelihood'].max()
-cutoffs = np.linspace(delta_loglikelihood_min, delta_loglikelihood_max, 50)
+critvals = np.linspace(delta_loglikelihood_min, delta_loglikelihood_max, 50)
 
 errors = []
-for cutoff in cutoffs:
-    errors.append(groups_BM['delta_loglikelihood'].aggregate(lambda x: (x > cutoff).mean()))
+for critval in critvals:
+    errors.append(groups_BM['delta_loglikelihood'].aggregate(lambda x: (x > critval).mean()))
 errors = pd.DataFrame(errors).reset_index(drop=True)
 
 fig, ax = plt.subplots()
@@ -127,25 +127,25 @@ cmap = ListedColormap(plt.colormaps['viridis'].colors[:240])
 norm = Normalize(sigma2_min, sigma2_max)
 get_color = lambda x: cmap(norm(x))
 for sigma2_id in errors:
-    ax.plot(cutoffs, errors[sigma2_id], color=get_color(id2value[sigma2_id]), alpha=0.75)
-ax.set_xlabel('$\mathregular{\log L_{OU} - \log L_{BM}}$ cutoff')
+    ax.plot(critvals, errors[sigma2_id], color=get_color(id2value[sigma2_id]), alpha=0.75)
+ax.set_xlabel('$\mathregular{\log L_{OU} / L_{BM}}$ critical value')
 ax.set_ylabel('Type I error')
 fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), label='true $\mathregular{\log_{10}(\sigma^2_{BM})}$')
 fig.savefig(f'{prefix}/line_typeI-sigma2.png')
 plt.close()
 
-# Type I error as function of cutoff (merge)
+# Type I error as function of critical value (merge)
 errors = []
-for cutoff in cutoffs:
-    errors.append((df_BM['delta_loglikelihood'] > cutoff).mean())
+for critval in critvals:
+    errors.append((df_BM['delta_loglikelihood'] > critval).mean())
 q95 = df_BM['delta_loglikelihood'].quantile(0.95)
 q99 = df_BM['delta_loglikelihood'].quantile(0.99)
 
 fig, ax = plt.subplots(gridspec_kw={'right': 0.745})  # To match dimensions w/ colorbar; unsure why exactly is 0.745 (0.9 - 15% for colorbar is 0.765)
-ax.plot(cutoffs, errors)
+ax.plot(critvals, errors)
 ax.axvline(q95, color='C1', label='5%')
 ax.axvline(q99, color='C2', label='1%')
-ax.set_xlabel('$\mathregular{\log L_{OU} - \log L_{BM}}$ cutoff')
+ax.set_xlabel('$\mathregular{\log L_{OU} / L_{BM}}$ critical value')
 ax.set_ylabel('Type I error')
 ax.legend(title='Type I error', loc='center left', bbox_to_anchor=(1, 0.5))
 fig.savefig(f'{prefix}/line_typeI-sigma2_merge.png')
