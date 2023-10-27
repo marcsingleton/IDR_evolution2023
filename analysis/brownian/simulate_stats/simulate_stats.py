@@ -1,5 +1,6 @@
 """Plot statistics associated with BM and OU simulations."""
 
+import json
 import os
 
 import matplotlib.pyplot as plt
@@ -140,6 +141,8 @@ for critval in critvals:
     errors.append((df_BM['delta_loglikelihood'] > critval).mean())
 q95 = df_BM['delta_loglikelihood'].quantile(0.95)
 q99 = df_BM['delta_loglikelihood'].quantile(0.99)
+with open(f'{prefix}/critvals.json', 'w') as file:
+    json.dump({'q95': q95, 'q99': q99}, file)
 
 fig, ax = plt.subplots(gridspec_kw={'right': 0.745})  # To match dimensions w/ colorbar; unsure why exactly is 0.745 (0.9 - 15% for colorbar is 0.765)
 ax.plot(critvals, errors)
@@ -194,22 +197,15 @@ fig.savefig(f'{prefix}/heatmap_alpha_hat_OU.png')
 plt.close()
 
 # Heatmap of type II errors
-fig, ax = plt.subplots()
-array = df_error['q95'].to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
-ax.set_xlabel('true $\mathregular{\log_{10}(\\alpha)}$')
-ax.set_ylabel('true $\mathregular{\log_{10}(\sigma^2_{OU})}$')
-ax.set_title('Type II error at 5% type I error')
-fig.colorbar(im)
-fig.savefig(f'{prefix}/heatmap_typeII_q95.png')
-plt.close()
-
-fig, ax = plt.subplots()
-array = df_error['q99'].to_numpy().reshape((sigma2_num, alpha_num))
-im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
-ax.set_xlabel('true $\mathregular{\log_{10}(\\alpha)}$')
-ax.set_ylabel('true $\mathregular{\log_{10}(\sigma^2_{OU})}$')
-ax.set_title('Type II error at 1% type I error')
-fig.colorbar(im)
-fig.savefig(f'{prefix}/heatmap_typeII_q99.png')
-plt.close()
+plots = [('q95', '5%'),
+         ('q99', '1%')]
+for data_label, title_label in plots:
+    fig, ax = plt.subplots()
+    array = df_error[data_label].to_numpy().reshape((sigma2_num, alpha_num))
+    im = ax.imshow(array, extent=extent, origin='lower', aspect='auto')
+    ax.set_xlabel('true $\mathregular{\log_{10}(\\alpha)}$')
+    ax.set_ylabel('true $\mathregular{\log_{10}(\sigma^2_{OU})}$')
+    ax.set_title(f'Type II error at {title_label} type I error')
+    fig.colorbar(im)
+    fig.savefig(f'{prefix}/heatmap_typeII_{data_label}.png')
+    plt.close()
