@@ -32,8 +32,9 @@ arrow_colors = ['#e15759', '#499894', '#59a14f', '#f1ce63', '#b07aa1', '#d37295'
                 '#ff9d9a', '#86bcb6', '#8cd17d', '#b6992d', '#d4a6c8', '#fabfd2', '#d7b5a6', '#79706e']
 
 for min_length in min_lengths:
-    if not os.path.exists(f'out/regions_{min_length}/'):
-        os.makedirs(f'out/regions_{min_length}/')
+    prefix = f'out/regions_{min_length}/'
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
 
     # Load regions
     rows = []
@@ -100,16 +101,20 @@ for min_length in min_lengths:
     ax.set_ylabel('Number of regions')
 
     fig.legend(handles=[Patch(facecolor=color1, label='disorder')], bbox_to_anchor=(0.825, 0.5), loc='center left')
-    fig.savefig(f'out/regions_{min_length}/hist_regionnum-rate.png')
+    fig.savefig(f'{prefix}/hist_regionnum-rate.png')
 
     # Individual feature plots
+    prefix = f'out/regions_{min_length}/features/'
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+
     for feature_label in feature_labels:
         # loglikelihood histograms
         fig, ax = plt.subplots()
         ax.hist(models[f'{feature_label}_delta_loglikelihood'], bins=50)
         ax.set_xlabel('$\mathregular{\log L_{OU} \ L_{BM}}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
-        fig.savefig(f'out/regions_{min_length}/hist_regionnum-delta_loglikelihood_{feature_label}.png')
+        fig.savefig(f'{prefix}/hist_regionnum-delta_loglikelihood_{feature_label}.png')
         plt.close()
 
         # sigma2 histograms
@@ -117,7 +122,7 @@ for min_length in min_lengths:
         ax.hist(models[f'{feature_label}_sigma2_ratio'], bins=50)
         ax.set_xlabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
-        fig.savefig(f'out/regions_{min_length}/hist_regionnum-sigma2_{feature_label}.png')
+        fig.savefig(f'{prefix}/hist_regionnum-sigma2_{feature_label}.png')
         plt.close()
 
         # loglikelihood-sigma2 hexbins
@@ -129,10 +134,14 @@ for min_length in min_lengths:
         ax.set_ylabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$')
         ax.set_title(feature_label)
         fig.colorbar(hb)
-        fig.savefig(f'out/regions_{min_length}/hexbin_sigma2-delta_loglikelihood_{feature_label}.png')
+        fig.savefig(f'{prefix}/hexbin_sigma2-delta_loglikelihood_{feature_label}.png')
         plt.close()
 
     # PCAs
+    prefix = f'out/regions_{min_length}/pcas/'
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+
     column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
     column_labels_nonmotif = [f'{feature_label}_delta_loglikelihood' for feature_label in nonmotif_labels]
     plots = [(models.loc[pdidx[:, :, :, True], column_labels], 'disorder', 'all features', 'all'),
@@ -154,7 +163,7 @@ for min_length in min_lengths:
         ax.pie(truncate.values, labels=labels, labeldistance=None)
         ax.set_title(f'Feature variance\n{title_label}')
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'out/regions_{min_length}/pie_variance_{data_label}_{file_label}.png')
+        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
@@ -165,7 +174,7 @@ for min_length in min_lengths:
         ax.set_ylabel('Explained variance ratio')
         ax.set_title(title_label)
         ax.legend()
-        fig.savefig(f'out/regions_{min_length}/bar_scree_{data_label}_{file_label}.png')
+        fig.savefig(f'{prefix}/bar_scree_{data_label}_{file_label}.png')
         plt.close()
 
         # PCA scatters
@@ -173,28 +182,32 @@ for min_length in min_lengths:
         fig = plot_pca(transform, 0, 1, cmap, data_label, title_label,
                        hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
                        width_ratios=width_ratios)
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
+        fig.savefig(f'{prefix}/hexbin_pc1-pc2_{data_label}_{file_label}.png')
         plt.close()
 
         fig = plot_pca_arrows(pca, transform, arrow_labels, 0, 1, cmap, title_label,
                               hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
                               width_ratios=width_ratios)
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png')
+        fig.savefig(f'{prefix}/hexbin_pc1-pc2_{data_label}_{file_label}_arrow.png')
         plt.close()
 
         fig = plot_pca(transform, 1, 2, cmap, data_label, title_label,
                        hexbin_kwargs=hexbin_kwargs_log, handle_markerfacecolor=handle_markerfacecolor,
                        width_ratios=width_ratios)
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc2-pc3_{data_label}_{file_label}.png')
+        fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}.png')
         plt.close()
 
         fig = plot_pca_arrows(pca, transform, arrow_labels, 1, 2, cmap, title_label,
                               hexbin_kwargs=hexbin_kwargs_log, legend_kwargs=legend_kwargs, arrow_colors=arrow_colors,
                               width_ratios=width_ratios)
-        fig.savefig(f'out/regions_{min_length}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png')
+        fig.savefig(f'{prefix}/hexbin_pc2-pc3_{data_label}_{file_label}_arrow.png')
         plt.close()
 
     # Hierarchical heatmap
+    prefix = f'out/regions_{min_length}/hierarchy/'
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+
     legend_args = {'aa_group': ('Amino acid content', 'grey', ''),
                    'charge_group': ('Charge properties', 'black', ''),
                    'physchem_group': ('Physiochemical properties', 'white', ''),
@@ -241,11 +254,11 @@ for min_length in min_lengths:
             node_id = int(tip.name)
             OGid, start, stop, _ = data.iloc[node_id].name
             ids2id[(OGid, start, stop)] = node_id
-        with open(f'out/regions_{min_length}/heatmap_{file_label}_{metric}.tsv', 'w') as file:
+        with open(f'{prefix}/heatmap_{file_label}_{metric}.tsv', 'w') as file:
             file.write('OGid\tstart\tstop\tnode_id\n')
             for (OGid, start, stop), node_id in sorted(ids2id.items()):
                 file.write(f'{OGid}\t{start}\t{stop}\t{node_id}\n')
-        tree.write(f'out/regions_{min_length}/heatmap_{file_label}_{metric}.nwk')
+        tree.write(f'{prefix}/heatmap_{file_label}_{metric}.nwk')
 
         fig, axs = plt.subplots(2, 2, figsize=(7.5, 7.5), gridspec_kw=gridspec_kw)
 
@@ -298,5 +311,5 @@ for min_length in min_lengths:
         cax.set_title('$\mathregular{\log L_{OU} \ L_{BM}}$', fontdict={'fontsize': 10})
         fig.colorbar(im, cax=cax, orientation='horizontal')
 
-        fig.savefig(f'out/regions_{min_length}/heatmap_{file_label}_{metric}.png', dpi=600)
+        fig.savefig(f'{prefix}/heatmap_{file_label}_{metric}.png', dpi=600)
         plt.close()
