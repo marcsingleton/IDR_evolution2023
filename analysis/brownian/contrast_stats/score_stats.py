@@ -98,7 +98,7 @@ for min_length in min_lengths:
         if p <= alpha:
             sign = 1 if x >= 0 else -1
             rotation = -90 if x >= 0 else 90
-            ax.text(x + sign * offset, y, '*', fontsize=6, va='center', ha='center', rotation=rotation)
+            ax.text(x + sign * offset, y, '*', fontsize=6, rotation=rotation, ha='center', va='center')
     fig.savefig(f'{prefix}/bar_feature-score_contrast_corr.png')
     plt.close()
 
