@@ -1,10 +1,12 @@
 """Plot statistics from fitted evolutionary models."""
 
+import json
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from matplotlib.patches import Patch, Rectangle
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
@@ -20,6 +22,9 @@ min_lengths = [30, 60, 90]
 min_indel_columns = 5  # Indel rates below this value are set to 0
 min_aa_rate = 1
 min_indel_rate = 0.1
+
+with open('../simulate_stats/out/BM/critvals.json') as file:
+    critvals = json.load(file)
 
 pca_components = 10
 cmap1, cmap2 = plt.colormaps['Blues'], plt.colormaps['Oranges']
@@ -102,6 +107,52 @@ for min_length in min_lengths:
 
     fig.legend(handles=[Patch(facecolor=color1, label='disorder')], bbox_to_anchor=(0.825, 0.5), loc='center left')
     fig.savefig(f'{prefix}/hist_regionnum-rate.png')
+
+    # Bar graph of fraction of regions with a significant feature
+    column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
+    ys_95 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q95']).mean()
+    ys_99 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).mean()
+    xs = list(range(len(column_labels)))
+    labels = [label.removesuffix('_delta_loglikelihood') for label in column_labels]
+
+    fig, ax = plt.subplots(figsize=(7.5, 3.75),
+                           gridspec_kw={'left': 0.08, 'right': 0.995, 'bottom': 0.325, 'top': 0.975})
+    ax.bar(xs, ys_99, label='1%')
+    ax.bar(xs, ys_95 - ys_99, bottom=ys_99, label='5%')
+    ax.set_xmargin(0.005)
+    ax.set_xticks(xs, labels, fontsize=5.5,
+                  rotation=60, rotation_mode='anchor', ha='right', va='center')
+    ax.set_ylabel('Fraction of regions')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=2,
+              title='Type I error rate', fontsize=8, title_fontsize=8)
+    fig.savefig(f'{prefix}/bar_regionfrac-feature.png', dpi=300)
+    plt.close()
+
+    # Distribution of number of significant features in regions
+    column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
+
+    counts_95 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q95']).sum(axis=1).value_counts()
+    xs_95 = np.arange(counts_95.index.min(), counts_95.index.max()+1)
+    ys_95 = stats.binom.pmf(xs_95, n=len(column_labels), p=0.05) * counts_95.values.sum()
+
+    counts_99 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum(axis=1).value_counts()
+    xs_99 = np.arange(counts_99.index.min(), counts_99.index.max()+1)
+    ys_99 = stats.binom.pmf(xs_99, n=len(column_labels), p=0.01) * counts_99.values.sum()
+
+    fig, axs = plt.subplots(2, 1, layout='constrained')
+
+    width = 0.35
+    plots = [(counts_99, xs_99, ys_99, 'observed\n(1% type I error)'),
+             (counts_95, xs_95, ys_95, 'observed\n(5% type I error)')]
+    for ax, (counts, xs, ys, label) in zip(axs, plots):
+        ax.bar(counts.index - width/2, counts.values, width=width, label=label)
+        ax.bar(xs + width/2, ys, width=width, label='random')
+        ax.set_xmargin(0.01)
+        ax.set_ylabel('Number of regions')
+        ax.legend(fontsize=8)
+    ax.set_xlabel('Number of significant features')
+    fig.savefig(f'{prefix}/bar_regionnum-numfeatures.png')
+    plt.close()
 
     # Individual feature plots
     prefix = f'out/regions_{min_length}/features/'
