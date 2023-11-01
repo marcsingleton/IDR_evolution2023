@@ -117,8 +117,8 @@ for min_length in min_lengths:
 
     fig, ax = plt.subplots(figsize=(7.5, 3.75),
                            gridspec_kw={'left': 0.08, 'right': 0.995, 'bottom': 0.325, 'top': 0.975})
-    ax.bar(xs, ys_99, label='1%')
-    ax.bar(xs, ys_95 - ys_99, bottom=ys_99, label='5%')
+    ax.bar(xs, ys_99, label='1%', color='C0')
+    ax.bar(xs, ys_95 - ys_99, bottom=ys_99, label='5%', color='C1')
     ax.set_xmargin(0.005)
     ax.set_xticks(xs, labels, fontsize=5.5,
                   rotation=60, rotation_mode='anchor', ha='right', va='center')
@@ -142,11 +142,11 @@ for min_length in min_lengths:
     fig, axs = plt.subplots(2, 1, layout='constrained')
 
     width = 0.35
-    plots = [(counts_99, xs_99, ys_99, 'observed\n(1% type I error)'),
-             (counts_95, xs_95, ys_95, 'observed\n(5% type I error)')]
-    for ax, (counts, xs, ys, label) in zip(axs, plots):
-        ax.bar(counts.index - width/2, counts.values, width=width, label=label)
-        ax.bar(xs + width/2, ys, width=width, label='random')
+    plots = [(counts_99, xs_99, ys_99, 'observed\n(1% type I error)', 'C0'),
+             (counts_95, xs_95, ys_95, 'observed\n(5% type I error)', 'C1')]
+    for ax, (counts, xs, ys, label, color) in zip(axs, plots):
+        ax.bar(counts.index - width/2, counts.values, width=width, label=label, color=color)
+        ax.bar(xs + width/2, ys, width=width, label='random', color='C9')
         ax.set_xmargin(0.01)
         ax.set_ylabel('Number of regions')
         ax.legend(fontsize=8)

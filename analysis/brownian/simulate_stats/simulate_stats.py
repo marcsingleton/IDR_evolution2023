@@ -145,9 +145,9 @@ with open(f'{prefix}/critvals.json', 'w') as file:
     json.dump({'q95': q95, 'q99': q99}, file)
 
 fig, ax = plt.subplots(gridspec_kw={'right': 0.745})  # To match dimensions w/ colorbar; unsure why exactly is 0.745 (0.9 - 15% for colorbar is 0.765)
-ax.plot(critvals, errors)
+ax.plot(critvals, errors, color='C9')
 ax.axvline(q95, color='C1', label='5%')
-ax.axvline(q99, color='C2', label='1%')
+ax.axvline(q99, color='C0', label='1%')
 ax.set_xlabel('$\mathregular{\log L_{OU} / L_{BM}}$ critical value')
 ax.set_ylabel('Type I error')
 ax.legend(title='Type I error', loc='center left', bbox_to_anchor=(1, 0.5))
