@@ -25,13 +25,13 @@ with open('../../../data/TFCF/nature15545-s1_map.tsv') as file:
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
         if len(fields) == 3 or fields['primary'] == 'True':
-            FBgn1, FBgn2 = fields['submitted_item'], fields['validated_id']
+            FBgn1, FBgn2, sym = fields['submitted_item'], fields['validated_id'], fields['current_symbol']
             if FBgn1 in FBids:
                 raise RuntimeError(f'Multiply-mapped keys detected: {FBgn1}')
             if FBgn2type[FBgn1] == 'TF':
-                TFs1.add(FBgn2)
+                TFs1.add((FBgn2, sym))
             else:
-                CFs.add(FBgn2)
+                CFs.add((FBgn2, sym))
             FBids.add(FBgn1)
 
 # Load Hens et al. map
@@ -41,10 +41,10 @@ with open('../../../data/TFCF/nmeth.1763-S2_map.tsv') as file:
     for line in file:
         fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
         if len(fields) == 3 or fields['primary'] == 'True':
-            FBgn1, FBgn2 = fields['submitted_item'], fields['validated_id']
+            FBgn1, FBgn2, sym = fields['submitted_item'], fields['validated_id'], fields['current_symbol']
             if FBgn1 in FBids:
                 raise RuntimeError(f'Multiply-mapped keys detected: {FBgn1}')
-            TFs2.add(FBgn2)
+            TFs2.add((FBgn2, sym))
             FBids.add(FBgn1)
 
 TFs = TFs1 | TFs2  # Merge TFs
@@ -81,8 +81,10 @@ with open('out/output.txt', 'w') as file:
 
 # Write updated IDs to file
 with open('out/TFs.txt', 'w') as file:
-    for TF in TFs:
-        file.write(f'{TF}\n')
+    file.write('gnid\tsym\n')
+    for gnid, sym in sorted(TFs):
+        file.write(f'{gnid}\t{sym}\n')
 with open('out/CFs.txt', 'w') as file:
-    for CF in CFs:
-        file.write(f'{CF}\n')
+    file.write('gnid\tsym\n')
+    for gnid, sym in sorted(CFs):
+        file.write(f'{gnid}\t{sym}\n')

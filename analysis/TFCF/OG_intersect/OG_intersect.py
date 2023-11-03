@@ -21,11 +21,11 @@ for OGid in OGids:
 OGs = pd.DataFrame(rows)
 
 # Load TFs and CFs and merge with OGs
-TFs = pd.read_table('../update_ids/out/TFs.txt', names=['gnid'])
-CFs = pd.read_table('../update_ids/out/CFs.txt', names=['gnid'])
+TFs = pd.read_table('../update_ids/out/TFs.txt')
+CFs = pd.read_table('../update_ids/out/CFs.txt')
 
-OGs_TF = OGs.merge(TFs, how='inner', on=['gnid'])
-OGs_CF = OGs.merge(CFs, how='inner', on=['gnid'])
+OGs_TF = OGs.merge(TFs, how='inner')
+OGs_CF = OGs.merge(CFs, how='inner')
 
 # Write stats and IDs to file
 if not os.path.exists('out/'):
