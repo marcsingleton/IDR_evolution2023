@@ -1,4 +1,4 @@
-"""Intersect TF and CF lists with curated MSAs."""
+"""Intersect TF and CF lists with curated OGs."""
 
 import os
 import re
