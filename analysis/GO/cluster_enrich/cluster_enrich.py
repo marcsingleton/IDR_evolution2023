@@ -39,6 +39,7 @@ all_regions = pd.DataFrame(rows)
 
 gaf = pd.read_table('../filter_GAF/out/regions/GAF_propagate.tsv')  # Use all terms
 
+# Filter by rates
 asr_rates = pd.read_table(f'../../evofit/asr_stats/out/regions_{min_length}/rates.tsv')
 asr_rates = all_regions.merge(asr_rates, how='right', on=['OGid', 'start', 'stop'])
 row_idx = (asr_rates['indel_num_columns'] < min_indel_columns) | asr_rates['indel_rate_mean'].isna()
