@@ -206,14 +206,16 @@ for min_length in min_lengths:
         idx = data.index.get_level_values('disorder').array.astype(bool)
         color = color3
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.3})
+        ax.bar(range(len(truncate.index)), truncate.values)
+        ax.set_xticks(range(len(truncate.index)), truncate.index,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
@@ -289,14 +291,16 @@ for min_length in min_lengths:
         cmap = cmap1 if data_label == 'disorder' else cmap2
         color = color1 if data_label == 'disorder' else color2
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.3})
+        ax.bar(range(len(truncate.index)), truncate.values)
+        ax.set_xticks(range(len(truncate.index)), truncate.index,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
@@ -424,14 +428,16 @@ for min_length in min_lengths:
         idx = data.index.get_level_values('disorder').array.astype(bool)
         cmap, color = cmap3, color3
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.3})
+        ax.bar(range(len(truncate.index)), truncate.values)
+        ax.set_xticks(range(len(truncate.index)), truncate.index,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
@@ -471,14 +477,16 @@ for min_length in min_lengths:
         cmap = cmap1 if data_label == 'disorder' else cmap2
         color = color1 if data_label == 'disorder' else color2
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.3})
+        ax.bar(range(len(truncate.index)), truncate.values)
+        ax.set_xticks(range(len(truncate.index)), truncate.index,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
@@ -638,14 +646,16 @@ for min_length in min_lengths:
         cmap, color = cmap3, color3
         width_ratios = (0.76, 0.03, 0.03, 0.15, 0.03)
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.35})
+        ax.bar(range(len(truncate.index)), truncate.values)
+        ax.set_xticks(range(len(truncate.index)), truncate.index,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
@@ -700,14 +710,16 @@ for min_length in min_lengths:
         color = color1 if data_label == 'disorder' else color2
         width_ratios = (0.76, 0.03, 0.03, 0.18)
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=truncate.index, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.35})
+        ax.bar(range(len(truncate.index)), truncate.values)
+        ax.set_xticks(range(len(truncate.index)), truncate.index,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot

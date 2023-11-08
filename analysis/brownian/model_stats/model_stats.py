@@ -185,15 +185,17 @@ for min_length in min_lengths:
         color = color1 if data_label == 'disorder' else color2
         width_ratios = (0.79, 0.03, 0.03, 0.15)
 
-        # Feature variance pie chart
+        # Feature variance bar chart
         var = data.var().sort_values(ascending=False)
+        var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
         labels = [column_label.removesuffix('_delta_loglikelihood') for column_label in truncate.index]
-        fig, ax = plt.subplots(gridspec_kw={'right': 0.65})
-        ax.pie(truncate.values, labels=labels, labeldistance=None)
-        ax.set_title(f'Feature variance\n{title_label}')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.savefig(f'{prefix}/pie_variance_{data_label}_{file_label}.png')
+        fig, ax = plt.subplots(gridspec_kw={'bottom': 0.3})
+        ax.bar(range(len(labels)), truncate.values)
+        ax.set_xticks(range(len(labels)), labels,
+                      rotation=60, rotation_mode='anchor', ha='right', va='center')
+        ax.set_ylabel('Explained variance ratio')
+        fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
         plt.close()
 
         # Scree plot
