@@ -85,7 +85,6 @@ for min_length in min_lengths:
     columns = {}
     for feature_label in feature_labels:
         columns[f'{feature_label}_delta_loglikelihood'] = models[f'{feature_label}_loglikelihood_OU'] - models[f'{feature_label}_loglikelihood_BM']
-        columns[f'{feature_label}_sigma2_ratio'] = models[f'{feature_label}_sigma2_BM'] / models[f'{feature_label}_sigma2_OU']
     models = pd.concat([models, pd.DataFrame(columns)], axis=1)
 
     # ASR rate histogram with cutoff
@@ -166,26 +165,6 @@ for min_length in min_lengths:
         ax.set_xlabel('$\mathregular{\log L_{OU} / L_{BM}}$' + f' ({feature_label})')
         ax.set_ylabel('Number of regions')
         fig.savefig(f'{prefix}/hist_regionnum-delta_loglikelihood_{feature_label}.png')
-        plt.close()
-
-        # sigma2 histograms
-        fig, ax = plt.subplots()
-        ax.hist(models[f'{feature_label}_sigma2_ratio'], bins=50)
-        ax.set_xlabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$' + f' ({feature_label})')
-        ax.set_ylabel('Number of regions')
-        fig.savefig(f'{prefix}/hist_regionnum-sigma2_{feature_label}.png')
-        plt.close()
-
-        # loglikelihood-sigma2 hexbins
-        fig, ax = plt.subplots()
-        hb = ax.hexbin(models[f'{feature_label}_delta_loglikelihood'],
-                       models[f'{feature_label}_sigma2_ratio'],
-                       gridsize=75, mincnt=1, linewidth=0, bins='log')
-        ax.set_xlabel('$\mathregular{\log L_{OU} \ L_{BM}}$')
-        ax.set_ylabel('$\mathregular{\sigma_{BM}^2 / \sigma_{OU}^2}$')
-        ax.set_title(feature_label)
-        fig.colorbar(hb)
-        fig.savefig(f'{prefix}/hexbin_sigma2-delta_loglikelihood_{feature_label}.png')
         plt.close()
 
     # PCAs
