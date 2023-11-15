@@ -130,6 +130,29 @@ for min_length in min_lengths:
     fig.savefig(f'{prefix}/bar_regionfrac-feature.png', dpi=300)
     plt.close()
 
+    # Bar graph of fraction of regions with a significant feature
+    column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
+    ys_95 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q95']).sum().transform(lambda x: x/x.sum())
+    ys_99 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum().transform(lambda x: x/x.sum())
+    xs = list(range(len(column_labels)))
+    xs_labels = [label.removesuffix('_delta_loglikelihood') for label in column_labels]
+
+    plots = [(ys_99, '1%', 'C0'),
+             (ys_99, '5%', 'C1')]
+    fig, axs = plt.subplots(2, 1, figsize=(7.5, 4),
+                            gridspec_kw={'left': 0.08, 'right': 0.995, 'bottom': 0.325, 'top': 0.975})
+    for ax, (ys, data_label, color) in zip(axs, plots):
+        ax.bar(xs, ys, label=data_label, color=color)
+        ax.set_xmargin(0.005)
+        ax.set_xticks(xs, ['' for _ in xs])
+        ax.set_ylabel('Fraction of features')
+    ax.set_xticks(xs, xs_labels, fontsize=5.5,
+                  rotation=60, rotation_mode='anchor', ha='right', va='center')
+    fig.legend(loc='upper center', bbox_to_anchor=(0.54, 0.1), ncol=2,
+               title='Type I error rate', fontsize=8, title_fontsize=8)
+    fig.savefig(f'{prefix}/bar_featurefrac-feature.png', dpi=300)
+    plt.close()
+
     # Distribution of number of significant features in regions
     column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
 
