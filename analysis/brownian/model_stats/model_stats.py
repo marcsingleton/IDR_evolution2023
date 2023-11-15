@@ -115,14 +115,14 @@ for min_length in min_lengths:
     ys_95 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q95']).mean()
     ys_99 = (models.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).mean()
     xs = list(range(len(column_labels)))
-    labels = [label.removesuffix('_delta_loglikelihood') for label in column_labels]
+    xs_labels = [label.removesuffix('_delta_loglikelihood') for label in column_labels]
 
     fig, ax = plt.subplots(figsize=(7.5, 3.75),
                            gridspec_kw={'left': 0.08, 'right': 0.995, 'bottom': 0.325, 'top': 0.975})
     ax.bar(xs, ys_99, label='1%', color='C0')
     ax.bar(xs, ys_95 - ys_99, bottom=ys_99, label='5%', color='C1')
     ax.set_xmargin(0.005)
-    ax.set_xticks(xs, labels, fontsize=5.5,
+    ax.set_xticks(xs, xs_labels, fontsize=5.5,
                   rotation=60, rotation_mode='anchor', ha='right', va='center')
     ax.set_ylabel('Fraction of regions')
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=2,
@@ -192,10 +192,10 @@ for min_length in min_lengths:
         var = data.var().sort_values(ascending=False)
         var = var / var.sum()
         truncate = pd.concat([var[:9], pd.Series({'other': var[9:].sum()})])
-        labels = [column_label.removesuffix('_delta_loglikelihood') for column_label in truncate.index]
+        xs_labels = [column_label.removesuffix('_delta_loglikelihood') for column_label in truncate.index]
         fig, ax = plt.subplots(gridspec_kw={'bottom': 0.3})
-        ax.bar(range(len(labels)), truncate.values)
-        ax.set_xticks(range(len(labels)), labels,
+        ax.bar(range(len(xs_labels)), truncate.values)
+        ax.set_xticks(range(len(xs_labels)), xs_labels,
                       rotation=60, rotation_mode='anchor', ha='right', va='center')
         ax.set_ylabel('Explained variance ratio')
         fig.savefig(f'{prefix}/bar_variance_{data_label}_{file_label}.png')
