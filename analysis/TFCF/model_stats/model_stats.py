@@ -5,6 +5,7 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from scipy.stats import fisher_exact
 
 pdidx = pd.IndexSlice
 min_lengths = [30, 60, 90]
@@ -107,22 +108,42 @@ for min_length in min_lengths:
 
     # Bar graph of delta probability that feature is conserved given a feature is conserved
     column_labels = [f'{feature_label}_delta_loglikelihood' for feature_label in feature_labels]
-    ys_NF = (models_NF.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum().transform(lambda x: x/x.sum())
-    ys_TF = (models_TF.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum().transform(lambda x: x/x.sum())
-    ys_CF = (models_CF.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum().transform(lambda x: x/x.sum())
+    n_NF = (models_NF.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum()
+    n_TF = (models_TF.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum()
+    n_CF = (models_CF.loc[pdidx[:, :, :, True], column_labels] > critvals['q99']).sum()
     xs = list(range(len(column_labels)))
     xs_labels = [label.removesuffix('_delta_loglikelihood') for label in column_labels]
 
-    plots = [(ys_TF - ys_NF, 'TF - NF'),
-             (ys_CF - ys_NF, 'CF - NF')]
+    plots = [(n_TF, n_NF, 'TF - NF'),
+             (n_CF, n_NF, 'CF - NF')]
     fig, axs = plt.subplots(len(plots), 1, figsize=(7.5, 4),
                             gridspec_kw={'left': 0.1, 'right': 0.995, 'bottom': 0.25, 'top': 0.925, 'hspace': 0.5})
-    for ax, (data, data_label) in zip(axs, plots):
-        ax.bar(xs, data)
+    for ax, (n1, n2, data_label) in zip(axs, plots):
+        N1, N2 = n1.sum(), n2.sum()
+        ys = n1/N1 - n2/N2
+
+        ax.bar(xs, ys)
         ax.set_xticks(xs, ['' for _ in xs])
         ax.set_xmargin(0.005)
+        ax.set_ymargin(0.1)
         ax.set_ylabel('Difference in fraction')
         ax.set_title(data_label)
+
+        # Compute and plot significance tests for each feature
+        ps = []
+        for column_label in column_labels:
+            table = [[n1[column_label], N1 - n1[column_label]],
+                     [n2[column_label], N2 - n2[column_label]]]
+            _, p = fisher_exact(table, alternative='two-sided')
+            ps.append(p)
+
+        alpha = 0.01
+        offset = (ys.max() - ys.min()) / 100
+        for x, y, p in zip(xs, ys, ps):
+            if p <= alpha:
+                sign = 1 if y >= 0 else -1
+                rotation = 0 if y >= 0 else -180
+                ax.text(x, y + sign * offset, '*', fontsize=6, va='center', ha='center', rotation=rotation)
     ax.set_xticks(xs, xs_labels, fontsize=5.5,
                   rotation=60, rotation_mode='anchor', ha='right', va='center')
     fig.savefig(f'{prefix}/bar_featurefracdiff-feature.png')
