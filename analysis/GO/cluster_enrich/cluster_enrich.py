@@ -13,19 +13,46 @@ min_indel_columns = 5  # Indel rates below this value are set to 0
 min_aa_rate = 1
 min_indel_rate = 0.1
 
-tree = skbio.read('../../brownian/model_stats/out/regions_30/heatmap_all_correlation.nwk', 'newick', skbio.TreeNode)
-clusters = [('15150', 'A'),
-            ('15107', 'B'),
-            ('15104', 'C'),
-            ('15056', 'D'),
-            ('14889', 'E'),
-            ('15053', 'F'),
-            ('15072', 'G'),
-            ('14741', 'H'),
-            ('14379', 'I'),
-            ('15123', 'J'),
-            ('15153', 'K'),
-            ('14916', 'L')]
+tree = skbio.read('../../brownian/model_stats/out/regions_30/hierarchy/heatmap_all_correlation.nwk', 'newick', skbio.TreeNode)
+clusters = [('15126', '1'),
+            ('15136', '2'),
+            ('15107', '3'),
+            ('15065', '4'),
+            ('14930', '5'),
+            ('14935', '6'),
+            ('14890', '7'),
+            ('14971', '8'),
+            ('15086', '9'),
+            ('14939', '10'),
+            ('15104', '11'),
+            ('15056', '12'),
+            ('15100', '13'),
+            ('15132', '14'),
+            ('14889', '15'),
+            ('15134', '16'),
+            ('15053', '17'),
+            ('15072', '18'),
+            ('14948', '19'),
+            ('15081', '20'),
+            ('14731', '21'),
+            ('15146', '22'),
+            ('14741', '23'),
+            ('14379', '24'),
+            ('14944', '25'),
+            ('15083', '26'),
+            ('14988', '27'),
+            ('15165', '28'),
+            ('15123', '29'),
+            ('14743', '30'),
+            ('15098', '31'),
+            ('15153', '32'),
+            ('15035', '33'),
+            ('15062', '34'),
+            ('15159', '35'),
+            ('15047', '36'),
+            ('14916', '37'),
+            ('15026', '38'),
+            ('15102', '39')]
 
 # Load regions
 rows = []
@@ -68,11 +95,11 @@ for root_id, cluster_id in clusters:
         k = enrichment_gaf[enrichment_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
         n = reference_gaf[reference_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
         pvalue = hypergeom_test(k, M, n, N)
-        pvalue_rows.append({'cluster_id': cluster_id,
+        pvalue_rows.append({'cluster_id': int(cluster_id),
                             'pvalue': pvalue, 'k': k, 'n': n,
                             'aspect': aspect, 'GOid': GOid, 'name': name})
 
-    cluster_rows.append({'cluster_id': cluster_id,
+    cluster_rows.append({'cluster_id': int(cluster_id),
                          'num_regions': len(enrichment_keys), 'num_OGids': enrichment_keys['OGid'].nunique(),
                          'num_tests': len(terms),
                          'regions': ','.join([f'{row.OGid}-{row.start}-{row.stop}' for row in enrichment_keys.itertuples()])})
