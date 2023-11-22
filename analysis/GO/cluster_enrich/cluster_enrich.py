@@ -4,6 +4,7 @@ import os
 
 import pandas as pd
 import skbio
+from scipy.stats import false_discovery_control
 from src.GO.enrich import hypergeom_test
 
 pdidx = pd.IndexSlice
@@ -12,6 +13,8 @@ min_length = 30
 min_indel_columns = 5  # Indel rates below this value are set to 0
 min_aa_rate = 1
 min_indel_rate = 0.1
+
+min_k = 2  # Minimum number of positive annotations in enrichment set
 
 tree = skbio.read('../../brownian/model_stats/out/regions_30/hierarchy/heatmap_all_correlation.nwk', 'newick', skbio.TreeNode)
 clusters = [('15126', '1'),
@@ -94,6 +97,8 @@ for root_id, cluster_id in clusters:
     for aspect, GOid, name in terms:
         k = enrichment_gaf[enrichment_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
         n = reference_gaf[reference_gaf['GOid'] == GOid].groupby(['OGid', 'start', 'stop', 'disorder']).ngroups
+        if k < min_k:
+            continue
         pvalue = hypergeom_test(k, M, n, N)
         pvalue_rows.append({'cluster_id': int(cluster_id),
                             'pvalue': pvalue, 'k': k, 'n': n,
@@ -105,6 +110,12 @@ for root_id, cluster_id in clusters:
                          'regions': ','.join([f'{row.OGid}-{row.start}-{row.stop}' for row in enrichment_keys.itertuples()])})
 pvalues = pd.DataFrame(pvalue_rows).sort_values(by=['cluster_id', 'aspect', 'pvalue'], ignore_index=True)
 clusters = pd.DataFrame(cluster_rows)
+
+dfs = []
+for _, group in pvalues.groupby('cluster_id'):
+    group['pvalue_adj'] = false_discovery_control(group['pvalue'])
+    dfs.append(group)
+pvalues = pd.concat(dfs)[['cluster_id', 'pvalue', 'pvalue_adj', 'k', 'n', 'aspect', 'GOid', 'name']]
 
 if not os.path.exists('out/'):
     os.mkdir('out/')
