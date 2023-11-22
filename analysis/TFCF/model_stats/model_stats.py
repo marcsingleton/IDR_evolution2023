@@ -134,8 +134,8 @@ for min_length in min_lengths:
         for column_label in column_labels:
             table = [[n1[column_label], N1 - n1[column_label]],
                      [n2[column_label], N2 - n2[column_label]]]
-            _, p = fisher_exact(table, alternative='two-sided')
-            ps.append(p)
+            result = fisher_exact(table, alternative='two-sided')
+            ps.append(result.pvalue)
 
         alpha = 0.01
         offset = (ys.max() - ys.min()) / 100
