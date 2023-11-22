@@ -33,10 +33,9 @@ Nearly all code is written in Python and run with version 3.10.5. The remaining 
 |matplotlib|3.5.1|
 |NumPy|1.22.3|
 |pandas|1.4.2|
-|SciPy|1.9.1|
+|SciPy|1.11.3|
 |scikit-bio|0.5.7|
 |scikit-learn|1.1.3|
-|TensorFlow|2.7.0|
 
 Scikit-Bio attempts to import some deprecated warnings from scipy.stats during import, so these lines were commented out to ensure compatibility.
 
