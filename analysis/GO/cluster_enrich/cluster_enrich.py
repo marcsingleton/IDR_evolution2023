@@ -16,7 +16,6 @@ min_indel_rate = 0.1
 
 min_k = 2  # Minimum number of positive annotations in enrichment set
 
-tree = skbio.read('../../brownian/model_stats/out/regions_30/hierarchy/heatmap_all_correlation.nwk', 'newick', skbio.TreeNode)
 clusters = [('15126', '1'),
             ('15136', '2'),
             ('15107', '3'),
@@ -82,12 +81,24 @@ region_keys = asr_rates.loc[row_idx, column_idx]
 reference_keys = region_keys[region_keys['disorder']].reset_index(drop=True)  # Filter again by disorder
 reference_gaf = region_keys.merge(gaf, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 
+# Load cluster tree
+tree = skbio.read('../../brownian/model_stats/out/regions_30/hierarchy/heatmap_all_correlation.nwk',
+                  'newick', skbio.TreeNode)
+id2ids = {}
+with open('../../brownian/model_stats/out/regions_30/hierarchy/heatmap_all_correlation.tsv') as file:
+    field_names = file.readline().rstrip('\n').split('\t')
+    for line in file:
+        fields = {key: value for key, value in zip(field_names, line.rstrip('\n').split('\t'))}
+        OGid, start, stop, disorder = fields['OGid'], int(fields['start']), int(fields['stop']), fields['disorder'] == 'True'
+        node_id = int(fields['node_id'])
+        id2ids[node_id] = (OGid, start, stop, disorder)
+
 pvalue_rows = []
 cluster_rows = []
 for root_id, cluster_id in clusters:
     root_node = tree.find(root_id)
-    node_ids = [int(tip.name) for tip in root_node.tips()]
-    enrichment_keys = reference_keys.iloc[node_ids]
+    enrichment_keys = pd.DataFrame([id2ids[int(tip.name)] for tip in root_node.tips()],
+                                   columns=['OGid', 'start', 'stop', 'disorder'])
     enrichment_gaf = reference_gaf.merge(enrichment_keys, how='inner', on=['OGid', 'start', 'stop', 'disorder'])
 
     terms = list(enrichment_gaf[['aspect', 'GOid', 'name']].drop_duplicates().itertuples(index=False, name=None))
