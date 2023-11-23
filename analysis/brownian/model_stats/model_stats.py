@@ -290,12 +290,24 @@ for min_length in min_lengths:
         data = models.loc[pdidx[:, :, :, True], column_labels]  # Re-arrange columns
         array = np.nan_to_num(data.to_numpy(), nan=1)
 
+        # Convert to tree and calculate some useful data structures
         cdm = pdist(array, metric=metric)
         lm = linkage(cdm, method='average')
-
-        # Convert to tree and calculate some useful data structures
         tree = make_tree(lm)
         tip_order = [int(tip.name) for tip in tree.tips()]
+        array = array[tip_order]
+
+        # Save tree data
+        ids2id = {}
+        for tip in tree.tips():
+            node_id = int(tip.name)
+            OGid, start, stop, disorder = data.iloc[node_id].name
+            ids2id[(OGid, start, stop, disorder)] = node_id
+        with open(f'{prefix}/heatmap_{file_label}_{metric}.tsv', 'w') as file:
+            file.write('OGid\tstart\tstop\tdisorder\tnode_id\n')
+            for (OGid, start, stop, disorder), node_id in sorted(ids2id.items()):
+                file.write(f'{OGid}\t{start}\t{stop}\t{disorder}\t{node_id}\n')
+        tree.write(f'{prefix}/heatmap_{file_label}_{metric}.nwk')
 
         # Get branch colors
         node2color, node2tips = {}, {}
@@ -307,18 +319,6 @@ for min_length in min_lengths:
             node2tips[node] = tips
             cmap = plt.colormaps['Greys_r']
             node2color[node] = cmap(max(0., (11 - tips) / 10))
-
-        # Save tree data
-        ids2id = {}
-        for tip in tree.tips():
-            node_id = int(tip.name)
-            OGid, start, stop, _ = data.iloc[node_id].name
-            ids2id[(OGid, start, stop)] = node_id
-        with open(f'{prefix}/heatmap_{file_label}_{metric}.tsv', 'w') as file:
-            file.write('OGid\tstart\tstop\tnode_id\n')
-            for (OGid, start, stop), node_id in sorted(ids2id.items()):
-                file.write(f'{OGid}\t{start}\t{stop}\t{node_id}\n')
-        tree.write(f'{prefix}/heatmap_{file_label}_{metric}.nwk')
 
         fig, axs = plt.subplots(2, 2, figsize=(7.5, 7.5), gridspec_kw=gridspec_kw)
 
@@ -335,7 +335,7 @@ for min_length in min_lengths:
 
         # Heatmap
         ax = axs[0, 1]
-        im = ax.imshow(array[tip_order], aspect='auto', cmap=plt.colormaps['inferno'], interpolation='none')
+        im = ax.imshow(array, aspect='auto', cmap=plt.colormaps['inferno'], interpolation='none')
         ax.xaxis.set_label_position('top')
         ax.set_xlabel('Features')
         ax.set_xticks([])
