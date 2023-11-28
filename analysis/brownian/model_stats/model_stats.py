@@ -60,6 +60,7 @@ for min_length in min_lengths:
     column_idx = ['OGid', 'start', 'stop', 'disorder']
     region_keys = asr_rates.loc[row_idx, column_idx]
 
+    # Load models
     models = pd.read_table(f'../model_compute/out/models_{min_length}.tsv', header=[0, 1])
     models = region_keys.merge(models.droplevel(1, axis=1), how='left', on=['OGid', 'start', 'stop'])
     models = models.set_index(['OGid', 'start', 'stop', 'disorder'])
