@@ -369,7 +369,7 @@ for min_length in min_lengths:
         ycenter = gridspec_kw['bottom'] / 2
         height = 0.015
         cax = fig.add_axes((xcenter - width / 2, ycenter - height / 2, width, height))
-        cax.set_title('$\mathregular{\log L_{OU} / L_{BM}}$', fontdict={'fontsize': 10})
+        cax.set_title('$\mathregular{\log L_{OU} / L_{BM}}$', fontsize=10)
         fig.colorbar(im, cax=cax, orientation='horizontal')
 
         fig.savefig(f'{prefix}/heatmap_{file_label}_{metric}.png', dpi=600)
