@@ -20,7 +20,6 @@ Only `analysis/` and `src/`, which together contain all code written for this pr
 `analysis/` contains only directories, which serve to group related analyses. Some directories are "orphaned" and no longer contribute to any recent or ongoing analyses, but are included here for completeness. Currently, it contains the following entries:
 - `brownian/`: Application of Brownian motion model to orthologs from NCBI annotations, among other phylogenetic analyses
 - `evofit/`: Fitting various phylogenetic substitution models to alignments
-- `evosim/`: Simulations of evolution of alignments from reconstructed ancestors
 - `GO/`: Analyses using GO terms and the results of other analyses
 - `IDRpred/`: Prediction of IDRs in alignments and other analyses used to partition the data
 - `TFCF/`: Analyses to parse and deduplicate lists of transcription factors and cofactors found in [Stampfel *et al.*](https://pubmed.ncbi.nlm.nih.gov/26550828/) and [Hens *et al.*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3929264/)
