@@ -274,21 +274,47 @@ for min_length in min_lengths:
                    'physchem_group': ('Physiochemical properties', 'white', ''),
                    'complexity_group': ('Repeats and complexity', 'white', 4 * '.'),
                    'motifs_group': ('Motifs', 'white', 4 * '\\')}
-    group_labels = ['aa_group', 'charge_group', 'physchem_group', 'complexity_group', 'motifs_group']
-    group_labels_nonmotif = ['aa_group', 'charge_group', 'physchem_group', 'complexity_group']
+    metagroups = {'all': ['aa_group', 'charge_group', 'physchem_group', 'complexity_group', 'motifs_group'],
+                  'nonmotif': ['aa_group', 'charge_group', 'physchem_group', 'complexity_group']}
     gridspec_kw = {'width_ratios': [0.1, 0.9], 'wspace': 0,
                    'height_ratios': [0.975, 0.025], 'hspace': 0.01,
                    'left': 0.05, 'right': 0.95, 'top': 0.95, 'bottom': 0.125}
 
-    plots = [('euclidean', group_labels, 'all'),
-             ('euclidean', group_labels_nonmotif, 'nonmotif'),
-             ('correlation', group_labels, 'all'),
-             ('correlation', group_labels_nonmotif, 'nonmotif')]
-    for metric, group_labels, file_label in plots:
+    cmap = plt.colormaps['RdBu']
+    cmap.set_under((1.0, 0.0, 1.0))
+    cmap.set_over((0.0, 1.0, 1.0))
+    heatmap_args = {'delta_loglikelihood': {'cmap': plt.colormaps['inferno']},
+                    'mu_OU': {'cmap': cmap, 'vmin': -3, 'vmax': 3}}
+    colorbar_labels = {'delta_loglikelihood': '$\mathregular{\log L_{OU} / L_{BM}}$',
+                       'mu_OU': '$z$-score of $\mathregular{\mu_{OU}}$'}
+    colorbar_args = {'delta_loglikelihood': {},
+                     'mu_OU': {'extend': 'both', 'extendrect': True, 'extendfrac': 0.03}}
+
+    # Make data sets
+    data_set_parameters = [('delta_loglikelihood', 'all', False),
+                           ('delta_loglikelihood', 'nonmotif', False),
+                           ('mu_OU', 'all', True)]
+    data_sets = {}
+    for statistic_label, metagroup_label, normalize in data_set_parameters:
         column_labels = []
-        for group_label in group_labels:
+        for group_label in metagroups[metagroup_label]:
             column_labels.extend([f'{feature_label}_delta_loglikelihood' for feature_label in feature_groups[group_label]])
         data = models.loc[pdidx[:, :, :, True], column_labels]  # Re-arrange columns
+
+        if normalize:
+            data = (data - data.mean()) / data.std()
+
+        data_sets[f'{statistic_label}_{metagroup_label}'] = data
+
+    # Make plots
+    plots = [('euclidean', 'delta_loglikelihood', 'all'),
+             ('euclidean', 'delta_loglikelihood', 'nonmotif'),
+             ('correlation', 'delta_loglikelihood', 'all'),
+             ('correlation', 'delta_loglikelihood', 'nonmotif'),
+             ('euclidean', 'mu_OU', 'all'),
+             ('correlation', 'mu_OU', 'all')]
+    for metric, statistic_label, metagroup_label in plots:
+        data = data_sets[f'{statistic_label}_{metagroup_label}']
         array = np.nan_to_num(data.to_numpy(), nan=1)
 
         # Convert to tree and calculate some useful data structures
@@ -304,11 +330,11 @@ for min_length in min_lengths:
             node_id = int(tip.name)
             OGid, start, stop, disorder = data.iloc[node_id].name
             ids2id[(OGid, start, stop, disorder)] = node_id
-        with open(f'{prefix}/heatmap_{file_label}_{metric}.tsv', 'w') as file:
+        with open(f'{prefix}/heatmap_{statistic_label}_{metagroup_label}_{metric}.tsv', 'w') as file:
             file.write('OGid\tstart\tstop\tdisorder\tnode_id\n')
             for (OGid, start, stop, disorder), node_id in sorted(ids2id.items()):
                 file.write(f'{OGid}\t{start}\t{stop}\t{disorder}\t{node_id}\n')
-        tree.write(f'{prefix}/heatmap_{file_label}_{metric}.nwk')
+        tree.write(f'{prefix}/heatmap_{statistic_label}_{metagroup_label}_{metric}.nwk')
 
         # Get branch colors
         node2color, node2tips = {}, {}
@@ -336,7 +362,7 @@ for min_length in min_lengths:
 
         # Heatmap
         ax = axs[0, 1]
-        im = ax.imshow(array, aspect='auto', cmap=plt.colormaps['inferno'], interpolation='none')
+        im = ax.imshow(array, aspect='auto', interpolation='none', **heatmap_args[statistic_label])
         ax.xaxis.set_label_position('top')
         ax.set_xlabel('Features')
         ax.set_xticks([])
@@ -352,9 +378,9 @@ for min_length in min_lengths:
         ax = axs[1, 1]
         x = 0
         handles = []
-        for group_label in group_labels:
+        for group_label in metagroups[metagroup_label]:
             label, color, hatch = legend_args[group_label]
-            dx = len(feature_groups[group_label]) / len(column_labels)
+            dx = len(feature_groups[group_label]) / len(data.columns)
             rect = Rectangle((x, 0), dx, 1, label=label, facecolor=color, hatch=hatch,
                              edgecolor='black', linewidth=0.75, clip_on=False)
             ax.add_patch(rect)
@@ -369,8 +395,8 @@ for min_length in min_lengths:
         ycenter = gridspec_kw['bottom'] / 2
         height = 0.015
         cax = fig.add_axes((xcenter - width / 2, ycenter - height / 2, width, height))
-        cax.set_title('$\mathregular{\log L_{OU} / L_{BM}}$', fontsize=10)
-        fig.colorbar(im, cax=cax, orientation='horizontal')
+        cax.set_title(colorbar_labels[statistic_label], fontsize=10)
+        fig.colorbar(im, cax=cax, orientation='horizontal', **colorbar_args[statistic_label])
 
-        fig.savefig(f'{prefix}/heatmap_{file_label}_{metric}.png', dpi=600)
+        fig.savefig(f'{prefix}/heatmap_{statistic_label}_{metagroup_label}_{metric}.png', dpi=600)
         plt.close()
